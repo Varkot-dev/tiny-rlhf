@@ -1,0 +1,20 @@
+{
+  "n_pairs": 456,
+  "mean_change_chosen": -6.2517151435216265,
+  "mean_change_rejected": -10.882688873692564,
+  "mean_change_per_token_chosen": -0.07461626044051313,
+  "mean_change_per_token_rejected": -0.19625408584956217,
+  "median_change_per_token_chosen": -0.027469192571780654,
+  "median_change_per_token_rejected": -0.05329325066038676,
+  "frac_both_down": 0.7631578947368421,
+  "frac_chosen_up_rejected_down": 0.1600877192982456,
+  "frac_both_up": 0.017543859649122806,
+  "frac_chosen_down_rejected_up": 0.05921052631578947,
+  "preference_accuracy": 0.6535087719298246,
+  "corr_change_vs_tokens_chosen": -0.022429315353969168,
+  "corr_change_vs_tokens_rejected": -0.07506302322151753,
+  "n_chosen_truncated": 135,
+  "mean_change_per_token_chosen_truncated": -0.03481736419154449,
+  "mean_change_per_token_chosen_not_truncated": -0.09135411400316348,
+  "share_of_rejected_drop_from_top_10pct_pairs": 0.27172386611744787
+}
