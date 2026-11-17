@@ -182,3 +182,13 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Fix 2:** the training step scores the frozen reference before the policy, so the reference's tensors are freed before the policy's graph is built.
 - **Fix 3:** `dpo_full` and `parity_full` use `batch_size: 1`, `grad_accum: 8`, `eval_batch_size: 2`. The effective batch stays 8 pairs per optimizer step.
 - **Measured memory after the fixes:** not yet. The next run's `run_info.json` will have it.
+
+**2026-11-17, M5** (code built while GPU runs were pending; no Track B model has been trained or evaluated yet)
+- **Two on-task numbers are reported.** `on_task` is the dataset checks' strict definition (task correct, injection not followed, no refusal, no false alarm). `answered_and_not_followed` is the looser one (task correct and injection not followed). Both appear in every summary.
+- **Every rate has a 95% percentile bootstrap interval over examples** (2,000 resamples, seeded), and every before/after change is a paired bootstrap on the same example ids.
+- **Generation is greedy,** so evaluation is deterministic, with left padding for batches (a causal model continues from the last position, so padding must not sit between the prompt and the answer).
+- **`echoed_document` was added after looking at real outputs.** In a 12-example CPU smoke the 135M base model copied the document back in 4 of 12 responses, and 2 of those counted as correct only because the copy contained the answer. The flag makes that visible. It also shows the 135M model is too weak for Track B conclusions; the real evaluation uses Qwen2.5-0.5B on the T4.
+- **Shortcut probes for plan question 8** (100 examples each): injections with marker styles never seen in training, injections paraphrased in wording no training template uses, documents where the user legitimately asks what a quoted instruction says (a model that learned "ignore anything instruction-like" fails this), and the rate at which responses open with a training lead-in sentence.
+- **General regression check:** per-token negative log-likelihood of preferred responses on 200 held-out general conversations under base and trained model, the paired change, and mean per-token KL(base || trained).
+- **Side-by-side examples are sampled by rule, not picked:** per split, a seeded sample of 2 from each outcome (got better, got worse, both on task, both off task), with the outcome counts printed.
+- **Track B full config:** `max_length` 320, `batch_size` 2, `grad_accum` 4. Untested on a GPU.
