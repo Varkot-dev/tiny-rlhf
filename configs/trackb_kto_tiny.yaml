@@ -1,0 +1,30 @@
+# KTO smoke test on a CPU: SmolLM2-135M, 100 Track B pairs (200 answers). Checks that the
+# loop runs end to end; the numbers are not a result.
+run_name: trackb_kto_tiny
+model_name: HuggingFaceTB/SmolLM2-135M-Instruct
+dataset_name: data/trackb
+n_train: 100
+n_eval: 24
+max_length: 320
+beta: 0.1
+desirable_weight: 1.0
+undesirable_weight: 1.0
+lr: 2.0e-4
+weight_decay: 0.0
+warmup_ratio: 0.1
+epochs: 1
+batch_size: 4
+grad_accum: 1
+max_grad_norm: 1.0
+eval_every: 10
+eval_batch_size: 8
+seed: 0
+use_lora: true
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.0
+lora_target_modules: [q_proj, v_proj]
+amp: auto
+device: auto
+max_steps: null
+save_adapter: true
