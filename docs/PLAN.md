@@ -72,7 +72,7 @@ A 0.5B-parameter model with LoRA, sequences under 512 tokens, small batches with
 
 | # | Milestone | Done when |
 |---|---|---|
-| M0 | `sequence_logprob`, `dpo_loss`, `bradley_terry_loss` in PyTorch | Tests pass: loss is log 2 when policy equals reference; gradients raise the preferred response and lower the other; masking matches a hand-computed example |
+| M0 (done 2026-11-17) | `sequence_logprob`, `dpo_loss`, `bradley_terry_loss` in PyTorch | Tests pass: loss is log 2 when policy equals reference; gradients raise the preferred response and lower the other; masking matches a hand-computed example |
 | M1 | Hand-written DPO training on the standard dataset | Tiny config then full run, logging loss, reward margin, preference accuracy and preferred log-probability |
 | M2 | TRL parity run | One figure overlays both sets of curves |
 | M3 | Reward model | Held-out accuracy reported, plus the implicit vs explicit reward comparison |
@@ -104,4 +104,17 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 10. On-policy, off-policy and offline learning: where does DPO sit?
 
 ## Decision log
-(empty)
+
+**2026-11-17, M0**
+- **Library versions checked on PyPI today:** torch 2.15.0, transformers 5.23.0, trl 1.18.0, peft 0.21.3, datasets 5.2.0, accelerate 1.16.0. M0 depends on torch only. The others get pinned when the milestone that needs them starts.
+- **TRL API, to settle in M2:** the current docs pass `processing_class=` to `DPOTrainer` (older versions used `tokenizer=`), put `beta`, `loss_type` and `label_smoothing` on `DPOConfig`, and describe `label_smoothing` in connection with the `robust` loss type. Section 4 says "TRL's label-smoothing option"; before the label-noise experiment, read the installed TRL source to see exactly which loss types use it.
+- **Model and dataset choice not re-checked yet.** Section 3 asks whether a newer small instruct model beats `Qwen/Qwen2.5-0.5B-Instruct`. That check needs huggingface.co, which the development container could not reach on this date, so it moves to the start of M1.
+- **Python:** developed on 3.13, CI runs 3.11 and 3.13. `requires-python` stays `>=3.11`.
+- **`sequence_logprob` takes an explicit boolean response mask**, not labels with -100 (the Hugging Face convention). Reason: the mask is the thing section 2 says people get wrong, so it is a named argument that tests can target. It also raises if position 0 is marked as response, because a causal LM has no prediction for the first token.
+- **The one-position shift lives inside `sequence_logprob`.** Callers pass logits and input_ids as the model saw them. One place to get the alignment right, one test that would catch an off-by-one.
+- **Masked positions are zeroed with `torch.where`, not by multiplying by the mask.** A masked token with probability 0 has log-probability -inf, and -inf times 0 is nan. A test covers this.
+- **Half-precision logits are upcast to float32 before `log_softmax`; float32 and float64 are left alone.** Float64 is kept so tests can compare against hand-computed values to 1e-12.
+- **`dpo_loss` calls `bradley_terry_loss`** on the implicit reward beta * (log pi - log pi_ref) instead of repeating the formula, so the code states the identity the derivation rests on. Reference log-probabilities are detached inside `dpo_loss` as a safety net.
+- **Preference accuracy counts ties as wrong** (margin must be strictly positive). At step 0 the margin is exactly 0 for every pair, so accuracy starts at 0, not 0.5. To revisit in M2 if TRL's logged accuracy uses a different convention.
+- **Added an M0 figure that section 7 does not list:** `assets/m0_loss_shape.png`, the loss and its gradient as functions of the log-ratio difference. It shows the loss function, not a result, and the README says so. It also fixes the plot style (`src/tiny_rlhf/plotting.py`) for later figures.
+- **Tests were mutation-checked by hand:** removing the shift, removing the mask, multiplying by the mask, swapping chosen and rejected, dropping beta, and ignoring the reference each make at least one test fail.
