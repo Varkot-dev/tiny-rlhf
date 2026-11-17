@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import math
 from pathlib import Path
 
@@ -139,6 +140,14 @@ def make_figure(run_dir: Path, out_path: Path) -> None:
         raise SystemExit(f"no train.csv or eval.csv with rows found in {run_dir}")
     config_path = run_dir / "config.yaml"
     config = (yaml.safe_load(config_path.read_text()) or {}) if config_path.exists() else {}
+    # The config holds the number of pairs asked for. Some are dropped when the prompt
+    # alone fills max_length, so prefer the counts the run actually used.
+    info_path = run_dir / "run_info.json"
+    if info_path.exists():
+        info = json.loads(info_path.read_text())
+        for config_key, info_key in (("n_train", "n_train_pairs"), ("n_eval", "n_eval_pairs")):
+            if info.get(info_key) is not None:
+                config[config_key] = info[info_key]
 
     n_steps = len(train.get("step", []))
     window = max(1, min(25, n_steps // 5)) if n_steps else 1
