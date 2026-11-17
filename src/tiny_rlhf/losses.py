@@ -62,7 +62,10 @@ def sequence_logprob(logits: Tensor, input_ids: Tensor, response_mask: Tensor) -
     targets = input_ids[:, 1:]
     target_mask = mask[:, 1:]
 
-    log_probs = F.log_softmax(pred_logits.float(), dim=-1)
+    # Half-precision logits lose too much in a sum over a long response; float64 is kept.
+    if pred_logits.dtype in (torch.float16, torch.bfloat16):
+        pred_logits = pred_logits.float()
+    log_probs = F.log_softmax(pred_logits, dim=-1)
     token_logps = log_probs.gather(dim=-1, index=targets.unsqueeze(-1)).squeeze(-1)
     # torch.where, not multiplication: a -inf at a masked position times 0 would be nan.
     token_logps = torch.where(target_mask, token_logps, torch.zeros_like(token_logps))
