@@ -15,7 +15,7 @@ It is a picture of the loss function, not of a trained model.
 | M0 loss functions | done | not applicable |
 | M1 hand-written DPO training | done | tiny runs on CPU and on a Colab T4; full run not done |
 | M2 TRL parity | done | tiny pair on CPU; full pair not done |
-| M3 reward model | done | none yet |
+| M3 reward model | done | tiny run on CPU; full run not done |
 | M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
 | M5 Track B training and evaluation | done | none yet |
 | M6 ablation sweeps and write-up | sweep tooling done | none yet |
@@ -42,6 +42,17 @@ This is evidence that the hand-written implementation computes what TRL computes
 ![Training curves for the tiny CPU run](assets/m1_training_dpo_tiny.png)
 
 `configs/dpo_tiny.yaml`, same model and data sizes but with shuffling: held-out loss 0.693147 before training and 0.6826 after 41 steps, with 31 of 42 held-out pairs ranked the right way relative to the reference (`results/dpo_tiny/`). The same config on a Colab T4 under fp16 gave 0.6825 and 30 of 42 in 19.75 seconds with a 3.9 GB peak (`results/dpo_tiny_t4/`). The exact-order parity run above ended at 26 of 42. Forty-two pairs is far too few to read anything into those differences, and more than half of the responses were cut at 256 tokens.
+
+### Reward model next to DPO's implicit reward
+
+![Reward model margins against DPO implicit reward margins on held-out pairs](assets/m3_reward_vs_dpo_reward_tiny.png)
+
+`configs/reward_tiny.yaml` trains an explicit reward model (the same 135M backbone with a LoRA adapter and a linear head, Bradley-Terry loss) on the same 162 pairs for 41 steps on CPU, and scores the same 42 held-out pairs as the `parity_tiny` DPO run; the two runs' held-out sets are checked to be identical by fingerprint. Numbers are from `results/reward_tiny/reward_vs_dpo.json`.
+
+- Reward model held-out accuracy: 27 of 42 (0.64, 95% bootstrap interval 0.50 to 0.79). DPO implicit reward: 26 of 42 (0.62, interval 0.48 to 0.76).
+- The two prefer the same response on 33 of 42 pairs (0.79, interval 0.67 to 0.90). Spearman correlation of their margins is 0.57.
+
+Both intervals include 0.5, so at this size neither model is shown to beat a coin flip. This checks that the comparison pipeline works. The M3 result needs the full run.
 
 ### REINFORCE on an enumerable toy
 
