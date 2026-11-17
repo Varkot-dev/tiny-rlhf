@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import csv
 import dataclasses
-import hashlib
 import json
 import math
 import time
@@ -27,7 +26,7 @@ import torch
 import yaml
 from torch import Tensor, nn
 
-from tiny_rlhf.data import PreferenceCollator, TokenizedPair, truncation_stats
+from tiny_rlhf.data import PreferenceCollator, TokenizedPair, pairs_fingerprint, truncation_stats
 from tiny_rlhf.losses import bradley_terry_loss
 from tiny_rlhf.train_dpo import (
     git_sha,
@@ -216,22 +215,6 @@ def bootstrap_ci(
     tail = (1.0 - level) / 2.0
     lo, hi = torch.quantile(means, torch.tensor([tail, 1.0 - tail], dtype=torch.float64))
     return lo.item(), hi.item()
-
-
-def pairs_fingerprint(pairs: list[TokenizedPair], max_length: int | None) -> str:
-    """sha256 over the token ids of the pairs, in order, plus max_length.
-
-    Two runs with the same fingerprint scored the same held-out pairs in the same
-    order with the same truncation, so their per-pair rows can be joined on pair_index.
-    """
-    payload = json.dumps(
-        {
-            "max_length": max_length,
-            "pairs": [[p.prompt_ids, p.chosen_ids, p.rejected_ids] for p in pairs],
-        },
-        separators=(",", ":"),
-    )
-    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 def plan_steps(n_pairs: int, cfg: RewardConfig) -> tuple[int, int]:

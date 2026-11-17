@@ -428,3 +428,21 @@ def test_empty_eval_set_is_rejected(tmp_path: Path) -> None:
     policy = tiny_model()
     with pytest.raises(ValueError, match="non-empty"):
         train(make_cfg(), policy, copy.deepcopy(policy), make_pairs(4), [], PAD, tmp_path / "r")
+
+
+def test_shuffle_false_visits_pairs_in_dataset_order() -> None:
+    from tiny_rlhf.train_dpo import epoch_steps
+
+    generator = torch.Generator().manual_seed(0)
+    cfg = make_cfg(batch_size=2, grad_accum=2, shuffle=False)
+    assert epoch_steps(7, cfg, generator) == [[[0, 1], [2, 3]], [[4, 5], [6]]]
+    assert epoch_steps(7, cfg, generator) == [[[0, 1], [2, 3]], [[4, 5], [6]]]  # every epoch
+    shuffled = epoch_steps(7, make_cfg(batch_size=2, grad_accum=2), generator)
+    assert sorted(i for step in shuffled for micro in step for i in micro) == list(range(7))
+
+
+@pytest.mark.parametrize("name", ["parity_tiny.yaml", "parity_full.yaml"])
+def test_parity_configs_load_and_fix_the_order(name: str) -> None:
+    cfg = load_config(Path(__file__).resolve().parents[1] / "configs" / name)
+    assert cfg.shuffle is False
+    assert cfg.lora_dropout == 0.0

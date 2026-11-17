@@ -18,6 +18,8 @@ implementations the same token sequences:
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -167,6 +169,22 @@ def truncation_stats(pairs: list[TokenizedPair], max_length: int | None) -> dict
         "mean_rejected_tokens_scored": sum(rejected_kept) / n,
         "mean_prompt_tokens": sum(len(p.prompt_ids) for p in pairs) / n,
     }
+
+
+def pairs_fingerprint(pairs: list[TokenizedPair], max_length: int | None) -> str:
+    """sha256 over the token ids of the pairs, in order, plus max_length.
+
+    Two runs with the same fingerprint scored the same held-out pairs in the same
+    order with the same truncation, so their per-pair rows can be joined on pair_index.
+    """
+    payload = json.dumps(
+        {
+            "max_length": max_length,
+            "pairs": [[p.prompt_ids, p.chosen_ids, p.rejected_ids] for p in pairs],
+        },
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 def load_pairs(

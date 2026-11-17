@@ -27,7 +27,7 @@ import torch
 import yaml
 from torch import Tensor, nn
 
-from tiny_rlhf.data import PreferenceCollator, TokenizedPair, truncation_stats
+from tiny_rlhf.data import PreferenceCollator, TokenizedPair, pairs_fingerprint, truncation_stats
 from tiny_rlhf.losses import dpo_loss, sequence_logprob
 
 LOG2 = math.log(2.0)
@@ -75,6 +75,9 @@ class DPOConfig:
     eval_every: int = 10  # in optimizer steps
     eval_batch_size: int = 8
     seed: int = 0
+    # false: visit pairs in dataset order every epoch. Used by the parity run, so that
+    # this loop and TRL see identical batches and can be compared step by step.
+    shuffle: bool = True
     use_lora: bool = True
     lora_r: int = 8
     lora_alpha: int = 16
@@ -242,12 +245,16 @@ def plan_steps(n_pairs: int, cfg: DPOConfig) -> tuple[int, int]:
 
 
 def epoch_steps(n_pairs: int, cfg: DPOConfig, generator: torch.Generator) -> list[list[list[int]]]:
-    """Shuffle pair indices, cut into micro-batches, group micro-batches into optimizer steps.
+    """Order pair indices, cut into micro-batches, group micro-batches into optimizer steps.
 
     Returns steps[s][m] = list of pair indices in micro-batch m of optimizer step s.
     Every pair is used once per epoch; the last step of an epoch may be smaller.
+    The order is a fresh seeded shuffle each epoch, or dataset order if cfg.shuffle is false.
     """
-    order = torch.randperm(n_pairs, generator=generator).tolist()
+    if cfg.shuffle:
+        order = torch.randperm(n_pairs, generator=generator).tolist()
+    else:
+        order = list(range(n_pairs))
     micro = [order[i : i + cfg.batch_size] for i in range(0, n_pairs, cfg.batch_size)]
     return [micro[i : i + cfg.grad_accum] for i in range(0, len(micro), cfg.grad_accum)]
 
@@ -433,6 +440,7 @@ def train(
 
     run_info = {
         "run_name": cfg.run_name,
+        "implementation": "handwritten",
         "wall_time_s": round(wall_time, 2),
         "optimizer_steps": step,
         "steps_per_epoch": steps_per_epoch,
@@ -452,6 +460,9 @@ def train(
         "n_eval_pairs": len(eval_pairs),
         "truncation_train": truncation_stats(train_pairs, cfg.max_length),
         "truncation_eval": truncation_stats(eval_pairs, cfg.max_length),
+        # Lets another run (the reward model, the TRL run) prove it scored the same
+        # held-out pairs in the same order before per-pair rows are joined.
+        "eval_pairs_sha256": pairs_fingerprint(eval_pairs, cfg.max_length),
         "seed": cfg.seed,
         "git_sha": git_sha(),
         "versions": library_versions(),
@@ -460,11 +471,13 @@ def train(
     return run_info
 
 
-def main(cfg: DPOConfig, results_root: str | Path = "results") -> dict[str, Any]:
-    """Load tokenizer, both models and the data from the Hugging Face Hub, then train."""
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+def load_models(cfg: DPOConfig) -> tuple[Any, nn.Module, nn.Module]:
+    """Load the tokenizer, the trainable policy and the frozen reference from the Hub.
 
-    from tiny_rlhf.data import load_pairs
+    Shared with the TRL parity run (train_trl.py) so both start from identical weights,
+    including the random LoRA initialisation.
+    """
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
     torch.manual_seed(cfg.seed)  # LoRA's A matrices are randomly initialised
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
@@ -492,7 +505,14 @@ def main(cfg: DPOConfig, results_root: str | Path = "results") -> dict[str, Any]
                 task_type="CAUSAL_LM",
             ),
         )
+    return tokenizer, policy, reference
 
+
+def main(cfg: DPOConfig, results_root: str | Path = "results") -> dict[str, Any]:
+    """Load tokenizer, both models and the data from the Hugging Face Hub, then train."""
+    from tiny_rlhf.data import load_pairs
+
+    tokenizer, policy, reference = load_models(cfg)
     train_pairs = load_pairs(
         cfg.dataset_name, "train", cfg.n_train, cfg.seed, tokenizer, cfg.max_length
     )
