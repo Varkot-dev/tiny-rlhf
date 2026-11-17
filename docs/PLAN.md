@@ -79,6 +79,7 @@ A 0.5B-parameter model with LoRA, sequences under 512 tokens, small batches with
 | M4 (done 2026-11-17) | Track B dataset with a datasheet (how it was made, splits, known weaknesses) | Splits verified to share no held-out categories |
 | M5 (done 2026-11-17, negative first result) | Track B training and evaluation | Before/after table with confidence intervals |
 | M6 | Ablations, write-up, polish | README complete, repo ready to make public |
+| M7 (extension, added by the owner 2026-11-17) | KTO against DPO on Track B: does the same data as good/bad labels teach the behavior as well as pairs? | Hand-written KTO loss matches TRL's KTOTrainer on a tiny model; KTO trained on the Track B pairs split into single good and bad examples, evaluated exactly like the DPO runs, with a comparison table and figure with confidence intervals |
 
 ## 7. Visuals
 - **Hero:** before/after bar chart of the target behavior next to ordinary-task quality, with error bars.
@@ -286,3 +287,8 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 
 **2026-11-17, M2 parity run shortened to 100 steps**
 - `configs/parity_full.yaml` now stops at step 100 and evaluates at steps 0, 50 and 100. Parity needs enough steps to compare the two runs step by step, not a full epoch, and the full 462-step float32 pair was estimated at well over two hours of free Colab time. Both implementations get the same shortened schedule.
+
+**2026-11-17, M7 added: KTO against DPO** (the owner's request)
+- **Question:** RLHF and DPO learn from pairs ("A is better than B"). KTO (Ethayarajh et al., 2024) learns from single answers labelled good or bad. With the same Track B data and the same evaluation, does one teach the behavior better, and which damages the model less?
+- **Fair comparison:** KTO gets the same examples DPO saw, with each pair split into one good and one bad answer, so the information differs only in that KTO never sees which two answers belong together.
+- **Built after the current GPU runs,** in new files only, so the running Colab session is not affected.
