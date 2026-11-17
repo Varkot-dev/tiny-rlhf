@@ -236,3 +236,9 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **The general regression check scores response positions only,** in chunks, with batch size 2. Its first version would have used about 11.5 GB on the T4.
 - **Bootstrap helpers moved to `tiny_rlhf/stats.py`.** The reward model keeps its own torch-based interval so that saved reward runs stay reproducible.
 - **Reviewed and found correct:** the rewritten `sequence_logprob`, the retry loop's GradScaler semantics (simulated on CPU), the TRL parity tests (not circular; TRL's own logged values, gradients and weights are compared), reward-model pooling and loss weighting, the paired bootstrap, left-padded generation, the robust loss against TRL's source, and the REINFORCE estimator, baseline and closed form.
+
+**2026-11-17, one-hour Colab session**
+- **`docs/COLAB_ONE_HOUR.md` runs M5 and then, if time is left, M3** in a single cell, with live output, a push after every finished step, failure logs committed to `results/colab_failures/`, and one automatic retry with half the micro-batch after an out-of-memory error.
+- **Track B is evaluated on the first 150 examples of each test split** (all 100 of each probe set) to halve generation time. Each slice contains all three kinds of example. Base and trained evaluations use identical settings, which the comparison script enforces.
+- **Rehearsed before handing over:** every command in the cell ran end to end on CPU with SmolLM2 and tiny settings, and the cell's own helpers (streaming, push, failure record, retry) were tested against a scratch git remote. The reward run is confirmed to score the same 456 held-out pairs as `dpo_full_t4` (same fingerprint).
+- **The unfinished queue runner** from a subagent that hit a usage limit was moved out of the repo; nothing of it was committed.
