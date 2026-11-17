@@ -304,3 +304,7 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 **2026-11-17, third Colab session**
 - **The session cloned the code four minutes before the shortened parity run's new time estimate was pushed,** so the queue still budgeted 75 minutes for M2 and skipped it. It ran the beta sweep's first value instead (`results/sweep_beta_0.01`: 907 seconds, 8.8 GB peak). No job failed.
 - **With the current estimates M2's two runs will usually land in different sessions** (the queue does not start a job that does not fit the time left). That is fine: each run is pushed when it finishes and the parity figure is drawn once both exist.
+
+**2026-11-17, an old cell reran the tiny T4 run**
+- An earlier one-run Colab cell (`configs/dpo_tiny.yaml`, run name `dpo_tiny_t4`) was run again at 21:37 UTC and overwrote `results/dpo_tiny_t4`, which the README quotes. The original files were restored from git, and the rerun was kept as `results/dpo_tiny_t4_rerun`.
+- **The rerun is a useful reproducibility check:** it used code from after the `sequence_logprob` rewrite and the fp16 retry change, and ended at held-out loss 0.6829 against the original 0.6825 (19.21 s against 19.75 s, step-0 loss log 2 in both). The scoring rewrite did not change results beyond fp16 noise.
