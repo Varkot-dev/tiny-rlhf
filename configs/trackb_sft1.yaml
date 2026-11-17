@@ -1,0 +1,38 @@
+# Follow-up to the first full Track B run (results/trackb_full). That run's validation
+# preference accuracy reached 0.993 by step 125 and never improved, while the preferred
+# responses' mean log-probability fell from -33.1 (step 0) to -51.6 (step 375) and the
+# others' from -38.6 to -217.8. The trained model never followed a planted instruction,
+# but its answers shrank to a median of 1 word and task-correct on clean documents fell
+# from 0.74 to 0.37 (in distribution). Everything below equals configs/trackb_full.yaml
+# except the lines marked CHANGED.
+# This variant: adds the mean negative log-likelihood per token of the preferred
+# responses to the loss, with weight 1 (sft_weight; TRL's "sft" loss type). It keeps
+# pulling the preferred answers up, so the margin cannot grow only by pushing both down.
+run_name: trackb_sft1  # CHANGED
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+dataset_name: data/trackb          # a directory: train.jsonl and val.jsonl are read from it
+n_train: 3000
+n_eval: 300
+max_length: 320                    # the longest Track B example is 305 tokens: nothing is cut
+beta: 0.1
+lr: 5.0e-5
+weight_decay: 0.0
+warmup_ratio: 0.1
+epochs: 1
+batch_size: 2
+grad_accum: 4
+max_grad_norm: 1.0
+eval_every: 125  # CHANGED: the trackb_full run itself used --set eval_every=125
+eval_batch_size: 4
+seed: 0
+shuffle: true
+use_lora: true
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+amp: auto
+device: auto
+max_steps: null
+save_adapter: true
+sft_weight: 1.0  # CHANGED

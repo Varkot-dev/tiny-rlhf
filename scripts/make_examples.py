@@ -59,7 +59,8 @@ def main() -> None:
     args = parse_args()
     base_path, trained_path = Path(args.base), Path(args.trained)
     base, trained = json.loads(base_path.read_text()), json.loads(trained_path.read_text())
-    out = Path(args.out) if args.out else base_path.parent.parent / "examples.md"
+    # Next to the trained run, which may differ from the base evaluation's run.
+    out = Path(args.out) if args.out else trained_path.parent.parent / "examples.md"
     lines = [
         "# Track B: the same prompts, before and after training\n",
         f"Base: `{base.get('model')}`. Trained: the same model with the adapter "

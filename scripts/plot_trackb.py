@@ -61,9 +61,13 @@ def draw_panel(ax, summaries: dict[str, dict], splits: list[str], group: str, me
     width = 0.36
     for k, (label, summary) in enumerate(summaries.items()):
         stats = [summary["splits"][s]["groups"][group]["metrics"][metric] for s in splits]
-        rates = np.array([st["rate"] for st in stats])
-        low = rates - np.array([st["ci_low"] for st in stats])
-        high = np.array([st["ci_high"] for st in stats]) - rates
+        # A split with no examples in this group has no rate; it is drawn as an empty slot
+        # (its x label shows n = 0) instead of crashing the figure.
+        rates = np.array([np.nan if st["rate"] is None else st["rate"] for st in stats])
+        low = rates - np.array([np.nan if st["ci_low"] is None else st["ci_low"] for st in stats])
+        high = (
+            np.array([np.nan if st["ci_high"] is None else st["ci_high"] for st in stats]) - rates
+        )
         # A 0.04 gap between the two bars of a pair keeps them visually separate.
         pos = x + (k - 0.5) * (width + 0.04)
         ax.bar(pos, rates, width, color=SERIES[k], label=label, zorder=2)
@@ -78,6 +82,8 @@ def draw_panel(ax, summaries: dict[str, dict], splits: list[str], group: str, me
             zorder=3,
         )
         for p, rate, top in zip(pos, rates, rates + high, strict=True):
+            if np.isnan(rate):
+                continue
             ax.annotate(
                 f"{rate:.2f}",
                 xy=(p, min(top, 1.0)),
@@ -134,7 +140,8 @@ def main() -> None:
     )
     fig.patch.set_facecolor(SURFACE)
     fig.tight_layout(rect=(0, 0.06, 1, 0.94), w_pad=2)
-    run = base_path.resolve().parent.parent.name
+    # Named after the trained run: several variants share trackb_full's base evaluation.
+    run = trained_path.resolve().parent.parent.name
     out = Path(args.out) if args.out else ROOT / "assets" / f"m5_trackb_{run}.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out)

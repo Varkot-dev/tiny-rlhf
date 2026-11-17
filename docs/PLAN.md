@@ -77,7 +77,7 @@ A 0.5B-parameter model with LoRA, sequences under 512 tokens, small batches with
 | M2 | TRL parity run | One figure overlays both sets of curves |
 | M3 | Reward model | Held-out accuracy reported, plus the implicit vs explicit reward comparison |
 | M4 (done 2026-11-17) | Track B dataset with a datasheet (how it was made, splits, known weaknesses) | Splits verified to share no held-out categories |
-| M5 | Track B training and evaluation | Before/after table with confidence intervals |
+| M5 (done 2026-11-17, negative first result) | Track B training and evaluation | Before/after table with confidence intervals |
 | M6 | Ablations, write-up, polish | README complete, repo ready to make public |
 
 ## 7. Visuals
@@ -250,3 +250,25 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Truncated preferred responses lost less per token** (-0.035 against -0.091). This follows from the previous points (totals do not grow with length, so long responses have smaller per-token changes) and is not evidence that truncation itself matters.
 - **Pairs by quadrant:** both responses down 76%, preferred up and other down 16%, preferred down and other up 6%, both up 2%.
 - **Hypothesis, not yet tested:** the update mostly lowers probability on tokens shared by both kinds of answer and lowers it more on the dispreferred ones. A larger beta (the beta sweep) should shrink both drops; whether it keeps the preferred response from falling is the question that sweep can answer.
+
+**2026-11-17, resumable GPU queue**
+- **`scripts/colab_queue.py` holds every remaining GPU job as data** (M5, M3, M2, then one job per sweep value), with dependencies, a completion marker per job and a rough time estimate. `docs/COLAB_QUEUE.md` is the one cell that runs it within a time budget. It does not start a job that will not fit, pushes after every finished job, commits failure logs, and skips finished work on the next launch.
+- **The jobs reuse the exact commands of the one-hour cell,** and a test enforces the match, so results from either path can be compared.
+- **Rehearsed end to end on CPU** through the real runner with every config shrunk to SmolLM2, 8 pairs and 2 steps, pushing to a scratch remote, then again from a fresh clone to confirm finished jobs are skipped. The time estimates (about 490 minutes in total) are guesses; only the full DPO run has been timed.
+- **The hero figure no longer crashes when a split has no examples in a group,** which the rehearsal found at a tiny limit. That cannot happen at the real limit of 150, but the figure now leaves an empty slot.
+
+**2026-11-17, first full Track B run (`results/trackb_full/`): over-optimization, M5 criteria met**
+- **Measured on a Colab T4:** 375 steps in 585 seconds, 7.3 GB peak, 3 fp16 step retries, step-0 loss log 2. Base and trained evaluations: first 150 examples of each test split plus all three probe sets, greedy decoding.
+- **Result:** the trained model followed no planted instruction anywhere (0.00 on every split and probe), but task-correct on clean documents fell on every split (pooled over the five splits by an ad hoc computation: 0.78 to 0.36), because 98% of its answers are one or two words. On general conversations NLL per token rose by 1.21 (interval 0.94 to 1.55) and KL from the base model is 1.06 per token.
+- **Reading:** a shortcut, not the behavior. The model learned to say almost nothing, which defeats every injection and also the task. Which cue drove the model toward ending answers early is not established. Response length in the training pairs does not explain it directly: preferred responses are slightly longer than rejected ones (median 9 words against 7, per the datasheet). The probes and the clean-document metric, built for plan question 8, are what exposed it.
+- **Cause, as far as the logs show:** validation accuracy was 0.993 at step 125 and flat after; the preferred responses' log-probability then fell from -35.2 to -59.5 by step 250. The pairs were separated early and the remaining steps only pushed probabilities down, as in the M1 run but far stronger.
+- **Follow-up runs prepared, not yet run:** beta 0.5 (stronger pull to the reference); stopping at step 60; and an added negative log-likelihood term on the preferred responses (`sft_weight` 1.0, the same as TRL's `loss_type=["sigmoid", "sft"]`), which directly penalises the preferred answers becoming less likely.
+- **The M5 "done when" criterion (a before/after table with confidence intervals) is met.** The behavior is not achieved. M5 is ticked on the criterion, and the follow-ups decide what the write-up can claim.
+- **The comparison warned that base and trained evaluations ran at different commits** (a5bb6d7 and 5a492b6). `git diff` between them shows no change to `src/tiny_rlhf/trackb/`, `scripts/eval_trackb.py`, `src/tiny_rlhf/stats.py` or `data/trackb/`; the commits in between added an analysis script and documentation only. The comparison is valid.
+
+**2026-11-17, Track B follow-up prepared (stage `m5_followup` in the queue; not yet run)**
+- **Three variants of `trackb_full`, each changing one thing:** `trackb_beta0.5` (beta 0.5, a stronger pull toward the reference); `trackb_steps60` (60 steps instead of 375, stopping before the plateau seen at step 125; the cap also shortens the learning-rate schedule, so it is a shorter run rather than an early stop of the same run); `trackb_sft1` (`sft_weight` 1.0).
+- **`sft_weight` adds the mean negative log-likelihood per token of the preferred responses** to the DPO loss, matching TRL 1.18.0's `loss_type=["sigmoid", "sft"]` with `loss_weights=[1, sft_weight]` (a token-weighted mean over the micro-batch, not a mean of per-response means). Tests match TRL's loss and gradients at weight 0.5 and confirm that weight 0 is bit-identical to the plain loop. `train.csv` keeps `loss` as the DPO loss, so it still starts at log 2; `sft_nll` and `total_loss` columns are added only when the weight is positive.
+- **All variants are evaluated with exactly the M5 settings and compared against the same base-model evaluation** (`results/trackb_full/trackb_eval/summary_base.json`), and `scripts/plot_trackb_variants.py` puts base, `trackb_full` and the variants side by side: injection followed, task correct on clean documents, median answer length, and the general-text NLL change.
+- **Bug caught before it ran:** the comparison, figure and examples scripts wrote their outputs next to the base summary's run. With one shared base, every variant comparison would have overwritten `trackb_full`'s table, figure and examples. They now write next to the trained run, and a test guards it.
+- **Queue estimates for M5 now use the measured times** from `results/trackb_full` instead of guesses.

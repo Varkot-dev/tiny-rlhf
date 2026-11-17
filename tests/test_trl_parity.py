@@ -310,3 +310,67 @@ def test_trl_run_info_records_skips_and_the_held_out_fingerprint(tmp_path: Path)
     assert info["skipped_optimizer_steps"] == []  # float32 on a CPU: no scaler, no skips
     assert info["eval_pairs_sha256"] == pairs_fingerprint(pairs, cfg.max_length)
     assert not (out / "parity_summary.json").exists()
+
+
+def test_sft_term_matches_trl_on_the_same_batch(tmp_path: Path) -> None:
+    # DPO plus 0.5 * mean NLL per preferred token, against TRL's
+    # loss_type=["sigmoid", "sft"], loss_weights=[1.0, 0.5].
+    from tiny_rlhf.train_dpo import sft_nll
+
+    weight = 0.5
+    cfg = make_cfg(sft_weight=weight)
+    args = build_trl_args(cfg, 8, tmp_path / "args_check")
+    assert args.loss_type == ["sigmoid", "sft"] and args.loss_weights == [1.0, weight]
+    trainer, pairs, _ = make_trainer(cfg, tmp_path)
+    our_policy = make_model()
+    our_reference = make_model(seed=1)
+
+    batch = PreferenceCollator(pad_token_id=0, max_length=32)(pairs[:4])
+    pol_c, pol_r = pair_logps(our_policy, batch)
+    with torch.no_grad():
+        ref_c, ref_r = pair_logps(our_reference, batch)
+    dpo = dpo_loss(pol_c, pol_r, ref_c, ref_r, beta=BETA).loss
+    nll = sft_nll(pol_c, batch["response_mask"])
+    ours = dpo + weight * nll
+    ours.backward()
+
+    trainer.model.train()
+    trl_batch = trainer.data_collator([trainer.train_dataset[i] for i in range(4)])
+    trl_loss = trainer.compute_loss(trainer.model, trl_batch)
+    trl_loss.backward()
+
+    assert nll.item() > 0.5  # the sft term is not negligible next to the DPO term
+    assert trl_loss.item() == pytest.approx(ours.item(), abs=1e-5)
+    ours_grad = torch.cat([p.grad.flatten() for p in our_policy.parameters()])
+    trl_grad = torch.cat([p.grad.flatten() for p in trainer.model.parameters()])
+    cosine = torch.nn.functional.cosine_similarity(ours_grad, trl_grad, dim=0).item()
+    relative = ((ours_grad - trl_grad).norm() / ours_grad.norm()).item()
+    assert cosine > 1 - 1e-6
+    assert relative < 1e-4
+
+
+def test_training_with_the_sft_term_agrees_with_trl(tmp_path: Path) -> None:
+    cfg = make_cfg(sft_weight=0.5)
+    tokenizer = make_tokenizer()
+    rows, pairs = keep_rows_that_fit(make_rows(8), tokenizer, cfg.max_length)
+    ours_policy = make_model()
+    train(cfg, ours_policy, make_model(), pairs, pairs, 0, tmp_path / "ours")
+    trl_policy = make_model()
+    info = train_with_trl(
+        cfg, trl_policy, make_model(), tokenizer, rows, rows, pairs, pairs, tmp_path / "trl"
+    )
+    assert info["sft_weight"] == 0.5 and info["first_eval_loss"] is None
+
+    ours_rows = read_rows(tmp_path / "ours" / "train.csv")
+    trl_rows = read_rows(tmp_path / "trl" / "train.csv")
+    assert [r["step"] for r in ours_rows] == [r["step"] for r in trl_rows]
+    for a, b in zip(ours_rows, trl_rows, strict=True):
+        # TRL logs only the combined loss; its DPO-only column is left empty.
+        assert b["loss"] == ""
+        assert float(a["total_loss"]) == pytest.approx(float(b["total_loss"]), abs=TRAIN_TOL)
+        assert float(a["reward_margin"]) == pytest.approx(float(b["reward_margin"]), abs=TRAIN_TOL)
+    worst = max(
+        (a - b).abs().max().item()
+        for a, b in zip(ours_policy.parameters(), trl_policy.parameters(), strict=True)
+    )
+    assert worst < WEIGHT_TOL

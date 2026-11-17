@@ -6,8 +6,9 @@ Usage:
         --trained results/trackb_full/trackb_eval/summary_trained.json
 
 Reads the two summaries and the per-example files they name, pairs the two models'
-answers by example id, and writes next to the run (the parent of the summaries'
-directory, or --out-dir):
+answers by example id, and writes next to the trained run (the parent of the trained
+summary's directory, or --out-dir). The base summary may come from another run: the
+follow-up variants are all compared with the one base evaluation in trackb_full.
     trackb_table.md      the table
     trackb_compare.json  every group and metric, with base, trained and change
 
@@ -35,7 +36,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--base", required=True, help="summary_base.json")
     parser.add_argument("--trained", required=True, help="summary_trained.json")
-    parser.add_argument("--out-dir", help="default: the parent of the base summary's directory")
+    parser.add_argument("--out-dir", help="default: the parent of the trained summary's directory")
     parser.add_argument("--resamples", type=int, default=DEFAULT_RESAMPLES)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(
@@ -74,7 +75,9 @@ def main() -> None:
         )
         for split in splits
     }
-    out_dir = Path(args.out_dir) if args.out_dir else base_path.parent.parent
+    # Next to the TRAINED run: one base evaluation is shared by several trained variants,
+    # and writing next to it would overwrite one variant's table with another's.
+    out_dir = Path(args.out_dir) if args.out_dir else trained_path.parent.parent
     out_dir.mkdir(parents=True, exist_ok=True)
     header = (
         "# Track B: before and after training\n\n"
