@@ -573,11 +573,16 @@ def run_streaming(
             print(text, end="", flush=True)
 
     tail: collections.deque[str] = collections.deque(maxlen=TAIL_LINES)
+    # A Python child writing to a pipe buffers stdout but not stderr, so lines would
+    # arrive out of order and progress would appear in bursts. Unbuffered output keeps
+    # both streams in the order they were written and shows progress live.
+    child_env = dict(os.environ if env is None else env)
+    child_env["PYTHONUNBUFFERED"] = "1"
     try:
         proc = subprocess.Popen(
             list(argv),
             cwd=cwd,
-            env=env,
+            env=child_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
