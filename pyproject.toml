@@ -13,6 +13,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+train = [
+    "transformers>=5.0",
+    "datasets>=4.0",
+    "peft>=0.19",
+    "accelerate>=1.0",
+    "pyyaml>=6",
+]
+parity = ["trl>=1.18,<2"]
 viz = ["matplotlib>=3.8", "numpy>=1.26"]
 
 [tool.hatch.build.targets.wheel]
