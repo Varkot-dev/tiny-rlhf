@@ -80,7 +80,9 @@ class DPOConfig:
     lora_alpha: int = 16
     lora_dropout: float = 0.0
     lora_target_modules: list[str] = field(default_factory=lambda: ["q_proj", "v_proj"])
-    amp: str = "auto"  # "auto": fp16 autocast on cuda, off elsewhere. Or "on" / "off".
+    # "auto" or true: fp16 autocast on cuda (never on cpu or mps). false: always float32.
+    # YAML reads a bare on/off as a boolean, so booleans are the accepted spelling.
+    amp: bool | str = "auto"
     device: str = "auto"
     max_steps: int | None = None  # cap on optimizer steps, for smoke tests
     save_adapter: bool = True
@@ -94,7 +96,12 @@ def load_config(path: str | Path, overrides: dict[str, Any] | None = None) -> DP
     unknown = sorted(set(values) - known)
     if unknown:
         raise ValueError(f"unknown config keys: {unknown}")
-    return DPOConfig(**values)
+    cfg = DPOConfig(**values)
+    if cfg.amp not in ("auto", True, False):
+        raise ValueError(f"amp must be auto, true or false, got {cfg.amp!r}")
+    if cfg.eval_every < 1 or cfg.batch_size < 1 or cfg.grad_accum < 1:
+        raise ValueError("eval_every, batch_size and grad_accum must be at least 1")
+    return cfg
 
 
 def resolve_device(name: str) -> torch.device:
@@ -109,7 +116,7 @@ def resolve_device(name: str) -> torch.device:
 
 def use_amp(cfg: DPOConfig, device: torch.device) -> bool:
     """Half-precision forward passes roughly halve memory and time on a T4."""
-    if cfg.amp == "off":
+    if cfg.amp is False:
         return False
     return device.type == "cuda"
 
@@ -171,16 +178,24 @@ def evaluate(
     beta: float,
     device: torch.device,
     amp: bool = False,
+    ref_logps: list[tuple[Tensor, Tensor]] | None = None,
 ) -> tuple[dict[str, float], list[dict[str, float]]]:
-    """Score held-out pairs. Returns (mean metrics, one row per pair)."""
+    """Score held-out pairs. Returns (mean metrics, one row per pair).
+
+    The reference never changes, so its log-probabilities on the held-out pairs can be
+    computed once with `reference_logps` and passed in as `ref_logps`.
+    """
     was_training = policy.training
     policy.eval()  # turns LoRA dropout off, so step 0 compares identical functions
     per_batch, weights, pair_rows = [], [], []
-    for cpu_batch in eval_batches:
+    for i, cpu_batch in enumerate(eval_batches):
         batch = to_device(cpu_batch, device)
         with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
             pol_c, pol_r = pair_logps(policy, batch)
-            ref_c, ref_r = pair_logps(reference, batch)
+            if ref_logps is None:
+                ref_c, ref_r = pair_logps(reference, batch)
+        if ref_logps is not None:
+            ref_c, ref_r = (t.to(device) for t in ref_logps[i])
         out = dpo_loss(pol_c, pol_r, ref_c, ref_r, beta=beta)
         per_batch.append(batch_metrics(out, pol_c, pol_r))
         weights.append(len(pol_c))
@@ -201,6 +216,19 @@ def evaluate(
     metrics = weighted_mean(per_batch, weights)
     metrics["n_pairs"] = sum(weights)
     return metrics, pair_rows
+
+
+@torch.no_grad()
+def reference_logps(
+    reference: nn.Module, batches: list[dict[str, Tensor]], device: torch.device, amp: bool = False
+) -> list[tuple[Tensor, Tensor]]:
+    """The frozen reference's (chosen, rejected) log-probabilities for each batch."""
+    out = []
+    for cpu_batch in batches:
+        with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
+            ref_c, ref_r = pair_logps(reference, to_device(cpu_batch, device))
+        out.append((ref_c.cpu(), ref_r.cpu()))
+    return out
 
 
 def plan_steps(n_pairs: int, cfg: DPOConfig) -> tuple[int, int]:
@@ -264,6 +292,8 @@ def train(
 
     Returns the run_info dict that is also written to out_dir/run_info.json.
     """
+    if not train_pairs or not eval_pairs:
+        raise ValueError("train_pairs and eval_pairs must both be non-empty")
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "config.yaml").write_text(yaml.safe_dump(dataclasses.asdict(cfg), sort_keys=False))
@@ -303,8 +333,15 @@ def train(
     train_log.writeheader()
     eval_log.writeheader()
 
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
+    start = time.perf_counter()
+    eval_ref_logps = reference_logps(reference, eval_batches, device, amp)
+
     def run_eval(step: int) -> tuple[dict[str, float], list[dict[str, float]]]:
-        metrics, pair_rows = evaluate(policy, reference, eval_batches, cfg.beta, device, amp)
+        metrics, pair_rows = evaluate(
+            policy, reference, eval_batches, cfg.beta, device, amp, eval_ref_logps
+        )
         eval_log.writerow({"step": step, **metrics})
         eval_file.flush()
         print(
@@ -314,16 +351,16 @@ def train(
         )
         return metrics, pair_rows
 
-    if device.type == "cuda":
-        torch.cuda.reset_peak_memory_stats(device)
-    start = time.perf_counter()
-
     # The sanity check from the plan: before any update the policy equals the
     # reference, the bracket is 0 for every pair, and the loss must be log 2.
     first_metrics, pair_rows = run_eval(0)
-    if abs(first_metrics["loss"] - LOG2) > 1e-3:
+    worst_margin = max(abs(row["reward_margin"]) for row in pair_rows)
+    first_loss = first_metrics["loss"]
+    # `not (x <= tol)` instead of `x > tol` so that a nan fails the check too.
+    if not (abs(first_loss - LOG2) <= 1e-3 and worst_margin <= 1e-2):
         raise RuntimeError(
-            f"step-0 eval loss is {first_metrics['loss']:.6f}, expected log 2 = {LOG2:.6f}. "
+            f"largest step-0 reward margin over held-out pairs is {worst_margin:.6f}, and the "
+            f"step-0 eval loss is {first_loss:.6f}; expected 0 and log 2 = {LOG2:.6f}. "
             "The policy and the reference disagree before training: check that both were "
             "loaded from the same weights and see the same tokens and masks."
         )
@@ -351,6 +388,13 @@ def train(
 
             scaler.unscale_(optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(trainable, cfg.max_grad_norm)
+            if not math.isfinite(grad_norm.item()):
+                # GradScaler would silently skip this update. Stop instead, so a run
+                # never logs steps that did not happen.
+                raise RuntimeError(
+                    f"non-finite gradient norm at optimizer step {step + 1}. "
+                    "Try amp: false, a lower lr, or a shorter max_length."
+                )
             lr_used = scheduler.get_last_lr()[0]
             scaler.step(optimizer)
             scaler.update()

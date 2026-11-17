@@ -62,7 +62,9 @@ def sequence_logprob(logits: Tensor, input_ids: Tensor, response_mask: Tensor) -
     targets = input_ids[:, 1:]
     target_mask = mask[:, 1:]
 
-    # Half-precision logits lose too much in a sum over a long response; float64 is kept.
+    # Do the softmax and the sum in float32 when the logits arrive in half precision
+    # (float64 is kept). This cannot undo rounding already present in the logits: under
+    # fp16 autocast a summed log-probability carries noise of a few hundredths of a nat.
     if pred_logits.dtype in (torch.float16, torch.bfloat16):
         pred_logits = pred_logits.float()
     log_probs = F.log_softmax(pred_logits, dim=-1)

@@ -22,7 +22,9 @@ from tiny_rlhf.train_dpo import (
     lr_factor,
     pair_logps,
     plan_steps,
+    reference_logps,
     train,
+    use_amp,
 )
 
 LOG2 = math.log(2.0)
@@ -203,7 +205,7 @@ def test_guard_raises_when_reference_differs_from_policy(tmp_path: Path) -> None
     policy = tiny_model(seed=0)
     reference = tiny_model(seed=1)  # different weights: not a valid starting point
     pairs = make_pairs(8)
-    with pytest.raises(RuntimeError, match="expected log 2"):
+    with pytest.raises(RuntimeError, match="log 2"):
         train(make_cfg(epochs=1), policy, reference, pairs, pairs, PAD, tmp_path / "run")
 
 
@@ -342,3 +344,87 @@ def test_load_config_reads_yaml_applies_overrides_and_rejects_unknown_keys(tmp_p
 def test_shipped_configs_load(name: str) -> None:
     cfg = load_config(Path(__file__).resolve().parents[1] / "configs" / name)
     assert cfg.beta == 0.1 and cfg.use_lora and isinstance(cfg.lr, float)
+
+
+def test_guard_raises_on_a_nan_loss(tmp_path: Path) -> None:
+    policy = tiny_model()
+    reference = copy.deepcopy(policy)
+    with torch.no_grad():
+        next(policy.parameters()).fill_(float("nan"))
+    pairs = make_pairs(8)
+    with pytest.raises(RuntimeError, match="log 2"):
+        train(make_cfg(epochs=1), policy, reference, pairs, pairs, PAD, tmp_path / "run")
+
+
+def test_non_finite_gradient_stops_the_run(tmp_path: Path) -> None:
+    # An absurd learning rate blows the weights up within a few steps. The run must
+    # stop with an error instead of logging optimizer steps that were skipped.
+    policy = tiny_model()
+    reference = copy.deepcopy(policy)
+    pairs = make_pairs(8)
+    with pytest.raises(RuntimeError, match="non-finite gradient"):
+        train(make_cfg(lr=1e30, epochs=50), policy, reference, pairs, pairs, PAD, tmp_path / "r")
+
+
+def test_uneven_accumulation_equals_one_big_batch(tmp_path: Path) -> None:
+    # 7 pairs in micro-batches of 2 gives sizes 2, 2, 2, 1. Weighting each micro-batch
+    # by its share of the pairs must reproduce the single batch of 7.
+    rows = {}
+    for name, batch_size, grad_accum in (("a", 2, 4), ("b", 7, 1)):
+        policy = tiny_model()
+        cfg = make_cfg(batch_size=batch_size, grad_accum=grad_accum, epochs=1)
+        train(
+            cfg, policy, copy.deepcopy(policy), make_pairs(7), make_pairs(7), PAD, tmp_path / name
+        )
+        rows[name] = read_csv(tmp_path / name / "train.csv")[1]
+    assert len(rows["a"]) == len(rows["b"]) == 1
+    assert float(rows["a"][0]["grad_norm"]) == pytest.approx(
+        float(rows["b"][0]["grad_norm"]), rel=1e-4
+    )
+
+
+def test_cached_reference_logps_give_the_same_evaluation() -> None:
+    policy = tiny_model(seed=0)
+    reference = tiny_model(seed=1)
+    collate = PreferenceCollator(pad_token_id=PAD)
+    pairs = make_pairs(7)
+    batches = [collate(pairs[i : i + 3]) for i in range(0, 7, 3)]
+    device = torch.device("cpu")
+    cached = reference_logps(reference, batches, device)
+    direct, direct_rows = evaluate(policy, reference, batches, 0.5, device)
+    with_cache, cache_rows = evaluate(policy, reference, batches, 0.5, device, ref_logps=cached)
+    assert direct == with_cache
+    assert direct_rows == cache_rows
+
+
+def test_amp_setting_parses_and_is_respected(tmp_path: Path) -> None:
+    cuda, cpu = torch.device("cuda"), torch.device("cpu")
+    for text, on_cuda in (
+        ("auto", True),
+        ("true", True),
+        ("on", True),
+        ("false", False),
+        ("off", False),
+    ):
+        path = tmp_path / f"{text}.yaml"
+        path.write_text(f"amp: {text}\n")
+        cfg = load_config(path)
+        assert use_amp(cfg, cuda) is on_cuda
+        assert use_amp(cfg, cpu) is False  # fp16 autocast is only ever used on cuda
+    bad = tmp_path / "bad.yaml"
+    bad.write_text("amp: sometimes\n")
+    with pytest.raises(ValueError, match="amp"):
+        load_config(bad)
+
+
+def test_config_rejects_zero_eval_every(tmp_path: Path) -> None:
+    path = tmp_path / "c.yaml"
+    path.write_text("eval_every: 0\n")
+    with pytest.raises(ValueError, match="at least 1"):
+        load_config(path)
+
+
+def test_empty_eval_set_is_rejected(tmp_path: Path) -> None:
+    policy = tiny_model()
+    with pytest.raises(ValueError, match="non-empty"):
+        train(make_cfg(), policy, copy.deepcopy(policy), make_pairs(4), [], PAD, tmp_path / "r")
