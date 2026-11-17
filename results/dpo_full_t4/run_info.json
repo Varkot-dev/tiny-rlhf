@@ -1,0 +1,44 @@
+{
+  "run_name": "dpo_full_t4",
+  "implementation": "handwritten",
+  "wall_time_s": 1736.84,
+  "optimizer_steps": 463,
+  "scaler_retries": 5,
+  "steps_per_epoch": 463,
+  "warmup_steps": 47,
+  "first_eval_loss": 0.693147297491107,
+  "device": "cuda",
+  "amp_fp16": true,
+  "param_dtype": "torch.float32",
+  "peak_gpu_memory_mb": 8803.4,
+  "trainable_params": 8798208,
+  "total_params": 502830976,
+  "n_train_pairs": 3699,
+  "n_eval_pairs": 456,
+  "truncation_train": {
+    "n_pairs": 3699,
+    "frac_chosen_truncated": 0.32116788321167883,
+    "frac_rejected_truncated": 0.24952689916193566,
+    "mean_chosen_tokens_scored": 220.14030819140308,
+    "mean_rejected_tokens_scored": 197.90348742903487,
+    "mean_prompt_tokens": 134.84401189510677
+  },
+  "truncation_eval": {
+    "n_pairs": 456,
+    "frac_chosen_truncated": 0.29605263157894735,
+    "frac_rejected_truncated": 0.24561403508771928,
+    "mean_chosen_tokens_scored": 221.60087719298247,
+    "mean_rejected_tokens_scored": 194.64912280701753,
+    "mean_prompt_tokens": 138.59649122807016
+  },
+  "eval_pairs_sha256": "1b799394899312048b2ae845a12fe97e0d4575857978843e01b42caebff15981",
+  "seed": 0,
+  "git_sha": "c45c3f712eb20e638e0141edda820cb17f44d29c",
+  "versions": {
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "peft": "0.21.2",
+    "datasets": "4.8.5",
+    "trl": "not installed"
+  }
+}
