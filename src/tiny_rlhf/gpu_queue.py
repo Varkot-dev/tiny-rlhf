@@ -32,9 +32,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-# Priority order: the Track B result first (the hero figure), then the reward model, then
-# TRL parity on the full model, then the four ablation sweeps.
-STAGES = ("m5", "m3", "m2", "beta", "lora_rank", "data_size", "label_noise")
+# Priority order: the Track B result first (the hero figure), then the follow-up to it,
+# then the reward model, then TRL parity on the full model, then the four ablation sweeps.
+STAGES = ("m5", "m5_followup", "m3", "m2", "beta", "lora_rank", "data_size", "label_noise")
+
+# Follow-up to the first full Track B run (results/trackb_full), which over-optimised:
+# preference accuracy on validation pairs was 0.993 by step 125, the answers shrank to a
+# median of 1 word, and task-correct on clean documents fell from 0.74 to 0.37. Each
+# variant changes one thing (see the header of its config) and is compared with the same
+# base evaluation, results/trackb_full/trackb_eval/summary_base.json.
+TRACKB_VARIANTS = ("trackb_beta0.5", "trackb_steps60", "trackb_sft1")
+TRACKB_BASE_SUMMARY = "results/trackb_full/trackb_eval/summary_base.json"
 SWEEP_STAGES = ("beta", "lora_rank", "data_size", "label_noise")
 
 STATUS_FILE = "results/queue_status.json"
@@ -76,6 +84,13 @@ ESTIMATE_MIN = {
     "m5_train": 20,  # 375 steps, sequences under 320 tokens
     "m5_eval_trained": 12,
     "m5_compare": 6,  # general regression check on 200 conversations, then tables
+    # Measured for trackb_full on a T4: 375 training steps in 585 s with a 7.3 GB peak, and
+    # the base evaluation (1,050 generations) in about 4 to 5 minutes with model loading.
+    "m5f_train": 12,  # 375 steps, as trackb_full, plus loading two models
+    "m5f_train_short": 4,  # 60 steps
+    "m5f_eval": 6,
+    "m5f_compare": 5,  # general regression check on 200 conversations, then tables
+    "m5f_figure": 2,
     "m3_reward": 25,  # like dpo_full but one model and no vocabulary head
     "m3_reward_vs_dpo": 2,
     "m2_parity_ours": 75,  # float32 is several times slower than fp16 on a T4
@@ -256,6 +271,112 @@ def _m5_jobs() -> list[Job]:
     ]
 
 
+def _m5_followup_jobs() -> list[Job]:
+    """Per variant: train, evaluate with the m5 settings, compare with trackb_full's base."""
+    jobs: list[Job] = []
+    for run in TRACKB_VARIANTS:
+        evals = f"results/{run}/trackb_eval"
+        adapter = f"checkpoints/{run}"
+        summaries = ("--base", TRACKB_BASE_SUMMARY, "--trained", f"{evals}/summary_trained.json")
+        short = "steps" in run
+        jobs += [
+            Job(
+                name=f"{run}_train",
+                stage="m5_followup",
+                commands=(
+                    ("python", "scripts/train_trackb.py", "--config", f"configs/{run}.yaml"),
+                    (
+                        "python",
+                        "scripts/plot_training.py",
+                        "--run",
+                        f"results/{run}",
+                        "--out",
+                        f"assets/m5_training_{run}.png",
+                    ),
+                ),
+                marker=f"results/{run}/run_info.json",
+                outputs=(f"results/{run}", f"assets/m5_training_{run}.png"),
+                estimate_min=ESTIMATE_MIN["m5f_train_short" if short else "m5f_train"],
+                produces_adapter=adapter,
+                oom_retry_args=SMALL_BATCH,
+            ),
+            Job(
+                name=f"{run}_eval",
+                stage="m5_followup",
+                commands=(
+                    (
+                        "python",
+                        "scripts/eval_trackb.py",
+                        "--model",
+                        QWEN,
+                        "--adapter",
+                        adapter,
+                        "--label",
+                        "trained",
+                        "--out",
+                        evals,
+                        *TRACKB_EVAL_ARGS,
+                    ),
+                ),
+                marker=f"{evals}/summary_trained.json",
+                outputs=(evals,),
+                estimate_min=ESTIMATE_MIN["m5f_eval"],
+                depends_on=(f"{run}_train",),
+                needs_adapter=adapter,
+                rerun_if_deps_ran=True,
+            ),
+            Job(
+                name=f"{run}_compare",
+                stage="m5_followup",
+                commands=(
+                    (
+                        "python",
+                        "scripts/eval_general.py",
+                        "--model",
+                        QWEN,
+                        "--adapter",
+                        adapter,
+                        "--out",
+                        f"results/{run}/general_regression.json",
+                    ),
+                    # These three write next to the TRAINED run, not next to trackb_full.
+                    ("python", "scripts/compare_trackb.py", *summaries),
+                    ("python", "scripts/plot_trackb.py", *summaries),
+                    ("python", "scripts/make_examples.py", *summaries),
+                ),
+                marker=f"results/{run}/trackb_table.md",
+                outputs=(
+                    f"results/{run}/general_regression.json",
+                    f"results/{run}/trackb_table.md",
+                    f"results/{run}/trackb_compare.json",
+                    f"results/{run}/examples.md",
+                    f"assets/m5_trackb_{run}.png",
+                ),
+                estimate_min=ESTIMATE_MIN["m5f_compare"],
+                depends_on=("m5_eval_base", f"{run}_eval"),
+                needs_adapter=adapter,
+                rerun_if_deps_ran=True,
+            ),
+        ]
+    compares = tuple(f"{run}_compare" for run in TRACKB_VARIANTS)
+    jobs.append(
+        Job(
+            name="m5_followup_figure",
+            stage="m5_followup",
+            commands=(("python", "scripts/plot_trackb_variants.py"),),
+            marker="results/trackb_variants_summary.json",
+            outputs=("results/trackb_variants_summary.json", "assets/m5_trackb_variants.png"),
+            estimate_min=ESTIMATE_MIN["m5f_figure"],
+            # trackb_full itself is in the repo; the figure is drawn from the variants that
+            # finished (it names the missing ones) and redrawn each launch.
+            depends_on=compares,
+            min_deps_done=1,
+            always_run=True,
+        )
+    )
+    return jobs
+
+
 def _m3_jobs() -> list[Job]:
     return [
         Job(
@@ -418,7 +539,13 @@ def _sweep_jobs(root: Path, stage: str) -> list[Job]:
 def build_queue(root: str | Path = ".") -> list[Job]:
     """Every remaining GPU job of the project, in the order it is run."""
     root = Path(root)
-    jobs = _m5_jobs() + _m3_jobs() + _parity_jobs(fp16=False) + _parity_jobs(fp16=True)
+    jobs = (
+        _m5_jobs()
+        + _m5_followup_jobs()
+        + _m3_jobs()
+        + _parity_jobs(fp16=False)
+        + _parity_jobs(fp16=True)
+    )
     for stage in SWEEP_STAGES:
         jobs += _sweep_jobs(root, stage)
     return jobs

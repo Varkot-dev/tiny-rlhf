@@ -106,7 +106,10 @@ def build_trl_args(cfg: DPOConfig, n_train_pairs: int, output_dir: str | Path) -
     return TRLConfig(
         output_dir=str(output_dir),
         beta=cfg.beta,
-        loss_type="sigmoid",  # the plain DPO loss
+        # The plain DPO loss, plus TRL's "sft" term (mean NLL per preferred-response token)
+        # when the config asks for it: the same objective as train_dpo with sft_weight.
+        loss_type=["sigmoid", "sft"] if cfg.sft_weight > 0 else ["sigmoid"],
+        loss_weights=[1.0, cfg.sft_weight] if cfg.sft_weight > 0 else None,
         max_length=cfg.max_length,
         truncation_mode="keep_start",
         learning_rate=cfg.lr,
@@ -170,10 +173,20 @@ def train_with_trl(
     steps_per_epoch, total_steps = plan_steps(len(train_pairs), cfg)
     args = build_trl_args(cfg, len(train_pairs), work_dir / "trl_output")
 
+    # TRL logs one combined loss. With an sft term that is DPO + sft_weight * NLL, which
+    # the hand-written loop writes as "total_loss" next to the DPO-only "loss". TRL has no
+    # DPO-only number to report, so in that case "loss" is left empty and the combined
+    # value goes to "total_loss" (train and eval alike).
+    use_sft = cfg.sft_weight > 0
+    loss_name = "total_loss" if use_sft else "loss"
     train_file = (out_dir / "train.csv").open("w", newline="")
     eval_file = (out_dir / "eval.csv").open("w", newline="")
-    train_log = csv.DictWriter(train_file, fieldnames=TRAIN_COLUMNS)
-    eval_log = csv.DictWriter(eval_file, fieldnames=EVAL_COLUMNS)
+    train_log = csv.DictWriter(
+        train_file, fieldnames=TRAIN_COLUMNS + ("total_loss",) if use_sft else TRAIN_COLUMNS
+    )
+    eval_log = csv.DictWriter(
+        eval_file, fieldnames=EVAL_COLUMNS + ("total_loss",) if use_sft else EVAL_COLUMNS
+    )
     train_log.writeheader()
     eval_log.writeheader()
     eval_steps_seen: list[int] = []
@@ -204,22 +217,27 @@ def train_with_trl(
             logs = logs or {}
             if "eval_loss" in logs:
                 row = {name: logs[f"eval_{key}"] for name, key in TRL_KEYS.items()}
+                if use_sft:
+                    row["total_loss"], row["loss"] = row["loss"], ""
                 eval_log.writerow({"step": state.global_step, **row, "n_pairs": len(eval_pairs)})
                 eval_file.flush()
                 eval_steps_seen.append(state.global_step)
                 if not first_eval:
                     first_eval.update(row)
                 print(
-                    f"eval  step {state.global_step:5d}  loss {row['loss']:.4f}  "
+                    f"eval  step {state.global_step:5d}  {loss_name} {row[loss_name]:.4f}  "
                     f"margin {row['reward_margin']:+.4f}  acc {row['accuracy']:.3f}  "
                     f"chosen_logp {row['chosen_logp']:.2f}"
                 )
             elif "loss" in logs:
+                row = {name: logs[key] for name, key in TRL_KEYS.items()}
+                if use_sft:
+                    row["total_loss"], row["loss"] = row["loss"], ""
                 train_log.writerow(
                     {
                         "step": state.global_step,
                         "epoch": (state.global_step - 1) // steps_per_epoch,
-                        **{name: logs[key] for name, key in TRL_KEYS.items()},
+                        **row,
                         "lr": self.lr_used,
                         "grad_norm": logs.get("grad_norm", ""),
                         "elapsed_s": round(time.perf_counter() - start, 3),
@@ -276,6 +294,8 @@ def train_with_trl(
         writer.writerows(pair_rows)
     with (out_dir / "eval.csv").open() as f:
         last_trl_eval = list(csv.DictReader(f))[-1]
+    # With an sft term TRL's eval loss is the combined one; compare the DPO metrics only.
+    compared = [k for k in METRICS if not (use_sft and k == "loss")]
 
     if (
         checkpoint_dir is not None
@@ -293,7 +313,9 @@ def train_with_trl(
         "optimizer_steps": trainer.state.global_step,
         "steps_per_epoch": steps_per_epoch,
         "warmup_steps": args.get_warmup_steps(total_steps),
-        "first_eval_loss": first_eval["loss"],
+        "first_eval_loss": first_eval["loss"] if not use_sft else None,
+        "first_eval_total_loss": first_eval["total_loss"] if use_sft else None,
+        "sft_weight": cfg.sft_weight,
         "device": str(device),
         "amp_fp16": amp,
         "param_dtype": str(next(trainer.model.parameters()).dtype),
@@ -318,8 +340,8 @@ def train_with_trl(
         # TRL averages per-batch means; ours weights by pairs. They agree only when
         # every held-out batch has the same size.
         "eval_batches_equal_size": len(eval_sizes) == 1,
-        "final_eval_by_trl": {k: float(last_trl_eval[k]) for k in METRICS},
-        "final_eval_recomputed_by_handwritten_evaluate": {k: recomputed[k] for k in METRICS},
+        "final_eval_by_trl": {k: float(last_trl_eval[k]) for k in compared},
+        "final_eval_recomputed_by_handwritten_evaluate": {k: recomputed[k] for k in compared},
     }
     (out_dir / "run_info.json").write_text(json.dumps(run_info, indent=2) + "\n")
     return run_info

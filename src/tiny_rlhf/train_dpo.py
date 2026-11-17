@@ -44,6 +44,10 @@ METRICS = (
     "rejected_reward",
 )
 TRAIN_COLUMNS = ("step", "epoch", *METRICS, "lr", "grad_norm", "elapsed_s")
+# Appended to train.csv only when sft_weight > 0, so runs without the term keep exactly
+# the layout above. "loss" stays the DPO loss alone (it starts at log 2); "total_loss" is
+# what the optimizer minimised: loss + sft_weight * sft_nll.
+SFT_COLUMNS = ("sft_nll", "total_loss")
 EVAL_COLUMNS = ("step", *METRICS, "n_pairs")
 PAIR_COLUMNS = (
     "pair_index",
@@ -92,6 +96,11 @@ class DPOConfig:
     device: str = "auto"
     max_steps: int | None = None  # cap on optimizer steps, for smoke tests
     save_adapter: bool = True
+    # Weight of an extra term: the mean negative log-likelihood per token of the
+    # preferred responses. 0 is plain DPO. A positive weight keeps pulling the preferred
+    # responses up, so DPO cannot widen the margin only by pushing both responses down.
+    # Same as TRL's loss_type=["sigmoid", "sft"] with loss_weights=[1, sft_weight].
+    sft_weight: float = 0.0
 
 
 def load_config(path: str | Path, overrides: dict[str, Any] | None = None) -> DPOConfig:
@@ -107,6 +116,8 @@ def load_config(path: str | Path, overrides: dict[str, Any] | None = None) -> DP
         raise ValueError(f"amp must be auto, true or false, got {cfg.amp!r}")
     if cfg.eval_every < 1 or cfg.batch_size < 1 or cfg.grad_accum < 1:
         raise ValueError("eval_every, batch_size and grad_accum must be at least 1")
+    if cfg.sft_weight < 0:
+        raise ValueError(f"sft_weight must be at least 0, got {cfg.sft_weight}")
     return cfg
 
 
@@ -151,6 +162,20 @@ def pair_logps(model: nn.Module, batch: dict[str, Tensor]) -> tuple[Tensor, Tens
     return chosen, rejected
 
 
+def sft_nll(chosen_logps: Tensor, response_mask: Tensor) -> Tensor:
+    """Mean negative log-likelihood per token of the preferred responses in a batch.
+
+    chosen_logps holds one summed log-probability per preferred response ([B]);
+    response_mask is the batch's [2B, T] mask, whose first B rows are the preferred
+    responses. Summing the sums and dividing by the total token count gives the mean
+    over every preferred token in the batch, so a long response weighs more than a
+    short one. That is what TRL's "sft" loss type computes (a token-weighted mean, not
+    a mean of per-response means).
+    """
+    n_tokens = response_mask[: len(chosen_logps)].sum().clamp(min=1)
+    return -chosen_logps.sum() / n_tokens
+
+
 def to_device(batch: dict[str, Tensor], device: torch.device) -> dict[str, Tensor]:
     return {k: v.to(device) for k, v in batch.items()}
 
@@ -169,11 +194,13 @@ def batch_metrics(out: Any, chosen_logps: Tensor, rejected_logps: Tensor) -> dic
     }
 
 
-def weighted_mean(rows: list[dict[str, float]], weights: list[int]) -> dict[str, float]:
+def weighted_mean(
+    rows: list[dict[str, float]], weights: list[int], keys: tuple[str, ...] = METRICS
+) -> dict[str, float]:
     """Mean of per-batch metrics weighted by pairs per batch, so a short last batch
     does not count as much as a full one."""
     total = sum(weights)
-    return {k: sum(r[k] * w for r, w in zip(rows, weights, strict=True)) / total for k in METRICS}
+    return {k: sum(r[k] * w for r, w in zip(rows, weights, strict=True)) / total for k in keys}
 
 
 @torch.no_grad()
@@ -428,7 +455,9 @@ def train(
 
     train_file = (out_dir / "train.csv").open("w", newline="")
     eval_file = (out_dir / "eval.csv").open("w", newline="")
-    train_log = csv.DictWriter(train_file, fieldnames=TRAIN_COLUMNS)
+    use_sft = cfg.sft_weight > 0
+    train_columns = TRAIN_COLUMNS + SFT_COLUMNS if use_sft else TRAIN_COLUMNS
+    train_log = csv.DictWriter(train_file, fieldnames=train_columns)
     eval_log = csv.DictWriter(eval_file, fieldnames=EVAL_COLUMNS)
     train_log.writeheader()
     eval_log.writeheader()
@@ -487,10 +516,17 @@ def train(
                             ref_c, ref_r = pair_logps(reference, batch)
                         pol_c, pol_r = pair_logps(policy, batch)
                     out = dpo_loss(pol_c, pol_r, ref_c, ref_r, beta=cfg.beta)
+                    metrics = batch_metrics(out, pol_c, pol_r)
+                    loss = out.loss
+                    if use_sft:
+                        nll = sft_nll(pol_c, batch["response_mask"])
+                        loss = loss + cfg.sft_weight * nll
+                        metrics["sft_nll"] = nll.item()
+                        metrics["total_loss"] = loss.item()
                     # Weight each micro-batch by its share of the step's pairs, so the
                     # accumulated gradient is the gradient of the mean loss over the step.
-                    scaler.scale(out.loss * len(indices) / n_step_pairs).backward()
-                    per_batch.append(batch_metrics(out, pol_c, pol_r))
+                    scaler.scale(loss * len(indices) / n_step_pairs).backward()
+                    per_batch.append(metrics)
                     weights.append(len(indices))
                 return per_batch, weights
 
@@ -510,6 +546,7 @@ def train(
                     "step": step,
                     "epoch": epoch,
                     **weighted_mean(per_batch, weights),
+                    **(weighted_mean(per_batch, weights, SFT_COLUMNS) if use_sft else {}),
                     "lr": lr_used,
                     "grad_norm": grad_norm.item(),
                     "elapsed_s": round(time.perf_counter() - start, 3),
@@ -543,6 +580,7 @@ def train(
         "steps_per_epoch": steps_per_epoch,
         "warmup_steps": warmup_steps,
         "first_eval_loss": first_metrics["loss"],
+        "sft_weight": cfg.sft_weight,
         "device": str(device),
         "amp_fp16": amp,
         "param_dtype": str(next(policy.parameters()).dtype),

@@ -579,3 +579,96 @@ def test_starting_a_run_removes_the_previous_runs_completion_files(tmp_path: Pat
     assert (out / "trackb_eval" / "summary_base.json").exists()
     assert (out / "trackb_eval" / "test_in_dist_base.jsonl").exists()
     assert clear_stale_outputs(out) == []  # nothing left to remove
+
+
+# --------------------------------------------------------------------------------------
+# sft_weight: DPO plus the mean NLL per token of the preferred responses
+# --------------------------------------------------------------------------------------
+
+
+def test_sft_nll_is_a_token_weighted_mean_over_the_preferred_rows() -> None:
+    from tiny_rlhf.train_dpo import sft_nll
+
+    # Two preferred responses of 1 and 3 tokens with summed log-probs -2 and -9, then two
+    # rejected rows that must be ignored. Token-weighted mean: (2 + 9) / 4 = 2.75. A mean
+    # of per-response means would give (2 / 1 + 9 / 3) / 2 = 2.5 instead.
+    chosen = torch.tensor([-2.0, -9.0])
+    mask = torch.tensor(
+        [
+            [0, 1, 0, 0],  # preferred, 1 token
+            [0, 1, 1, 1],  # preferred, 3 tokens
+            [0, 1, 1, 1],  # rejected: not counted
+            [0, 1, 1, 0],  # rejected: not counted
+        ]
+    ).bool()
+    assert sft_nll(chosen, mask).item() == pytest.approx(11.0 / 4)  # not (2 + 3) / 2 = 2.5
+
+
+def test_sft_weight_zero_keeps_the_csv_layout_and_numbers(tmp_path: Path) -> None:
+    _, plain_dir, _ = run(tmp_path, name="plain", epochs=2)
+    info, zero_dir, _ = run(tmp_path, name="zero", epochs=2, sft_weight=0.0)
+    plain_cols, plain_rows = read_csv(plain_dir / "train.csv")
+    zero_cols, zero_rows = read_csv(zero_dir / "train.csv")
+    assert tuple(plain_cols) == tuple(zero_cols) == TRAIN_COLUMNS
+    for a, b in zip(plain_rows, zero_rows, strict=True):
+        assert {k: v for k, v in a.items() if k != "elapsed_s"} == {
+            k: v for k, v in b.items() if k != "elapsed_s"
+        }
+    assert info["sft_weight"] == 0.0
+
+
+def test_first_step_loss_is_log2_plus_weighted_nll(tmp_path: Path) -> None:
+    # One optimizer step over all 8 pairs in dataset order, so the first train row is
+    # scored by the untouched policy on exactly these pairs.
+    weight = 0.7
+    pairs = make_pairs(8)
+    policy = tiny_model()
+    expected_nll = None
+    with torch.no_grad():
+        batch = PreferenceCollator(pad_token_id=PAD, max_length=32)(pairs)
+        logits = policy(input_ids=batch["input_ids"], attention_mask=batch["attention_mask"]).logits
+        log_probs = torch.log_softmax(logits[:8, :-1].double(), dim=-1)
+        targets = batch["input_ids"][:8, 1:]
+        mask = batch["response_mask"][:8, 1:]
+        token_lp = log_probs.gather(-1, targets.unsqueeze(-1)).squeeze(-1)[mask]
+        expected_nll = -token_lp.mean().item()  # by hand: every preferred token, one mean
+    cfg = make_cfg(batch_size=8, epochs=1, shuffle=False, sft_weight=weight)
+    train(cfg, policy, copy.deepcopy(tiny_model()), pairs, pairs, PAD, tmp_path / "sft")
+    cols, rows = read_csv(tmp_path / "sft" / "train.csv")
+    assert tuple(cols) == TRAIN_COLUMNS + ("sft_nll", "total_loss")
+    first = rows[0]
+    assert float(first["loss"]) == pytest.approx(LOG2, abs=1e-6)  # DPO part alone
+    assert float(first["sft_nll"]) == pytest.approx(expected_nll, rel=1e-5)
+    assert float(first["total_loss"]) == pytest.approx(LOG2 + weight * expected_nll, rel=1e-5)
+
+
+def test_sft_term_raises_the_preferred_log_probability() -> None:
+    from tiny_rlhf.train_dpo import sft_nll
+
+    model = tiny_model()
+    batch = PreferenceCollator(pad_token_id=PAD, max_length=32)(make_pairs(4))
+    before, _ = pair_logps(model, batch)
+    sft_nll(before, batch["response_mask"]).backward()
+    with torch.no_grad():
+        for p in model.parameters():
+            p -= 0.05 * p.grad
+        after, _ = pair_logps(model, batch)
+    assert (after > before.detach()).all()
+
+
+def test_sft_term_keeps_the_preferred_responses_more_likely_after_training(
+    tmp_path: Path,
+) -> None:
+    plain, plain_dir, _ = run(tmp_path, name="plain", epochs=10)
+    sft, sft_dir, _ = run(tmp_path, name="sft", epochs=10, sft_weight=1.0)
+    _, plain_eval = read_csv(plain_dir / "eval.csv")
+    _, sft_eval = read_csv(sft_dir / "eval.csv")
+    assert float(sft_eval[-1]["chosen_logp"]) > float(plain_eval[-1]["chosen_logp"])
+    assert sft["sft_weight"] == 1.0
+
+
+def test_negative_sft_weight_is_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "c.yaml"
+    path.write_text("sft_weight: -0.5\n")
+    with pytest.raises(ValueError, match="sft_weight"):
+        load_config(path)

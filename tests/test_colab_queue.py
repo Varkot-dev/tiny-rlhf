@@ -16,7 +16,9 @@ from tiny_rlhf.gpu_queue import (
     STAGES,
     STATUS_FILE,
     TAIL_LINES,
+    TRACKB_BASE_SUMMARY,
     TRACKB_EVAL_ARGS,
+    TRACKB_VARIANTS,
     Job,
     build_queue,
     describe,
@@ -96,6 +98,7 @@ def test_queue_has_every_expected_job_exactly_once_in_priority_order() -> None:
         "m5_train",
         "m5_eval_trained",
         "m5_compare",
+        "m5_followup_figure",
         "m3_reward",
         "m3_reward_vs_dpo",
         "m2_parity_ours",
@@ -112,9 +115,11 @@ def test_queue_has_every_expected_job_exactly_once_in_priority_order() -> None:
     for stage in ("beta", "lora_rank", "data_size", "label_noise"):
         sweep = load_sweep(ROOT / f"configs/sweeps/{stage}.yaml")
         expected |= {f"{stage}_{run.label}" for run in sweep.runs}
+    for run in TRACKB_VARIANTS:
+        expected |= {f"{run}_train", f"{run}_eval", f"{run}_compare"}
     assert set(names) == expected
     assert [j.stage for j in QUEUE] == sorted((j.stage for j in QUEUE), key=STAGES.index)
-    assert STAGES[:3] == ("m5", "m3", "m2")
+    assert STAGES[:4] == ("m5", "m5_followup", "m3", "m2")
 
 
 def test_dependencies_exist_point_backwards_and_are_acyclic() -> None:
@@ -188,6 +193,36 @@ def test_m5_matches_the_one_hour_cell() -> None:
     assert BY_NAME["m5_train"].oom_retry_args and BY_NAME["m3_reward"].oom_retry_args
 
 
+def test_followup_variants_are_evaluated_and_compared_exactly_like_m5() -> None:
+    # The comparison refuses mismatched settings, and each variant is compared with the one
+    # base evaluation in trackb_full, so the trained evaluations must use m5's settings.
+    m5_eval = BY_NAME["m5_eval_trained"].commands[0]
+    assert BY_NAME["m5_eval_base"].marker == TRACKB_BASE_SUMMARY
+    for run in TRACKB_VARIANTS:
+        assert (ROOT / f"configs/{run}.yaml").is_file()
+        evaluation = BY_NAME[f"{run}_eval"].commands[0]
+        assert evaluation[evaluation.index("--with-probes") :] == TRACKB_EVAL_ARGS
+        # Identical to the m5 command except the adapter and the output directory.
+        differ = [i for i, (a, b) in enumerate(zip(evaluation, m5_eval, strict=True)) if a != b]
+        assert [evaluation[i - 1] for i in differ] == ["--adapter", "--out"]
+        assert evaluation[evaluation.index("--out") + 1] == f"results/{run}/trackb_eval"
+        train = BY_NAME[f"{run}_train"]
+        assert train.commands[0][-1] == f"configs/{run}.yaml"
+        assert train.oom_retry_args == BY_NAME["m5_train"].oom_retry_args
+        compare = BY_NAME[f"{run}_compare"]
+        assert "m5_eval_base" in compare.depends_on
+        for command in compare.commands[1:]:
+            assert command[command.index("--base") + 1] == TRACKB_BASE_SUMMARY
+            assert command[command.index("--trained") + 1] == (
+                f"results/{run}/trackb_eval/summary_trained.json"
+            )
+        # Nothing a variant writes may land in (and overwrite) trackb_full's directory.
+        assert all("trackb_full" not in path for path in compare.outputs + train.outputs)
+    figure = BY_NAME["m5_followup_figure"]
+    assert figure.min_deps_done == 1 and figure.always_run
+    assert set(figure.depends_on) == {f"{run}_compare" for run in TRACKB_VARIANTS}
+
+
 def test_fp16_fallback_is_wired_to_both_float32_parity_runs() -> None:
     for name, run_name in (
         ("m2_parity_ours_fp16", "parity_full_fp16"),
@@ -223,7 +258,9 @@ def test_sweep_figures_tolerate_missing_values() -> None:
 def test_jobs_that_read_an_adapter_name_the_job_that_writes_it() -> None:
     produced = {j.produces_adapter: j.name for j in QUEUE if j.produces_adapter}
     readers = [j for j in QUEUE if j.needs_adapter]
-    assert {j.name for j in readers} == {"m5_eval_trained", "m5_compare"}
+    assert {j.name for j in readers} == {"m5_eval_trained", "m5_compare"} | {
+        f"{run}_{step}" for run in TRACKB_VARIANTS for step in ("eval", "compare")
+    }
     for j in readers:
         producer = produced[j.needs_adapter]
         position = [q.name for q in QUEUE]

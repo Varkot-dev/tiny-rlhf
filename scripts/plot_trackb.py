@@ -140,7 +140,8 @@ def main() -> None:
     )
     fig.patch.set_facecolor(SURFACE)
     fig.tight_layout(rect=(0, 0.06, 1, 0.94), w_pad=2)
-    run = base_path.resolve().parent.parent.name
+    # Named after the trained run: several variants share trackb_full's base evaluation.
+    run = trained_path.resolve().parent.parent.name
     out = Path(args.out) if args.out else ROOT / "assets" / f"m5_trackb_{run}.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out)
