@@ -99,6 +99,7 @@ def test_queue_has_every_expected_job_exactly_once_in_priority_order() -> None:
         "m5_eval_trained",
         "m5_compare",
         "m5_followup_figure",
+        "m5_rescore_strict",
         "m3_reward",
         "m3_reward_vs_dpo",
         "m2_parity_ours",
@@ -728,3 +729,21 @@ def test_results_are_pushed_after_each_job_and_others_work_is_merged(
     remote_files = set(git(remote, "ls-tree", "-r", "--name-only", "main").split())
     assert {"results/a/x.json", "notes.txt", STATUS_FILE, f"{FAILURE_DIR}/b.log"} <= remote_files
     assert not any(f.startswith("results/b/") for f in remote_files)
+
+
+def test_strict_rescoring_runs_last_in_the_followup_stage_and_commits_every_run() -> None:
+    followup = [j for j in QUEUE if j.stage == "m5_followup"]
+    rescore = BY_NAME["m5_rescore_strict"]
+    assert followup[-1] is rescore
+    assert rescore.always_run
+    assert [c[1] for c in rescore.commands] == [
+        "scripts/rescore_trackb.py",
+        "scripts/plot_trackb_strict.py",
+    ]
+    assert rescore.marker in rescore.outputs
+    for run in ("trackb_full", *TRACKB_VARIANTS):
+        assert f"results/{run}/trackb_eval/rescored_trained.json" in rescore.outputs
+    assert "results/trackb_full/trackb_eval/rescored_base.json" in rescore.outputs
+    assert "assets/m5_trackb_strict.png" in rescore.outputs
+    # Nothing it writes may land on an original evaluation file.
+    assert not any("summary_" in path or path.endswith(".jsonl") for path in rescore.outputs)

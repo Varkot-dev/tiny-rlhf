@@ -92,13 +92,18 @@ ESTIMATE_MIN = {
     "m5f_eval": 6,
     "m5f_compare": 5,  # general regression check on 200 conversations, then tables
     "m5f_figure": 2,
+    "m5f_rescore": 2,  # rescoring saved generations on the CPU took under a minute
     "m3_reward": 25,  # like dpo_full but one model and no vocabulary head
     "m3_reward_vs_dpo": 2,
-    "m2_parity_ours": 75,  # float32 is several times slower than fp16 on a T4
-    "m2_parity_trl": 75,
+    # configs/parity_full.yaml now stops at max_steps 100 (held-out evaluation at steps
+    # 0, 50 and 100) instead of a full 462-step epoch. Rough guesses scaled from the one
+    # measured full run, fp16 dpo_full: 463 steps in 1,737 s on a T4, so about 4 s a
+    # step plus evaluation. float32 is slower, and the TRL run adds its own overhead.
+    "m2_parity_ours": 25,
+    "m2_parity_trl": 30,
     "m2_parity_figure": 2,
-    "m2_parity_ours_fp16": 32,
-    "m2_parity_trl_fp16": 32,
+    "m2_parity_ours_fp16": 12,
+    "m2_parity_trl_fp16": 15,
     "m2_parity_figure_fp16": 2,
     "sweep_run": 16,  # 2,000 pairs: about half of dpo_full
     "sweep_run_beta": 19,  # plus the drift measurement
@@ -370,6 +375,31 @@ def _m5_followup_jobs() -> list[Job]:
             estimate_min=ESTIMATE_MIN["m5f_figure"],
             # trackb_full itself is in the repo; the figure is drawn from the variants that
             # finished (it names the missing ones) and redrawn each launch.
+            depends_on=compares,
+            min_deps_done=1,
+            always_run=True,
+        )
+    )
+    # The original evaluations score task correctness leniently (an answer anywhere in the
+    # response counts, so numbered lists pass "how many items"). This rescores every saved
+    # evaluation with the strict rule as well, from the saved responses, after any new run.
+    jobs.append(
+        Job(
+            name="m5_rescore_strict",
+            stage="m5_followup",
+            commands=(
+                ("python", "scripts/rescore_trackb.py"),
+                ("python", "scripts/plot_trackb_strict.py"),
+            ),
+            marker="results/trackb_rescored_compare.json",
+            outputs=(
+                "results/trackb_rescored_compare.json",
+                "results/trackb_full/trackb_eval/rescored_base.json",
+                "results/trackb_full/trackb_eval/rescored_trained.json",
+                *(f"results/{run}/trackb_eval/rescored_trained.json" for run in TRACKB_VARIANTS),
+                "assets/m5_trackb_strict.png",
+            ),
+            estimate_min=ESTIMATE_MIN["m5f_rescore"],
             depends_on=compares,
             min_deps_done=1,
             always_run=True,

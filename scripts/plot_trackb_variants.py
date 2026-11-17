@@ -7,7 +7,12 @@ added likelihood term; see configs/trackb_<variant>.yaml). This figure puts the 
 model, trackb_full and every finished variant side by side on four measures:
 
 (a) how often a planted instruction was followed (injected examples, five test splits)
-(b) how often the task was done correctly when nothing was planted (same splits)
+(b) how often the task was done correctly when nothing was planted (same splits),
+    scored with the STRICT rule (tiny_rlhf.trackb.checks.task_correct_strict). The
+    lenient rule used in the original evaluations accepted an answer appearing anywhere
+    in the response, so numbered lists passed "how many items"; the lenient rate is
+    still written to the summary JSON as task_correct_no_injection_lenient. See
+    scripts/rescore_trackb.py and results/trackb_rescored_compare.json.
 (c) median answer length in words (all examples of the five test splits)
 (d) change in negative log-likelihood per token on general conversations, from
     general_regression.json (the base model is 0 by definition)
@@ -34,6 +39,7 @@ from typing import Any
 
 from tiny_rlhf.stats import bootstrap_interval
 from tiny_rlhf.trackb.evaluate import DEFAULT_SPLITS, read_rows
+from tiny_rlhf.trackb.rescore import rescore_row
 
 ROOT = Path(__file__).resolve().parents[1]
 FIRST_RUN = "trackb_full"
@@ -72,7 +78,8 @@ def pooled_stats(rows: list[dict[str, Any]], seed: int = 0) -> dict[str, Any]:
 
     return {
         "followed_injection": rate(injected, "followed_injection"),
-        "task_correct_no_injection": rate(clean, "task_correct"),
+        "task_correct_no_injection": rate(clean, "task_correct_strict"),
+        "task_correct_no_injection_lenient": rate(clean, "task_correct"),
         "median_words": statistics.median(len(r["response"].split()) for r in rows)
         if rows
         else None,
@@ -85,7 +92,8 @@ def split_rows(summary_path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for split in DEFAULT_SPLITS:
         rows += read_rows(summary_path.parent / summary["files"][split])
-    return rows
+    # Recompute every check from the saved responses, which adds the strict keys.
+    return [rescore_row(row)[0] for row in rows]
 
 
 def collect(results: Path, variants: tuple[str, ...]) -> tuple[dict[str, Any], list[str]]:
@@ -198,7 +206,7 @@ def plot(entities: dict[str, Any], notes: list[str], out: Path) -> None:
         metric("task_correct_no_injection", "ci_high"),
     )
     ax.set_ylim(0, 1.1)
-    ax.set_title("Task correct, nothing planted")
+    ax.set_title("Task correct, nothing planted (strict)")
     ax.set_ylabel("share of clean examples (higher is better)")
 
     ax = axes[2]
@@ -251,7 +259,11 @@ def plot(entities: dict[str, Any], notes: list[str], out: Path) -> None:
         fontweight="bold",
     )
     sources = "results/<run>/trackb_eval/summary_*.json and general_regression.json"
-    footer = f"Source: {sources}. Drawn by scripts/plot_trackb_variants.py."
+    footer = (
+        f"Source: {sources}. Drawn by scripts/plot_trackb_variants.py. Task correct uses strict "
+        "scoring: the lenient rule counted numbered lists as answers to 'how many items' "
+        "(see results/trackb_rescored_compare.json)."
+    )
     if notes:
         footer += " Not shown: " + "; ".join(notes) + "."
     fig.text(0.01, 0.005, footer, fontsize=8, color=TEXT_SECONDARY)
@@ -275,7 +287,7 @@ def main() -> None:
     for name, e in entities.items():
         fol, cor = e["followed_injection"], e["task_correct_no_injection"]
         print(
-            f"{name:16s} followed {fol['rate']:.2f}  correct(clean) {cor['rate']:.2f}  "
+            f"{name:16s} followed {fol['rate']:.2f}  correct(clean, strict) {cor['rate']:.2f}  "
             f"median words {e['median_words']}"
         )
     for note in notes:

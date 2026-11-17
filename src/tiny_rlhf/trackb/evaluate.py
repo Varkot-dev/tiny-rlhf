@@ -207,14 +207,22 @@ def group_rows(rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
 
 
 def summarize_rows(
-    rows: list[dict[str, Any]], n_resamples: int = DEFAULT_RESAMPLES, seed: int = 0
+    rows: list[dict[str, Any]],
+    n_resamples: int = DEFAULT_RESAMPLES,
+    seed: int = 0,
+    group_metrics: dict[str, tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
-    """Rates with intervals for every group of one split."""
+    """Rates with intervals for every group of one split.
+
+    group_metrics overrides which metrics are reported per group (default GROUP_METRICS);
+    scripts/rescore_trackb.py uses it to report strict and lenient scores side by side.
+    """
+    group_metrics = GROUP_METRICS if group_metrics is None else group_metrics
     out: dict[str, Any] = {"n": len(rows), "groups": {}}
     for name, members in group_rows(rows).items():
         metrics = {
             metric: rate_with_interval([r["scores"][metric] for r in members], n_resamples, seed)
-            for metric in GROUP_METRICS[name]
+            for metric in group_metrics[name]
         }
         complete = [r["scores"]["on_task"] for r in members if not _truncated(r)]
         out["groups"][name] = {
@@ -492,8 +500,13 @@ def compare_rows(
     trained_rows: list[dict[str, Any]],
     n_resamples: int = DEFAULT_RESAMPLES,
     seed: int = 0,
+    group_metrics: dict[str, tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
-    """Before/after for one split: each group's rates and their paired difference."""
+    """Before/after for one split: each group's rates and their paired difference.
+
+    group_metrics overrides which metrics are compared per group (default GROUP_METRICS).
+    """
+    group_metrics = GROUP_METRICS if group_metrics is None else group_metrics
     base_by_id = {r["id"]: r for r in base_rows}
     trained_by_id = {r["id"]: r for r in trained_rows}
     if set(base_by_id) != set(trained_by_id):
@@ -514,7 +527,7 @@ def compare_rows(
         )
     base_groups, trained_groups = group_rows(paired_base), group_rows(paired_trained)
     out: dict[str, Any] = {}
-    for group, metrics in GROUP_METRICS.items():
+    for group, metrics in group_metrics.items():
         before_rows, after_rows = base_groups[group], trained_groups[group]
         out[group] = {"n": len(before_rows), "metrics": {}}
         for metric in metrics:
