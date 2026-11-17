@@ -1,0 +1,19 @@
+# Toy for the stretch item: REINFORCE with a baseline, and DPO, on a task that can be
+# solved exactly by enumeration (4 ** 6 = 4096 sequences). Runs on one CPU core.
+run_name: reinforce_toy
+vocab_size: 4          # tokens 0, 1, 2 and a stop token (3)
+seq_len: 6
+stop_bonus: 2.0
+beta: 0.5              # KL penalty strength; also the DPO beta
+embed_dim: 16
+hidden_dim: 32
+init_seed: 0           # initial weights = the frozen reference, shared by every run
+seeds: [0, 1, 2, 3, 4] # sampling seeds
+batch_size: 32         # sequences per REINFORCE step; DPO uses 16 pairs = 32 sequences
+steps: 400
+lr: 0.01               # Adam, same for every method; not tuned per method
+ema_decay: 0.9
+eval_every: 10
+grad_variance_batches: 200
+grad_variance_steps: [0, 100, 400]
+dpo_extended_steps: 4000  # one longer DPO run per label mode, first seed only
