@@ -1,0 +1,38 @@
+{
+  "sweep": "beta",
+  "source": "configs/sweeps/beta.yaml",
+  "base_config": "configs/dpo_full.yaml",
+  "field": "beta",
+  "runs": [
+    {
+      "label": "0.01",
+      "value": 0.01,
+      "series": null,
+      "run_name": "sweep_beta_0.01",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_beta_0.01 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set beta=0.01",
+      "status": "done",
+      "returncode": 0,
+      "seconds": 933.6
+    },
+    {
+      "label": "0.1",
+      "value": 0.1,
+      "series": null,
+      "run_name": "sweep_beta_0.1",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_beta_0.1 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set beta=0.1",
+      "status": "not_run",
+      "returncode": null,
+      "seconds": null
+    },
+    {
+      "label": "0.5",
+      "value": 0.5,
+      "series": null,
+      "run_name": "sweep_beta_0.5",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_beta_0.5 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set beta=0.5",
+      "status": "not_run",
+      "returncode": null,
+      "seconds": null
+    }
+  ]
+}
