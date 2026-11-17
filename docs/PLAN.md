@@ -118,3 +118,6 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Preference accuracy counts ties as wrong** (margin must be strictly positive). At step 0 the margin is exactly 0 for every pair, so accuracy starts at 0, not 0.5. To revisit in M2 if TRL's logged accuracy uses a different convention.
 - **Added an M0 figure that section 7 does not list:** `assets/m0_loss_shape.png`, the loss and its gradient as functions of the log-ratio difference. It shows the loss function, not a result, and the README says so. It also fixes the plot style (`src/tiny_rlhf/plotting.py`) for later figures.
 - **Tests were mutation-checked by hand:** removing the shift, removing the mask, multiplying by the mask, swapping chosen and rejected, dropping beta, and ignoring the reference each make at least one test fail.
+
+**2026-11-17, working process**
+- **No per-milestone quiz.** The owner asked for the quiz to happen once, at the end of the project, and for work to continue between milestones without waiting. `CLAUDE.md` rule 3 was updated to match. Each milestone still starts with the concepts explained, and still must meet its "done when" criteria before the next one starts.

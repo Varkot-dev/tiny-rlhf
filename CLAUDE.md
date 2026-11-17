@@ -11,7 +11,7 @@ Varshith owns this repo. He is building it to learn the material deeply and to s
 ## How to work
 1. One milestone at a time, in the order in `docs/PLAN.md`. Do not start the next until the current one meets its "done when" criteria.
 2. Teach before you build. At the start of each milestone, explain the concepts it needs with intuition and math together and two or three worked examples, using plain text math (no LaTeX). Then build.
-3. After each milestone, quiz him on it one question at a time, waiting for each answer. Use the question list at the end of the plan and add your own.
+3. Do not quiz after each milestone and do not pause between milestones. Keep building. Quiz him once, at the end of the project, one question at a time, waiting for each answer. Use the question list at the end of the plan and add your own. (Changed by the owner on 2026-11-17.)
 4. Keep `docs/PLAN.md` current: tick off milestones, and record changed decisions and why in a "Decision log" section at the bottom.
 5. The plan was written in November 2026. Before using any library API, dataset location or package name from it, check the current documentation. If something changed, follow the current docs and note it in the decision log.
 
