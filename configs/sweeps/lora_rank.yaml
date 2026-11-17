@@ -1,0 +1,39 @@
+# LoRA rank sweep: how much adapter capacity the preference signal needs.
+#
+# LoRA replaces the update to each weight matrix W by B @ A with A of shape [r, in] and
+# B of shape [out, r]. The update is scaled by lora_alpha / r, so alpha is kept at 2 * r
+# in every run: the scale stays 2 and only the capacity changes. Changing r with alpha
+# fixed would change the effective learning rate at the same time.
+#
+# Full fine-tuning is NOT included. Training all 494M float32 weights with AdamW needs
+# the weights (about 2 GB), their gradients (2 GB) and two Adam moment buffers (4 GB),
+# plus the frozen reference (2 GB) and the activations and logits of a 512-token
+# sequence. The LoRA run with 2 pairs per batch already used 13.5 GB of the T4's 14.6 GB
+# and failed (decision log, 2026-11-17), so full fine-tuning does not plausibly fit. It
+# would also need its own, much smaller learning rate, which makes it a separate
+# experiment and not one more point on this axis. To try it on a larger GPU:
+#   python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name full_ft \
+#       --set use_lora=false --set lr=5e-7 --set n_train=2000 --set n_eval=300
+# (lr 5e-7 is the value in TRL's DPO documentation example, not something tuned here.)
+#
+# Budget: reduced as in the beta sweep.
+name: lora_rank
+description: LoRA rank in {2, 8, 16, 64} with alpha = 2 * rank
+base_config: configs/dpo_full.yaml
+field: lora_r
+run_name: "sweep_rank_{label}"
+x_label: LoRA rank r (alpha = 2r)
+x_scale: log
+overrides:
+  n_train: 2000
+  n_eval: 300
+  eval_every: 50
+values:
+  - value: 2
+    overrides: {lora_alpha: 4}
+  - value: 8
+    overrides: {lora_alpha: 16}
+  - value: 16
+    overrides: {lora_alpha: 32}
+  - value: 64
+    overrides: {lora_alpha: 128}

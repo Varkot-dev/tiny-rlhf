@@ -1,0 +1,51 @@
+{
+  "run_name": "reward_tiny",
+  "wall_time_s": 180.6,
+  "optimizer_steps": 41,
+  "steps_per_epoch": 41,
+  "warmup_steps": 5,
+  "first_eval_loss": 0.6931471824645996,
+  "final_eval_loss": 0.744124140058245,
+  "heldout_accuracy": 0.6428571428571429,
+  "heldout_accuracy_ci95": [
+    0.5,
+    0.7857142857142857
+  ],
+  "bootstrap_resamples": 2000,
+  "bootstrap_seed": 0,
+  "eval_pairs_sha256": "8c90b706f5d8017dac411232743beb8a12993519c4aaa7057afea50359a6a3af",
+  "device": "cpu",
+  "amp_fp16": false,
+  "param_dtype": "torch.float32",
+  "peak_gpu_memory_mb": null,
+  "trainable_params": 461377,
+  "head_params": 577,
+  "total_params": 134976385,
+  "n_train_pairs": 162,
+  "n_eval_pairs": 42,
+  "truncation_train": {
+    "n_pairs": 162,
+    "frac_chosen_truncated": 0.6851851851851852,
+    "frac_rejected_truncated": 0.5679012345679012,
+    "mean_chosen_tokens_scored": 132.06172839506172,
+    "mean_rejected_tokens_scored": 121.14197530864197,
+    "mean_prompt_tokens": 95.50617283950618
+  },
+  "truncation_eval": {
+    "n_pairs": 42,
+    "frac_chosen_truncated": 0.5476190476190477,
+    "frac_rejected_truncated": 0.5714285714285714,
+    "mean_chosen_tokens_scored": 119.45238095238095,
+    "mean_rejected_tokens_scored": 126.78571428571429,
+    "mean_prompt_tokens": 84.5952380952381
+  },
+  "seed": 0,
+  "git_sha": "4c0ae9e80cbe634e9606add346051903e0e1d3ff",
+  "versions": {
+    "torch": "2.15.0",
+    "transformers": "5.23.0",
+    "peft": "0.21.3",
+    "datasets": "5.2.0",
+    "trl": "1.18.0"
+  }
+}

@@ -43,7 +43,7 @@ Intuition: raise the preferred response's log-probability relative to where the 
 Two tracks sharing one codebase.
 
 ### Track A: get the method right on standard data
-1. Hand-written DPO loss and training loop in plain PyTorch (about 150 lines).
+1. Hand-written DPO loss and training loop in plain PyTorch (the plan guessed about 150 lines; see the decision log for the real size).
 2. The same data, model and hyperparameters through TRL's `DPOTrainer`.
 3. Parity check: the first-step loss is log 2 in both, and loss curves and reward margins agree within noise. This is the evidence that the hand-built version is correct.
 4. An explicit reward model on the same pairs (classifier head, Bradley-Terry loss). Compare its rankings with DPO's implicit reward, beta * log(pi / pi_ref), on held-out pairs.
@@ -199,3 +199,21 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Fix:** when gradients are non-finite under fp16, let the scaler skip and lower its scale, then redo the same optimizer step on the same pairs, up to 20 times. The count is saved as `scaler_retries` in `run_info.json`. Without fp16 a non-finite gradient still stops the run at once. No logged step is ever a skipped one.
 - **Cosmetic effect of fp16 seen in that run:** step-0 preference accuracy was 0.116 instead of 0. The policy and the cached reference scores differed by about 1e-7 in margin from GPU rounding, so some exact ties became tiny wins. The step-0 loss was still log 2.
 - **Colab cell:** the `grep` was removed so a failed training command stops the cell.
+
+**2026-11-17, stretch: REINFORCE on a toy** (first half of the plan's stretch item; explained in `docs/REINFORCE.md`, numbers in `results/reinforce_toy/`)
+- **The toy is small enough to enumerate:** sequences of 6 tokens from a vocabulary of 4, so 4,096 sequences, with a known reward and a 5,012-parameter GRU policy. The objective is the KL-constrained one the DPO derivation starts from, so the closed-form optimum pi* proportional to pi_ref * exp(r / beta) is computed exactly and every learned policy is measured against it.
+- **The KL penalty is folded into each sample's return** as r - beta * (log pi - log pi_ref), detached. The extra gradient term is beta * E[grad log pi], which is zero, so the estimator stays unbiased.
+- **The third baseline is a leave-one-out batch mean, not a learned value function.** A plain batch mean includes each sample's own return, which biases the estimate slightly.
+- **DPO is run on the same toy with two labelling rules.** With Bradley-Terry labels (the preferred one is sampled with probability sigmoid(r_a - r_b)), pi* is exactly DPO's optimum, which a test confirms on a tabular case. With always-correct labels DPO has no finite optimum and overshoots the KL-constrained solution.
+- **One shared learning rate (Adam, 0.01) for every method, not tuned per method.** The comparison at equal sequence budget is therefore indicative only.
+- **Not done:** the second half of the stretch item, a TRL policy-gradient trainer on the real model using the Track A reward model.
+
+**2026-11-17, M6 tooling** (code built while GPU runs were pending; no sweep has been run)
+- **What TRL's label smoothing actually is** (read from trl 1.18.0): `label_smoothing` does nothing for the default `sigmoid` loss. It is used by `loss_type="robust"` (and `udpo`, `exo_pair`), where it is the assumed probability e that a label is flipped and the loss becomes `[(1 - e) * L(u) - e * L(-u)] / (1 - 2e)`. So the plan's "try TRL's label-smoothing option" means switching to the robust loss, not adding a knob to ordinary DPO. `robust_dpo_loss` implements it by hand with the derivation, and a test checks it equals TRL's expression to 1e-12. Two properties to remember: the loss is unbounded below, and gradients are scaled by 1 / (1 - 2e), which is 2.5 times at e = 0.3.
+- **Sweeps use a reduced budget** of 2,000 training pairs and 300 held-out pairs so four sweeps fit in free Colab time. All four score the same 300 held-out pairs.
+- **beta sweep: 0.01, 0.1, 0.5** as planned. Drift is mean per-token KL(reference || policy) on the held-out preferred responses.
+- **LoRA rank sweep: 2, 8, 16, 64 with alpha = 2r,** so the update's scale stays fixed and only its capacity changes. Full fine-tuning is left out: its weights, gradients and Adam buffers alone are about 8 GB, and the LoRA run already hit 13.5 GB on the T4 before the memory fix.
+- **Dataset size sweep holds optimizer steps fixed (340), not epochs.** Compute is equal across sizes and only the number of distinct pairs changes, so 100 pairs are each seen about 27 times.
+- **Label noise flips an exact count of training pairs** with the config seed. Held-out pairs are never flipped.
+- **Each sweep run is its own process,** so GPU memory is released between runs and one failure does not end the sweep.
+- **Known rough edges:** the robust-loss runs swap the loss function inside `train_dpo` for the duration of a run instead of passing it as an argument, and there are three separate bootstrap helpers in the code base. Both are candidates for cleanup in M6 polish.

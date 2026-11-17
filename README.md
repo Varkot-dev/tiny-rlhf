@@ -8,40 +8,70 @@ It is a picture of the loss function, not of a trained model.
 
 ## Status
 
-**Work in progress. The only training run so far is a CPU smoke test. There are no findings yet.**
+**Work in progress. Every training run so far is a small check that the code works. There are no findings about DPO on a real model yet.**
 
-| Milestone | State |
-|---|---|
-| M0 loss functions (`sequence_logprob`, `dpo_loss`, `bradley_terry_loss`) | done, unit tested on toy tensors and a toy bigram model |
-| M1 hand-written DPO training | code and tests done; tiny CPU run done; full GPU run not done yet |
-| M2 TRL parity run | not started |
-| M3 reward model | not started |
-| M4 behavior dataset | not started |
-| M5 behavior training and evaluation | not started |
-| M6 ablations and write-up | not started |
+| Milestone | Code and tests | Runs |
+|---|---|---|
+| M0 loss functions | done | not applicable |
+| M1 hand-written DPO training | done | tiny runs on CPU and on a Colab T4; full run not done |
+| M2 TRL parity | done | tiny pair on CPU; full pair not done |
+| M3 reward model | done | tiny run on CPU; full run not done |
+| M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
+| M5 Track B training and evaluation | done | none yet |
+| M6 ablation sweeps and write-up | sweep tooling done | none yet |
+| Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
-The plan, the milestone criteria and the decision log are in [docs/PLAN.md](docs/PLAN.md).
+Nothing in M3, M5 or M6 has been run on a GPU. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
 
-## Smoke test (not a result)
+## Checks run so far (none of these is a result about DPO)
+
+### The hand-written loop matches TRL step for step
+
+![Hand-written DPO and TRL DPOTrainer overlaid](assets/m2_parity_parity_tiny.png)
+
+`configs/parity_tiny.yaml` trains the same LoRA adapter on `HuggingFaceTB/SmolLM2-135M-Instruct` twice, once with this repo's loop and once with TRL 1.18.0's `DPOTrainer`, from the same initial weights and with the same pairs in the same order (162 training pairs, 42 held-out pairs, 41 optimizer steps, CPU, float32). Numbers are from `results/parity_tiny/parity_summary.json`.
+
+- Across all 41 training steps the two losses differ by at most 8.2e-06 and the preference accuracy is identical at every step.
+- On the held-out pairs the losses differ by at most 2.4e-06.
+- Both start at 0.693147, which is log 2.
+
+This is evidence that the hand-written implementation computes what TRL computes, at tiny scale and in float32. It has not been repeated on the full model or under fp16.
+
+### Smoke test of the training loop
 
 ![Training curves for the tiny CPU run](assets/m1_training_dpo_tiny.png)
 
-`configs/dpo_tiny.yaml` trains a LoRA adapter on `HuggingFaceTB/SmolLM2-135M-Instruct` with the hand-written loop: 162 training pairs and 42 held-out pairs from `trl-lib/ultrafeedback_binarized`, 41 optimizer steps, 571 seconds on a 4-core CPU. Numbers are from `results/dpo_tiny/`.
+`configs/dpo_tiny.yaml`, same model and data sizes but with shuffling: held-out loss 0.693147 before training and 0.6826 after 41 steps, with 31 of 42 held-out pairs ranked the right way relative to the reference (`results/dpo_tiny/`). The same config on a Colab T4 under fp16 gave 0.6825 and 30 of 42 in 19.75 seconds with a 3.9 GB peak (`results/dpo_tiny_t4/`). The exact-order parity run above ended at 26 of 42. Forty-two pairs is far too few to read anything into those differences, and more than half of the responses were cut at 256 tokens.
 
-- The held-out loss before any update is 0.693147, which is log 2, as it must be when the policy equals the reference.
-- After 41 steps the held-out loss is 0.6826 and the policy ranks the preferred response above the other, relative to the reference, on 31 of 42 held-out pairs (0.74).
-- 42 pairs is far too few to conclude anything, and more than half of the responses were cut at 256 tokens. This run shows that the pipeline works end to end. It says nothing about how good DPO is.
+### Reward model next to DPO's implicit reward
 
-What is not tested: the fp16 GPU path has never been executed (CI and the development machine have no GPU).
+![Reward model margins against DPO implicit reward margins on held-out pairs](assets/m3_reward_vs_dpo_reward_tiny.png)
+
+`configs/reward_tiny.yaml` trains an explicit reward model (the same 135M backbone with a LoRA adapter and a linear head, Bradley-Terry loss) on the same 162 pairs for 41 steps on CPU, and scores the same 42 held-out pairs as the `parity_tiny` DPO run; the two runs' held-out sets are checked to be identical by fingerprint. Numbers are from `results/reward_tiny/reward_vs_dpo.json`.
+
+- Reward model held-out accuracy: 27 of 42 (0.64, 95% bootstrap interval 0.50 to 0.79). DPO implicit reward: 26 of 42 (0.62, interval 0.48 to 0.76).
+- The two prefer the same response on 33 of 42 pairs (0.79, interval 0.67 to 0.90). Spearman correlation of their margins is 0.57.
+
+Both intervals include 0.5, so at this size neither model is shown to beat a coin flip. This checks that the comparison pipeline works. The M3 result needs the full run.
+
+### REINFORCE on an enumerable toy
+
+![REINFORCE with and without a baseline, and DPO, on a toy task](assets/m_stretch_reinforce_toy.png)
+
+A 5,012-parameter policy over 4,096 possible sequences, small enough that the optimal policy of the KL-constrained objective is computed exactly. With a baseline, hand-written REINFORCE ends within 0.01 nats (KL) of that optimum; without one it ends 0.695 away. Numbers are from `results/reinforce_toy/`, mean of 5 seeds. It is a toy: nothing here is a result about language models.
 
 ## What is here
 
-- `src/tiny_rlhf/losses.py`: the three loss building blocks in plain PyTorch.
+- `src/tiny_rlhf/losses.py`: `sequence_logprob`, `dpo_loss`, `bradley_terry_loss`.
 - `src/tiny_rlhf/data.py`: pair tokenization and batching, checked to match TRL's collator.
 - `src/tiny_rlhf/train_dpo.py`: the hand-written DPO training loop.
-- `tests/`: checks against hand-computed values, plus training-loop tests on a tiny random model.
-- `scripts/`: `train_dpo.py` runs a config, `plot_training.py` and `plot_loss_shape.py` make the figures.
-- `notebooks/colab_train.ipynb` and `docs/COLAB.md`: running a config on a Colab GPU.
+- `src/tiny_rlhf/train_trl.py`: the same run through TRL's `DPOTrainer`.
+- `src/tiny_rlhf/reward_model.py`: an explicit reward model trained with the Bradley-Terry loss.
+- `src/tiny_rlhf/trackb/`: generator, checks, training and evaluation for the on-task dataset in `data/trackb/`.
+- `src/tiny_rlhf/noise.py`, `sweeps.py`: label noise, the robust DPO loss and the sweep runner.
+- `src/tiny_rlhf/reinforce.py`: REINFORCE with baselines on the toy task.
+- `scripts/`: one script per run or figure. `tests/`: checks against hand-computed values and against TRL.
+- `docs/COLAB.md`, `COLAB_TRACKB.md`, `COLAB_SWEEPS.md`: running on a Colab GPU. These cells have not all been executed.
 
 ## Run it
 
