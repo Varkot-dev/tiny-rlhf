@@ -1,6 +1,11 @@
 # M2 parity run, Colab T4 scale. Run through both scripts/train_dpo.py and
 # scripts/train_trl.py, then compare with scripts/plot_parity.py.
 # Same as dpo_full.yaml except:
+#   max_steps: 100      parity needs enough steps to compare the two runs step by step, not a
+#                       full epoch. 100 steps of 8 pairs keep both float32 runs inside one
+#                       Colab session. The cap also shortens the lr schedule (10 warmup
+#                       steps, decay to 0 at step 100) identically for both implementations.
+#   eval_every: 50      held-out evaluation at steps 0, 50 and 100
 #   shuffle: false      both implementations see the pairs in dataset order
 #   lora_dropout: 0.0   no random numbers during training
 #   n_train: 3997       with seed 0 and max_length 512, 3696 pairs survive the
@@ -33,7 +38,7 @@ epochs: 1
 batch_size: 1
 grad_accum: 8
 max_grad_norm: 1.0
-eval_every: 100
+eval_every: 50
 eval_batch_size: 2
 seed: 0
 shuffle: false
@@ -44,5 +49,5 @@ lora_dropout: 0.0
 lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
 amp: false
 device: auto
-max_steps: null
+max_steps: 100
 save_adapter: false
