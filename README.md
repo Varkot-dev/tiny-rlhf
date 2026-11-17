@@ -8,14 +8,14 @@ It is a picture of the loss function, not of a trained model.
 
 ## Status
 
-**Work in progress. Two full training runs exist (below), and the second is a negative result. Everything else so far is a small check that the code works.**
+**Work in progress. Three full training runs exist (below); the Track B run is a negative result. Everything else so far is a small check that the code works.**
 
 | Milestone | Code and tests | Runs |
 |---|---|---|
 | M0 loss functions | done | not applicable |
 | M1 hand-written DPO training | done | tiny runs on CPU and T4; one full run on a Colab T4 |
 | M2 TRL parity | done | tiny pair on CPU; full pair not done |
-| M3 reward model | done | tiny run on CPU; full run not done |
+| M3 reward model | done | tiny run on CPU; one full run on a Colab T4 |
 | M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
 | M5 Track B training and evaluation | done | one full run on a Colab T4 (negative result, below); follow-ups pending |
 | M6 ablation sweeps and write-up | sweep tooling done | none yet |
@@ -36,6 +36,20 @@ Nothing in M3, M5 or M6 has been run on a GPU. The plan, the milestone criteria 
 - **The training curves showed it coming.** Validation preference accuracy reached 0.993 by step 125 and never improved, while the preferred responses' log-probability fell from -33.1 at the start to -59.5 at step 250 (`results/trackb_full/eval.csv`). The data was separated early, and the rest of training pushed probabilities down.
 
 This is over-optimization on easy, synthetic preference data. It is one run with one seed. Three follow-up runs (a larger beta, stopping at step 60, and an added term that keeps preferred answers likely) are prepared; see [docs/PLAN.md](docs/PLAN.md).
+
+## An explicit reward model and DPO's implicit reward agree on most pairs
+
+![Reward model margins against DPO implicit reward margins on held-out pairs](assets/m3_reward_vs_dpo_reward_full.png)
+
+`configs/reward_full.yaml` trains an explicit reward model (Qwen2.5-0.5B backbone with a LoRA adapter and a linear head on the last token, Bradley-Terry loss) on the same 3,699 pairs as the full DPO run below, 463 steps on a Colab T4 (1,057 seconds, 6.4 GB peak). Both are scored on the same 456 held-out pairs, verified by fingerprint. Numbers are from `results/reward_full/reward_vs_dpo.json`.
+
+| Held-out, 456 pairs | Accuracy (95% bootstrap interval) |
+|---|---|
+| Explicit reward model | 0.638 (0.594 to 0.682) |
+| DPO implicit reward, beta * log(pi / pi_ref) | 0.654 (0.607 to 0.693) |
+| The two prefer the same response | 0.713 (0.673 to 0.754) |
+
+The two ways of learning from the same preferences reach the same accuracy within noise and agree on 71% of pairs; Spearman correlation of their margins is 0.49. Where they disagree, each is right about equally often (62 against 69 pairs). The reward model's training was noisy: its held-out loss rose above log 2 for most of the run before ending at 0.679, consistent with a head learning rate (1e-3, untuned) that is too high (`results/reward_full/eval.csv`).
 
 ## First full run (one run, one seed)
 

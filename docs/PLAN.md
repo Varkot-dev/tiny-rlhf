@@ -75,7 +75,7 @@ A 0.5B-parameter model with LoRA, sequences under 512 tokens, small batches with
 | M0 (done 2026-11-17) | `sequence_logprob`, `dpo_loss`, `bradley_terry_loss` in PyTorch | Tests pass: loss is log 2 when policy equals reference; gradients raise the preferred response and lower the other; masking matches a hand-computed example |
 | M1 (done 2026-11-17) | Hand-written DPO training on the standard dataset | Tiny config then full run, logging loss, reward margin, preference accuracy and preferred log-probability |
 | M2 | TRL parity run | One figure overlays both sets of curves |
-| M3 | Reward model | Held-out accuracy reported, plus the implicit vs explicit reward comparison |
+| M3 (done 2026-11-17) | Reward model | Held-out accuracy reported, plus the implicit vs explicit reward comparison |
 | M4 (done 2026-11-17) | Track B dataset with a datasheet (how it was made, splits, known weaknesses) | Splits verified to share no held-out categories |
 | M5 (done 2026-11-17, negative first result) | Track B training and evaluation | Before/after table with confidence intervals |
 | M6 | Ablations, write-up, polish | README complete, repo ready to make public |
@@ -272,3 +272,8 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **All variants are evaluated with exactly the M5 settings and compared against the same base-model evaluation** (`results/trackb_full/trackb_eval/summary_base.json`), and `scripts/plot_trackb_variants.py` puts base, `trackb_full` and the variants side by side: injection followed, task correct on clean documents, median answer length, and the general-text NLL change.
 - **Bug caught before it ran:** the comparison, figure and examples scripts wrote their outputs next to the base summary's run. With one shared base, every variant comparison would have overwritten `trackb_full`'s table, figure and examples. They now write next to the trained run, and a test guards it.
 - **Queue estimates for M5 now use the measured times** from `results/trackb_full` instead of guesses.
+
+**2026-11-17, full reward model run (`results/reward_full/`), M3 done**
+- **Measured on a Colab T4:** 463 steps in 1,057 seconds, 6.4 GB peak, 4 fp16 step retries, step-0 loss log 2. Same 3,699 training pairs and same 456 held-out pairs as `dpo_full_t4` (fingerprint verified).
+- **Result:** held-out accuracy 0.638 (0.594 to 0.682) against DPO's implicit reward 0.654 (0.607 to 0.693). They prefer the same response on 0.713 of pairs (0.673 to 0.754), Spearman of margins 0.49; when they disagree, each is right about as often (62 and 69 pairs).
+- **Training was unstable in a way to fix before relying on this model for RL:** the gradient norm before clipping was 20 to 90 at every logged step, so every update was clipped to norm 1; training loss spiked to 2.4 near step 50; and the held-out loss stayed above log 2 from step 100 until step 400 (0.889 at step 100), ending at 0.679. Accuracy was about 0.6 throughout, so the model was ranking pairs but was overconfident on the ones it got wrong. The likely cause is the head learning rate of 1e-3, a guess, 20 times the adapter's. A rerun with a lower head learning rate is the obvious next check; it is not in the queue yet.
