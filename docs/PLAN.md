@@ -136,3 +136,12 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Gradient accumulation weights each micro-batch by its share of the step's pairs,** so an optimizer step is the gradient of the mean loss over all its pairs even when the last micro-batch is short. A test checks that 4 micro-batches of 2 give the same update as one batch of 8.
 - **Asking for n pairs can return fewer.** Pairs whose prompt alone fills `max_length` are dropped, as TRL does. At `max_length` 256 the tiny config gets 162 of 200 training pairs and 42 of 50 held-out pairs. The actual counts are in `run_info.json`.
 - **The training module is about 470 lines, not the 150 the plan guessed.** The method itself (`pair_logps`, the loop body, `dpo_loss`) is under 60; the rest is config, logging, evaluation and run metadata.
+
+**2026-11-17, M1 review** (an independent read of the M1 code; the fixes are in the same day's commits)
+- **`amp` is `auto`, `true` or `false`.** YAML reads a bare `off` as a boolean, so the earlier string check never matched and `amp: off` left fp16 on. Fixed and tested.
+- **The step-0 check now also fails on a nan loss and on any single held-out pair with a non-zero margin,** not only on the mean loss.
+- **A non-finite gradient stops the run.** GradScaler would otherwise skip the update while the step counter and schedule moved on.
+- **Reference log-probabilities on the held-out pairs are computed once and reused,** since the reference never changes. The full config evaluates every 100 steps instead of 50.
+- **Known limitation, fp16:** under autocast the logits are already rounded to half precision when `sequence_logprob` receives them. The reviewer measured 0.01 to 0.08 nats of noise on a 400-token summed log-probability from rounding alone (CPU simulation, not a GPU run). With beta 0.1 that is under 0.01 in reward units. To quantify on the T4 in M2 by comparing against an `amp: false` run.
+- **Known difference from the Hugging Face Trainer:** when the last micro-batch of an epoch is short, this code weights micro-batches by pair count and the Trainer divides each by the number of micro-batches. It affects at most one step per epoch.
+- **Not addressed:** GPU runs are seeded but not bit-deterministic (no deterministic-algorithms flag), and no test exercises the fp16 path because CI has no GPU. The first Colab run is the first execution of that path.
