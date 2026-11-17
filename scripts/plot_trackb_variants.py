@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import statistics
 from pathlib import Path
 from typing import Any
@@ -45,6 +46,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIRST_RUN = "trackb_full"
 # Same list and order as tiny_rlhf.gpu_queue.TRACKB_VARIANTS (a test checks it).
 VARIANTS = ("trackb_beta0.5", "trackb_steps60", "trackb_sft1")
+# M7: KTO runs on the same data. Same order as tiny_rlhf.gpu_queue.KTO_RUNS (tested).
+KTO_RUNS = ("trackb_kto", "trackb_kto_beta0.5")
 # Short tick labels (five bars share a narrow panel) and the full names for the legend.
 LABELS = {
     "base": "base\nmodel",
@@ -52,16 +55,20 @@ LABELS = {
     "trackb_beta0.5": "beta\n0.5",
     "trackb_steps60": "60\nsteps",
     "trackb_sft1": "+ NLL\nterm",
+    "trackb_kto": "KTO\nbeta 0.1",
+    "trackb_kto_beta0.5": "KTO\nbeta 0.5",
 }
 LEGEND = {
     "base": "base model",
-    "trackb_full": "first run (beta 0.1, 375 steps)",
-    "trackb_beta0.5": "beta 0.5",
-    "trackb_steps60": "60 steps",
-    "trackb_sft1": "plus preferred-response NLL, weight 1",
+    "trackb_full": "DPO, first run (beta 0.1, 375 steps)",
+    "trackb_beta0.5": "DPO, beta 0.5",
+    "trackb_steps60": "DPO, 60 steps",
+    "trackb_sft1": "DPO plus preferred-response NLL",
+    "trackb_kto": "KTO, beta 0.1",
+    "trackb_kto_beta0.5": "KTO, beta 0.5",
 }
 # Colour follows the entity, never its position among the bars that happen to exist.
-ENTITIES = ("base", FIRST_RUN, *VARIANTS)
+ENTITIES = ("base", FIRST_RUN, *VARIANTS, *KTO_RUNS)
 
 
 def pooled_stats(rows: list[dict[str, Any]], seed: int = 0) -> dict[str, Any]:
@@ -246,13 +253,14 @@ def plot(entities: dict[str, Any], notes: list[str], out: Path) -> None:
         handles,
         [LEGEND.get(n, n) for n in names],
         loc="upper center",
-        ncol=len(names),
+        ncol=len(names) if len(names) <= 5 else math.ceil(len(names) / 2),
         bbox_to_anchor=(0.5, 0.95),
         fontsize=9,
     )
     n_ex = entities["base"]["n_examples"]
+    method = "DPO and KTO" if any(n in KTO_RUNS for n in names) else "DPO"
     fig.suptitle(
-        "Track B follow-up: Qwen2.5-0.5B-Instruct with DPO + LoRA, "
+        f"Track B: Qwen2.5-0.5B-Instruct with {method} + LoRA, "
         f"{n_ex} test examples over five splits (95% bootstrap intervals)",
         x=0.01,
         ha="left",
@@ -279,8 +287,18 @@ def main() -> None:
     parser.add_argument(
         "--summary-out", default=str(ROOT / "results" / "trackb_variants_summary.json")
     )
+    parser.add_argument(
+        "--runs",
+        nargs="*",
+        help="runs to show next to the base model and trackb_full (default: the DPO "
+        "follow-ups, " + ", ".join(VARIANTS) + ")",
+    )
     args = parser.parse_args()
-    entities, notes = collect(Path(args.results), VARIANTS)
+    runs = tuple(args.runs) if args.runs else VARIANTS
+    unknown = [r for r in runs if r not in ENTITIES]
+    if unknown:
+        raise SystemExit(f"unknown runs {unknown}; known: {ENTITIES[2:]}")
+    entities, notes = collect(Path(args.results), runs)
     summary = {"splits": list(DEFAULT_SPLITS), "entities": entities, "not_shown": notes}
     Path(args.summary_out).write_text(json.dumps(summary, indent=2) + "\n")
     plot(entities, notes, Path(args.out))

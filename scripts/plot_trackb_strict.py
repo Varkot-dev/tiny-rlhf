@@ -28,13 +28,23 @@ ROOT = Path(__file__).resolve().parents[1]
 FIRST_RUN = "trackb_full"
 # Fixed colour order shared with scripts/plot_trackb_variants.py: colour follows the
 # model, never its position among the bars that exist.
-KNOWN = ("base", "trackb_full", "trackb_beta0.5", "trackb_steps60", "trackb_sft1")
+KNOWN = (
+    "base",
+    "trackb_full",
+    "trackb_beta0.5",
+    "trackb_steps60",
+    "trackb_sft1",
+    "trackb_kto",
+    "trackb_kto_beta0.5",
+)
 LEGEND = {
     "base": "base model",
-    "trackb_full": "first run (beta 0.1, 375 steps)",
-    "trackb_beta0.5": "beta 0.5",
-    "trackb_steps60": "60 steps",
-    "trackb_sft1": "plus preferred-response NLL, weight 1",
+    "trackb_full": "DPO, first run (beta 0.1, 375 steps)",
+    "trackb_beta0.5": "DPO, beta 0.5",
+    "trackb_steps60": "DPO, 60 steps",
+    "trackb_sft1": "DPO plus preferred-response NLL",
+    "trackb_kto": "KTO, beta 0.1",
+    "trackb_kto_beta0.5": "KTO, beta 0.5",
 }
 SPLIT_LABELS = {
     "test_in_dist": "in\ndistribution",
@@ -119,7 +129,8 @@ def main() -> None:
                 xytext=(0, 3),
                 textcoords="offset points",
                 ha="center",
-                fontsize=8,
+                fontsize=8 if len(names) <= 5 else 6.5,  # narrower bars, smaller labels
+                rotation=0 if len(names) <= 5 else 90,
                 color=TEXT_PRIMARY,
             )
         ax.axvline((x[-2] + x[-1]) / 2, color=TEXT_SECONDARY, lw=0.8, ls=":")
@@ -131,9 +142,10 @@ def main() -> None:
     axes[1].set_xticks(x)
     axes[1].set_xticklabels([SPLIT_LABELS.get(g, g) for g in groups])
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=len(names), bbox_to_anchor=(0.5, 0.955))
+    ncol = len(names) if len(names) <= 5 else -(-len(names) // 2)
+    fig.legend(handles, labels, loc="upper center", ncol=ncol, bbox_to_anchor=(0.5, 0.955))
     fig.suptitle(
-        "Track B, strict scoring: Qwen2.5-0.5B-Instruct before and after DPO + LoRA "
+        "Track B, strict scoring: Qwen2.5-0.5B-Instruct before and after training with LoRA "
         "(150 examples per split, 95% bootstrap intervals)",
         x=0.01,
         ha="left",
