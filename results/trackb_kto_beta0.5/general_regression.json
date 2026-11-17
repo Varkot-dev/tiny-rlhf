@@ -1,0 +1,45 @@
+{
+  "n_conversations": 183,
+  "mean_response_tokens_scored": 217.6448087431694,
+  "nll_per_token_base": {
+    "mean": 1.3948094146173509,
+    "ci_low": 1.3148366000605087,
+    "ci_high": 1.4835705024968893
+  },
+  "nll_per_token_trained": {
+    "mean": 1.600581454974472,
+    "ci_low": 1.501286470699773,
+    "ci_high": 1.7143024294316525
+  },
+  "nll_per_token_change": {
+    "difference": 0.2057720403571211,
+    "ci_low": 0.15770726725678572,
+    "ci_high": 0.2634741054138848,
+    "n": 183
+  },
+  "kl_base_to_trained_per_token": {
+    "mean": 0.19433818574323028,
+    "ci_low": 0.15954962659734073,
+    "ci_high": 0.23409420750332904
+  },
+  "interval": "95% percentile bootstrap over conversations",
+  "n_resamples": 2000,
+  "seed": 0,
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": "checkpoints/trackb_kto_beta0.5",
+  "dataset": "trl-lib/ultrafeedback_binarized",
+  "split": "test",
+  "n_requested": 200,
+  "max_length": 512,
+  "pairs_sha256": "995fb04e1ce4ecbd3ebd8565be9e0cee1e6683dc61cf59c4289089084c6caad3",
+  "device": "cuda",
+  "amp_fp16": true,
+  "git_sha": "fda45d070fc0434a784370e84db57e87bd46ebc7",
+  "versions": {
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "peft": "0.21.2",
+    "datasets": "4.8.5",
+    "trl": "not installed"
+  }
+}
