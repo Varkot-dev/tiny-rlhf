@@ -43,7 +43,7 @@ Intuition: raise the preferred response's log-probability relative to where the 
 Two tracks sharing one codebase.
 
 ### Track A: get the method right on standard data
-1. Hand-written DPO loss and training loop in plain PyTorch (about 150 lines).
+1. Hand-written DPO loss and training loop in plain PyTorch (the plan guessed about 150 lines; see the decision log for the real size).
 2. The same data, model and hyperparameters through TRL's `DPOTrainer`.
 3. Parity check: the first-step loss is log 2 in both, and loss curves and reward margins agree within noise. This is the evidence that the hand-built version is correct.
 4. An explicit reward model on the same pairs (classifier head, Bradley-Terry loss). Compare its rankings with DPO's implicit reward, beta * log(pi / pi_ref), on held-out pairs.
