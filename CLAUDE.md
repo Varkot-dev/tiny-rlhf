@@ -9,7 +9,7 @@ The research, design and milestone plan is in `docs/PLAN.md`. Read it fully befo
 Varshith owns this repo. He is building it to learn the material deeply and to show it publicly, so he must be able to explain every design decision in a technical conversation without notes.
 
 ## How to work
-1. One milestone at a time, in the order in `docs/PLAN.md`. Do not start the next until the current one meets its "done when" criteria.
+1. Milestones in the order in `docs/PLAN.md`. When a milestone is blocked only on something the owner must do (for example a GPU run on Colab), keep building the code, tests and CPU-scale checks for later milestones instead of stopping, and stop only when nothing more can be done without him. A milestone is ticked off only when its "done when" criteria are actually met. (Changed by the owner on 2026-11-17.)
 2. Teach before you build. At the start of each milestone, explain the concepts it needs with intuition and math together and two or three worked examples, using plain text math (no LaTeX). Then build.
 3. Do not quiz after each milestone and do not pause between milestones. Keep building. Quiz him once, at the end of the project, one question at a time, waiting for each answer. Use the question list at the end of the plan and add your own. (Changed by the owner on 2026-11-17.)
 4. Keep `docs/PLAN.md` current: tick off milestones, and record changed decisions and why in a "Decision log" section at the bottom.
