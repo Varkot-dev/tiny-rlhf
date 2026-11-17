@@ -60,6 +60,9 @@ KTO_RUNS = ("trackb_kto", "trackb_kto_beta0.5")
 SWEEP_STAGES = ("beta", "lora_rank", "data_size", "label_noise")
 
 STATUS_FILE = "results/queue_status.json"
+# Where the queue runs, for commit messages: "Colab" unless the cell says otherwise
+# (the Kaggle cell sets QUEUE_PLATFORM=Kaggle).
+PLATFORM = os.environ.get("QUEUE_PLATFORM", "Colab")
 FAILURE_DIR = "results/colab_failures"
 TAIL_LINES = 80  # lines kept from a failed job's output, as in docs/COLAB_ONE_HOUR.md
 STATUS_LINES = 30  # of those, how many also go into queue_status.json
@@ -1087,7 +1090,7 @@ def run_queue(
             record(job, "skipped-existing", note="checked: already current")
             results[job.name]["minutes"] = minutes
             paths: list[str] = [STATUS_FILE]
-            message = f"Update queue status after {job.name} (Colab {gpu})"
+            message = f"Update queue status after {job.name} ({PLATFORM} {gpu})"
         elif ok:
             extra: dict[str, Any] = {"retried_with_small_batch": True} if retried else {}
             if job.marker.endswith("run_info.json"):
@@ -1100,7 +1103,7 @@ def run_queue(
             record(job, "done", **extra)
             results[job.name]["minutes"] = minutes
             paths = [STATUS_FILE, *job.outputs]
-            message = f"Add results for {job.name} (Colab {gpu})"
+            message = f"Add results for {job.name} ({PLATFORM} {gpu})"
         else:
             oom = is_oom(tail)
             reason = (
@@ -1125,13 +1128,13 @@ def run_queue(
             (root / log).parent.mkdir(parents=True, exist_ok=True)
             (root / log).write_text(f"{reason}\nGPU: {gpu}\nminutes: {minutes}\n\n" + "".join(tail))
             paths = [STATUS_FILE, str(log)]
-            message = f"Record failure of {job.name} (Colab {gpu})"
+            message = f"Record failure of {job.name} ({PLATFORM} {gpu})"
         save_status()
         if commit(root, paths, message) and do_push and not push(root, branch):
             echo(f"WARNING: could not push after {job.name}; it stays committed locally.\n")
 
     save_status()
-    if commit(root, [STATUS_FILE], f"Update queue status (Colab {gpu})") and do_push:
+    if commit(root, [STATUS_FILE], f"Update queue status ({PLATFORM} {gpu})") and do_push:
         push(root, branch)
     return results
 
