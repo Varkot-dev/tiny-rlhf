@@ -39,6 +39,10 @@ Nothing in M3, M5 or M6 has been run on a GPU. The plan, the milestone criteria 
 
 Read the last two rows before the first three. The loss fell and the margin grew, but the preferred responses became less likely, by 6.3 nats on average. The other responses fell further, by 10.9 nats, and that widening gap is what the loss rewards. On 76% of held-out pairs both responses lost probability. DPO only constrains the difference, so this is allowed by the objective, and it is the reason the absolute log-probability is logged next to the margin.
 
+![Per-pair change in log-probability for the full run](assets/m1_logp_change_dpo_full_t4.png)
+
+The figure above breaks the drop down per held-out pair (`scripts/analyze_logp_change.py`, `results/dpo_full_t4/logp_change.json`). The change does not grow with response length (correlation -0.02 and -0.08), the dispreferred responses fall about twice as fast per token (median -0.053 against -0.027 nats), and the drop is spread across most pairs rather than driven by a few.
+
 Limits: this is a single run with one seed and untuned hyperparameters, about 30% of responses were cut at 512 tokens, and "preference accuracy" here is relative to the reference model, so it says the policy moved in the labelled direction on 65% of pairs, not that its answers are better. The matching TRL run on this model has not been done yet.
 
 ## Checks run so far (none of these is a result about DPO)

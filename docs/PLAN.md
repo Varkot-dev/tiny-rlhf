@@ -242,3 +242,11 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Track B is evaluated on the first 150 examples of each test split** (all 100 of each probe set) to halve generation time. Each slice contains all three kinds of example. Base and trained evaluations use identical settings, which the comparison script enforces.
 - **Rehearsed before handing over:** every command in the cell ran end to end on CPU with SmolLM2 and tiny settings, and the cell's own helpers (streaming, push, failure record, retry) were tested against a scratch git remote. The reward run is confirmed to score the same 456 held-out pairs as `dpo_full_t4` (same fingerprint).
 - **The unfinished queue runner** from a subagent that hit a usage limit was moved out of the repo; nothing of it was committed.
+
+**2026-11-17, why the preferred responses lost probability in `dpo_full_t4`** (`scripts/analyze_logp_change.py`, numbers in `results/dpo_full_t4/logp_change.json`, figure `assets/m1_logp_change_dpo_full_t4.png`; no new training)
+- **It is not a length effect.** A response's total change is essentially uncorrelated with how many tokens were scored (correlation -0.02 for preferred responses, -0.08 for the others), so the drop is not a uniform per-token cost that long answers pay more of.
+- **Per token, the other responses fell about twice as fast:** median change -0.053 nats per token against -0.027 for preferred ones (means -0.196 and -0.075).
+- **The drop is broad, not a few outliers:** the 10% of pairs with the largest drops account for 27% of the other responses' total drop.
+- **Truncated preferred responses lost less per token** (-0.035 against -0.091). This follows from the previous points (totals do not grow with length, so long responses have smaller per-token changes) and is not evidence that truncation itself matters.
+- **Pairs by quadrant:** both responses down 76%, preferred up and other down 16%, preferred down and other up 6%, both up 2%.
+- **Hypothesis, not yet tested:** the update mostly lowers probability on tokens shared by both kinds of answer and lowers it more on the dispreferred ones. A larger beta (the beta sweep) should shrink both drops; whether it keeps the preferred response from falling is the question that sweep can answer.
