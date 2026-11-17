@@ -1,0 +1,34 @@
+# M2 parity run, CPU scale. Run this config through both scripts/train_dpo.py and
+# scripts/train_trl.py, then compare with scripts/plot_parity.py.
+# Same as dpo_tiny.yaml except for three things that make a step-by-step comparison fair:
+#   shuffle: false        both implementations see the pairs in dataset order
+#   lora_dropout: 0.0     no random numbers during training
+#   eval_batch_size: 7    the 42 held-out pairs split into equal batches (TRL averages
+#                         per-batch means, the hand-written loop weights by pairs)
+run_name: parity_tiny
+model_name: HuggingFaceTB/SmolLM2-135M-Instruct
+dataset_name: trl-lib/ultrafeedback_binarized
+n_train: 200
+n_eval: 50
+max_length: 256
+beta: 0.1
+lr: 1.0e-4
+weight_decay: 0.0
+warmup_ratio: 0.1
+epochs: 1
+batch_size: 4
+grad_accum: 1
+max_grad_norm: 1.0
+eval_every: 10
+eval_batch_size: 7
+seed: 0
+shuffle: false
+use_lora: true
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.0
+lora_target_modules: [q_proj, v_proj]
+amp: auto
+device: auto
+max_steps: null
+save_adapter: false
