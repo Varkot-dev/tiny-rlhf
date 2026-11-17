@@ -199,3 +199,11 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Fix:** when gradients are non-finite under fp16, let the scaler skip and lower its scale, then redo the same optimizer step on the same pairs, up to 20 times. The count is saved as `scaler_retries` in `run_info.json`. Without fp16 a non-finite gradient still stops the run at once. No logged step is ever a skipped one.
 - **Cosmetic effect of fp16 seen in that run:** step-0 preference accuracy was 0.116 instead of 0. The policy and the cached reference scores differed by about 1e-7 in margin from GPU rounding, so some exact ties became tiny wins. The step-0 loss was still log 2.
 - **Colab cell:** the `grep` was removed so a failed training command stops the cell.
+
+**2026-11-17, stretch: REINFORCE on a toy** (first half of the plan's stretch item; explained in `docs/REINFORCE.md`, numbers in `results/reinforce_toy/`)
+- **The toy is small enough to enumerate:** sequences of 6 tokens from a vocabulary of 4, so 4,096 sequences, with a known reward and a 5,012-parameter GRU policy. The objective is the KL-constrained one the DPO derivation starts from, so the closed-form optimum pi* proportional to pi_ref * exp(r / beta) is computed exactly and every learned policy is measured against it.
+- **The KL penalty is folded into each sample's return** as r - beta * (log pi - log pi_ref), detached. The extra gradient term is beta * E[grad log pi], which is zero, so the estimator stays unbiased.
+- **The third baseline is a leave-one-out batch mean, not a learned value function.** A plain batch mean includes each sample's own return, which biases the estimate slightly.
+- **DPO is run on the same toy with two labelling rules.** With Bradley-Terry labels (the preferred one is sampled with probability sigmoid(r_a - r_b)), pi* is exactly DPO's optimum, which a test confirms on a tabular case. With always-correct labels DPO has no finite optimum and overshoots the KL-constrained solution.
+- **One shared learning rate (Adam, 0.01) for every method, not tuned per method.** The comparison at equal sequence budget is therefore indicative only.
+- **Not done:** the second half of the stretch item, a TRL policy-gradient trainer on the real model using the Track A reward model.
