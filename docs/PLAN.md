@@ -77,7 +77,7 @@ A 0.5B-parameter model with LoRA, sequences under 512 tokens, small batches with
 | M2 | TRL parity run | One figure overlays both sets of curves |
 | M3 | Reward model | Held-out accuracy reported, plus the implicit vs explicit reward comparison |
 | M4 (done 2026-11-17) | Track B dataset with a datasheet (how it was made, splits, known weaknesses) | Splits verified to share no held-out categories |
-| M5 | Track B training and evaluation | Before/after table with confidence intervals |
+| M5 (done 2026-11-17, negative first result) | Track B training and evaluation | Before/after table with confidence intervals |
 | M6 | Ablations, write-up, polish | README complete, repo ready to make public |
 
 ## 7. Visuals
@@ -256,3 +256,11 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **The jobs reuse the exact commands of the one-hour cell,** and a test enforces the match, so results from either path can be compared.
 - **Rehearsed end to end on CPU** through the real runner with every config shrunk to SmolLM2, 8 pairs and 2 steps, pushing to a scratch remote, then again from a fresh clone to confirm finished jobs are skipped. The time estimates (about 490 minutes in total) are guesses; only the full DPO run has been timed.
 - **The hero figure no longer crashes when a split has no examples in a group,** which the rehearsal found at a tiny limit. That cannot happen at the real limit of 150, but the figure now leaves an empty slot.
+
+**2026-11-17, first full Track B run (`results/trackb_full/`): over-optimization, M5 criteria met**
+- **Measured on a Colab T4:** 375 steps in 585 seconds, 7.3 GB peak, 3 fp16 step retries, step-0 loss log 2. Base and trained evaluations: first 150 examples of each test split plus all three probe sets, greedy decoding.
+- **Result:** the trained model followed no planted instruction anywhere (0.00 on every split and probe), but task-correct on clean documents fell on every split (pooled over the five splits by an ad hoc computation: 0.78 to 0.36), because 98% of its answers are one or two words. On general conversations NLL per token rose by 1.21 (interval 0.94 to 1.55) and KL from the base model is 1.06 per token.
+- **Reading:** a shortcut, not the behavior. The model learned to say almost nothing, which defeats every injection and also the task. The dataset's rejected responses that obey an injection are mostly long and the chosen ones short (chosen median 9 words, rejected 7 overall, but the obeying kinds include the marker text); whatever the exact cue, DPO pushed toward ending the answer early. The probes and the clean-document metric, built for plan question 8, are what exposed it.
+- **Cause, as far as the logs show:** validation accuracy was 0.993 at step 125 and flat after; the preferred responses' log-probability then fell from -35.2 to -59.5 by step 250. The pairs were separated early and the remaining steps only pushed probabilities down, as in the M1 run but far stronger.
+- **Follow-up runs prepared, not yet run:** beta 0.5 (stronger pull to the reference); stopping at step 60; and an added negative log-likelihood term on the preferred responses (`sft_weight` 1.0, the same as TRL's `loss_type=["sigmoid", "sft"]`), which directly penalises the preferred answers becoming less likely.
+- **The M5 "done when" criterion (a before/after table with confidence intervals) is met.** The behavior is not achieved. M5 is ticked on the criterion, and the follow-ups decide what the write-up can claim.

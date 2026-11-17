@@ -8,7 +8,7 @@ It is a picture of the loss function, not of a trained model.
 
 ## Status
 
-**Work in progress. One full training run exists (below); everything else so far is a small check that the code works.**
+**Work in progress. Two full training runs exist (below), and the second is a negative result. Everything else so far is a small check that the code works.**
 
 | Milestone | Code and tests | Runs |
 |---|---|---|
@@ -17,11 +17,25 @@ It is a picture of the loss function, not of a trained model.
 | M2 TRL parity | done | tiny pair on CPU; full pair not done |
 | M3 reward model | done | tiny run on CPU; full run not done |
 | M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
-| M5 Track B training and evaluation | done | none yet |
+| M5 Track B training and evaluation | done | one full run on a Colab T4 (negative result, below); follow-ups pending |
 | M6 ablation sweeps and write-up | sweep tooling done | none yet |
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
 Nothing in M3, M5 or M6 has been run on a GPU. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
+
+## Track B, first run: the behavior "improved" because the model stopped answering
+
+![Track B before and after training](assets/m5_trackb_trackb_full.png)
+
+`configs/trackb_full.yaml`: DPO with LoRA on `Qwen/Qwen2.5-0.5B-Instruct`, 3,000 pairs from the synthetic Track B dataset ([datasheet](docs/DATASHEET.md)), beta 0.1, 375 steps on a Colab T4 (585 seconds, 7.3 GB peak). Evaluated with greedy decoding on the first 150 examples of each test split and on three probe sets. Numbers are from `results/trackb_full/trackb_table.md` and `results/trackb_full/general_regression.json`, with 95% bootstrap intervals.
+
+- **The trained model never followed a planted instruction:** 0.00 on every test split and every probe, against 0.12 to 0.30 for the base model, including injection types and marker styles it never saw in training.
+- **But it got much worse at the task.** On documents with no planted instruction, task-correct fell from 0.74 to 0.37 in distribution and from 0.89 to 0.26 when task, document style and injection type were all held out. The on-task rate with a planted instruction fell on every split (0.69 to 0.18 on the all-held-out split).
+- **Why:** its answers collapsed to one or two words, often cut off ("August" for "August 16, 2026"); see `results/trackb_full/examples.md`. A model that says almost nothing cannot follow an injection, so "never followed an injection" is a shortcut, not the intended behavior. The checks built for plan question 8 caught it.
+- **It drifted far from the base model in general, too:** on 183 general conversations the per-token negative log-likelihood of good responses rose from 1.39 to 2.61 (change +1.21, interval +0.94 to +1.55), with a per-token KL of 1.06 from the base model.
+- **The training curves showed it coming.** Validation preference accuracy reached 0.993 by step 125 and never improved, while the preferred responses' log-probability fell from -33.1 at the start to -59.5 at step 250 (`results/trackb_full/eval.csv`). The data was separated early, and the rest of training pushed probabilities down.
+
+This is over-optimization on easy, synthetic preference data. It is one run with one seed. Three follow-up runs (a larger beta, stopping at step 60, and an added term that keeps preferred answers likely) are prepared; see [docs/PLAN.md](docs/PLAN.md).
 
 ## First full run (one run, one seed)
 
