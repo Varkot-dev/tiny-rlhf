@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794948284,
+  "updated_unix": 1794948285,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -96,6 +96,153 @@
       "stage": "m3",
       "minutes": 0.1,
       "note": "checked: already current"
+    },
+    "m2_parity_ours": {
+      "status": "skipped-budget",
+      "stage": "m2",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "m2_parity_trl": {
+      "status": "skipped-dependency",
+      "stage": "m2",
+      "minutes": 0.0,
+      "blocked_by": "m2_parity_ours"
+    },
+    "m2_parity_figure": {
+      "status": "skipped-dependency",
+      "stage": "m2",
+      "minutes": 0.0,
+      "blocked_by": "m2_parity_trl"
+    },
+    "m2_parity_ours_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0
+    },
+    "m2_parity_trl_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0
+    },
+    "m2_parity_figure_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0
+    },
+    "beta_0.01": {
+      "status": "skipped-budget",
+      "stage": "beta",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "beta_0.1": {
+      "status": "skipped-budget",
+      "stage": "beta",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "beta_0.5": {
+      "status": "skipped-budget",
+      "stage": "beta",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "beta_figure": {
+      "status": "skipped-dependency",
+      "stage": "beta",
+      "minutes": 0.0,
+      "blocked_by": "beta_0.01"
+    },
+    "lora_rank_2": {
+      "status": "skipped-budget",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "lora_rank_8": {
+      "status": "skipped-budget",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "lora_rank_16": {
+      "status": "skipped-budget",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "lora_rank_64": {
+      "status": "skipped-budget",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "lora_rank_figure": {
+      "status": "skipped-dependency",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "blocked_by": "lora_rank_2"
+    },
+    "data_size_100": {
+      "status": "skipped-budget",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "data_size_300": {
+      "status": "skipped-budget",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "data_size_1000": {
+      "status": "skipped-budget",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "data_size_3000": {
+      "status": "skipped-budget",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "data_size_figure": {
+      "status": "skipped-dependency",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "blocked_by": "data_size_100"
+    },
+    "label_noise_0.0": {
+      "status": "skipped-budget",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "label_noise_0.1": {
+      "status": "skipped-budget",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "label_noise_0.3": {
+      "status": "skipped-budget",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "label_noise_0.3_robust": {
+      "status": "skipped-budget",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "minutes_left": 14.1
+    },
+    "label_noise_figure": {
+      "status": "skipped-dependency",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "blocked_by": "label_noise_0.0"
     }
   }
 }
