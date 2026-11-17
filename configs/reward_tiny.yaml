@@ -1,0 +1,31 @@
+# Smoke-test config for the reward model: runs on a CPU in a few minutes.
+# Same model, data, seed and max_length as configs/dpo_tiny.yaml, so both runs score
+# the same held-out pairs. Results from this config show that the code runs. They are
+# not a finding.
+run_name: reward_tiny
+model_name: HuggingFaceTB/SmolLM2-135M-Instruct
+dataset_name: trl-lib/ultrafeedback_binarized
+n_train: 200
+n_eval: 50
+max_length: 256
+lr: 1.0e-4
+head_lr: 1.0e-3
+weight_decay: 0.0
+warmup_ratio: 0.1
+epochs: 1
+batch_size: 4
+grad_accum: 1
+max_grad_norm: 1.0
+eval_every: 10
+eval_batch_size: 8
+seed: 0
+shuffle: true
+use_lora: true
+train_backbone: false
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.0
+lora_target_modules: [q_proj, v_proj]
+amp: auto
+device: auto
+max_steps: null
