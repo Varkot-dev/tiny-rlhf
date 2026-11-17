@@ -132,6 +132,15 @@ A 5,012-parameter policy over 4,096 possible sequences, small enough that the op
 - `scripts/`: one script per run or figure. `tests/`: checks against hand-computed values and against TRL.
 - `docs/COLAB.md`, `COLAB_TRACKB.md`, `COLAB_SWEEPS.md`: running on a Colab GPU. These cells have not all been executed.
 
+## Run the GPU experiments
+
+The remaining experiments run from one notebook cell that skips finished work and pushes each result as it completes:
+
+- **Colab:** [open notebooks/colab_queue.ipynb in Colab](https://colab.research.google.com/github/Varkot-dev/tiny-rlhf/blob/claude/charming-cray-20zxv9/notebooks/colab_queue.ipynb) (for a private repository, Colab asks to connect GitHub first).
+- **Kaggle:** download [notebooks/kaggle_queue.ipynb](notebooks/kaggle_queue.ipynb), then on Kaggle use File > Import Notebook and upload it.
+
+Setup notes are in the first cell of each notebook.
+
 ## Run it
 
 ```bash
