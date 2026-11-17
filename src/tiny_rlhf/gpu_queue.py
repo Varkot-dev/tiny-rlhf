@@ -33,8 +33,19 @@ from pathlib import Path
 from typing import Any
 
 # Priority order: the Track B result first (the hero figure), then the follow-up to it,
-# then the reward model, then TRL parity on the full model, then the four ablation sweeps.
-STAGES = ("m5", "m5_followup", "m3", "m2", "beta", "lora_rank", "data_size", "label_noise")
+# then KTO against DPO on the same data (M7), then the reward model, then TRL parity on
+# the full model, then the four ablation sweeps.
+STAGES = (
+    "m5",
+    "m5_followup",
+    "m7_kto",
+    "m3",
+    "m2",
+    "beta",
+    "lora_rank",
+    "data_size",
+    "label_noise",
+)
 
 # Follow-up to the first full Track B run (results/trackb_full), which over-optimised:
 # preference accuracy on validation pairs was 0.993 by step 125, the answers shrank to a
@@ -43,6 +54,9 @@ STAGES = ("m5", "m5_followup", "m3", "m2", "beta", "lora_rank", "data_size", "la
 # base evaluation, results/trackb_full/trackb_eval/summary_base.json.
 TRACKB_VARIANTS = ("trackb_beta0.5", "trackb_steps60", "trackb_sft1")
 TRACKB_BASE_SUMMARY = "results/trackb_full/trackb_eval/summary_base.json"
+# M7: KTO on the same Track B pairs, split into single good and bad answers, at the beta of
+# the first DPO run (0.1) and of the best DPO follow-up (0.5). See configs/trackb_kto*.yaml.
+KTO_RUNS = ("trackb_kto", "trackb_kto_beta0.5")
 SWEEP_STAGES = ("beta", "lora_rank", "data_size", "label_noise")
 
 STATUS_FILE = "results/queue_status.json"
@@ -59,6 +73,10 @@ OK_STATUSES = ("done", "skipped-existing")
 QWEN = "Qwen/Qwen2.5-0.5B-Instruct"
 # Same micro-batch as the only measured full run (dpo_full: 1 pair, 8.8 GB peak on a T4).
 SMALL_BATCH = ("--set", "batch_size=1", "--set", "grad_accum=8", "--set", "eval_batch_size=2")
+# KTO counts ANSWERS per micro-batch and needs at least 2 (its reference point is estimated
+# from the other answers of the micro-batch), so its smaller micro-batch is 2 answers, with
+# the same 16 answers per optimizer step.
+KTO_SMALL_BATCH = ("--set", "batch_size=2", "--set", "grad_accum=8", "--set", "eval_batch_size=2")
 # Must stay identical to docs/COLAB_ONE_HOUR.md: the comparison script refuses to compare a
 # base and a trained evaluation made with different settings.
 TRACKB_EVAL_ARGS = ("--with-probes", "--batch-size", "16", "--limit", "150")
@@ -93,6 +111,13 @@ ESTIMATE_MIN = {
     "m5f_compare": 5,  # general regression check on 200 conversations, then tables
     "m5f_figure": 2,
     "m5f_rescore": 2,  # rescoring saved generations on the CPU took under a minute
+    # M7, GUESSES: trackb_full trained 375 steps in 585 s. A KTO micro-batch also scores
+    # the mismatched answers (policy without gradient, and the reference), about 1.5 times
+    # the forward work, so roughly 15 minutes plus loading. Evaluation as the follow-ups.
+    "m7_train": 17,
+    "m7_eval": 6,
+    "m7_compare": 6,  # general regression check, tables, strict rescoring of every run
+    "m7_figure": 2,
     "m3_reward": 25,  # like dpo_full but one model and no vocabulary head
     "m3_reward_vs_dpo": 2,
     # configs/parity_full.yaml now stops at max_steps 100 (held-out evaluation at steps
@@ -408,6 +433,125 @@ def _m5_followup_jobs() -> list[Job]:
     return jobs
 
 
+def _m7_kto_jobs() -> list[Job]:
+    """M7, per KTO config: train, evaluate with the m5 settings, compare with the same base
+    evaluation as the DPO runs and rescore strictly; then the KTO-against-DPO figures."""
+    jobs: list[Job] = []
+    for run in KTO_RUNS:
+        evals = f"results/{run}/trackb_eval"
+        adapter = f"checkpoints/{run}"
+        summaries = ("--base", TRACKB_BASE_SUMMARY, "--trained", f"{evals}/summary_trained.json")
+        jobs += [
+            Job(
+                name=f"{run}_train",
+                stage="m7_kto",
+                commands=(("python", "scripts/train_kto.py", "--config", f"configs/{run}.yaml"),),
+                marker=f"results/{run}/run_info.json",
+                outputs=(f"results/{run}",),
+                estimate_min=ESTIMATE_MIN["m7_train"],
+                produces_adapter=adapter,
+                oom_retry_args=KTO_SMALL_BATCH,
+            ),
+            Job(
+                name=f"{run}_eval",
+                stage="m7_kto",
+                commands=(
+                    (
+                        "python",
+                        "scripts/eval_trackb.py",
+                        "--model",
+                        QWEN,
+                        "--adapter",
+                        adapter,
+                        "--label",
+                        "trained",
+                        "--out",
+                        evals,
+                        *TRACKB_EVAL_ARGS,
+                    ),
+                ),
+                marker=f"{evals}/summary_trained.json",
+                outputs=(evals,),
+                estimate_min=ESTIMATE_MIN["m7_eval"],
+                depends_on=(f"{run}_train",),
+                needs_adapter=adapter,
+                rerun_if_deps_ran=True,
+            ),
+            Job(
+                name=f"{run}_compare",
+                stage="m7_kto",
+                commands=(
+                    (
+                        "python",
+                        "scripts/eval_general.py",
+                        "--model",
+                        QWEN,
+                        "--adapter",
+                        adapter,
+                        "--out",
+                        f"results/{run}/general_regression.json",
+                    ),
+                    # These three write next to the TRAINED run, not next to trackb_full.
+                    ("python", "scripts/compare_trackb.py", *summaries),
+                    ("python", "scripts/plot_trackb.py", *summaries),
+                    ("python", "scripts/make_examples.py", *summaries),
+                    # Strict rescoring finds every run with a trained evaluation, this one
+                    # included, and redraws the all-runs strict figure.
+                    ("python", "scripts/rescore_trackb.py"),
+                    ("python", "scripts/plot_trackb_strict.py"),
+                ),
+                marker=f"results/{run}/trackb_table.md",
+                outputs=(
+                    f"results/{run}/general_regression.json",
+                    f"results/{run}/trackb_table.md",
+                    f"results/{run}/trackb_compare.json",
+                    f"results/{run}/examples.md",
+                    f"assets/m5_trackb_{run}.png",
+                    f"{evals}/rescored_trained.json",
+                    "results/trackb_rescored_compare.json",
+                    "assets/m5_trackb_strict.png",
+                ),
+                estimate_min=ESTIMATE_MIN["m7_compare"],
+                depends_on=("m5_eval_base", f"{run}_eval"),
+                needs_adapter=adapter,
+                rerun_if_deps_ran=True,
+            ),
+        ]
+    compares = tuple(f"{run}_compare" for run in KTO_RUNS)
+    jobs.append(
+        Job(
+            name="m7_figure",
+            stage="m7_kto",
+            commands=(
+                (
+                    "python",
+                    "scripts/plot_trackb_variants.py",
+                    "--runs",
+                    "trackb_beta0.5",
+                    *KTO_RUNS,
+                    "--out",
+                    "assets/m7_kto_vs_dpo.png",
+                    "--summary-out",
+                    "results/kto_vs_dpo_summary.json",
+                ),
+                ("python", "scripts/plot_kto_training.py"),
+            ),
+            marker="results/kto_vs_dpo_summary.json",
+            outputs=(
+                "results/kto_vs_dpo_summary.json",
+                "assets/m7_kto_vs_dpo.png",
+                "results/kto_training_curves.json",
+                "assets/m7_training_curves.png",
+            ),
+            estimate_min=ESTIMATE_MIN["m7_figure"],
+            depends_on=compares,
+            min_deps_done=1,
+            always_run=True,
+        )
+    )
+    return jobs
+
+
 def _m3_jobs() -> list[Job]:
     return [
         Job(
@@ -573,6 +717,7 @@ def build_queue(root: str | Path = ".") -> list[Job]:
     jobs = (
         _m5_jobs()
         + _m5_followup_jobs()
+        + _m7_kto_jobs()
         + _m3_jobs()
         + _parity_jobs(fp16=False)
         + _parity_jobs(fp16=True)

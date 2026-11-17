@@ -13,6 +13,8 @@ import pytest
 
 from tiny_rlhf.gpu_queue import (
     FAILURE_DIR,
+    KTO_RUNS,
+    KTO_SMALL_BATCH,
     STAGES,
     STATUS_FILE,
     TAIL_LINES,
@@ -26,6 +28,7 @@ from tiny_rlhf.gpu_queue import (
     run_queue,
     run_streaming,
 )
+from tiny_rlhf.kto import KTOConfig
 from tiny_rlhf.reward_model import RewardConfig
 from tiny_rlhf.sweeps import load_sweep
 from tiny_rlhf.train_dpo import DPOConfig
@@ -116,11 +119,12 @@ def test_queue_has_every_expected_job_exactly_once_in_priority_order() -> None:
     for stage in ("beta", "lora_rank", "data_size", "label_noise"):
         sweep = load_sweep(ROOT / f"configs/sweeps/{stage}.yaml")
         expected |= {f"{stage}_{run.label}" for run in sweep.runs}
-    for run in TRACKB_VARIANTS:
+    for run in (*TRACKB_VARIANTS, *KTO_RUNS):
         expected |= {f"{run}_train", f"{run}_eval", f"{run}_compare"}
+    expected.add("m7_figure")
     assert set(names) == expected
     assert [j.stage for j in QUEUE] == sorted((j.stage for j in QUEUE), key=STAGES.index)
-    assert STAGES[:4] == ("m5", "m5_followup", "m3", "m2")
+    assert STAGES[:5] == ("m5", "m5_followup", "m7_kto", "m3", "m2")
 
 
 def test_dependencies_exist_point_backwards_and_are_acyclic() -> None:
@@ -161,6 +165,7 @@ CONFIG_FIELDS = {
     "scripts/train_dpo.py": {f.name for f in dataclasses.fields(DPOConfig)},
     "scripts/train_trl.py": {f.name for f in dataclasses.fields(DPOConfig)},
     "scripts/train_trackb.py": {f.name for f in dataclasses.fields(DPOConfig)},
+    "scripts/train_kto.py": {f.name for f in dataclasses.fields(KTOConfig)},
 }
 
 
@@ -224,6 +229,41 @@ def test_followup_variants_are_evaluated_and_compared_exactly_like_m5() -> None:
     assert set(figure.depends_on) == {f"{run}_compare" for run in TRACKB_VARIANTS}
 
 
+def test_kto_runs_are_evaluated_and_compared_exactly_like_the_dpo_runs() -> None:
+    # M7 compares KTO with DPO on the same base evaluation, so every setting that the
+    # comparison checks must be m5's, and nothing may overwrite trackb_full's files.
+    m5_eval = BY_NAME["m5_eval_trained"].commands[0]
+    for run in KTO_RUNS:
+        assert (ROOT / f"configs/{run}.yaml").is_file()
+        train = BY_NAME[f"{run}_train"]
+        assert train.stage == "m7_kto"
+        assert train.commands[0][:2] == ("python", "scripts/train_kto.py")
+        assert train.commands[0][-1] == f"configs/{run}.yaml"
+        # KTO needs at least 2 answers per micro-batch, so its retry cannot use batch 1.
+        assert train.oom_retry_args == KTO_SMALL_BATCH
+        assert "batch_size=2" in KTO_SMALL_BATCH and "batch_size=1" not in KTO_SMALL_BATCH
+        evaluation = BY_NAME[f"{run}_eval"].commands[0]
+        assert evaluation[evaluation.index("--with-probes") :] == TRACKB_EVAL_ARGS
+        differ = [i for i, (a, b) in enumerate(zip(evaluation, m5_eval, strict=True)) if a != b]
+        assert [evaluation[i - 1] for i in differ] == ["--adapter", "--out"]
+        assert evaluation[evaluation.index("--out") + 1] == f"results/{run}/trackb_eval"
+        compare = BY_NAME[f"{run}_compare"]
+        assert "m5_eval_base" in compare.depends_on
+        for command in compare.commands[1:4]:
+            assert command[command.index("--base") + 1] == TRACKB_BASE_SUMMARY
+        scripts = [c[1] for c in compare.commands]
+        assert scripts[-2:] == ["scripts/rescore_trackb.py", "scripts/plot_trackb_strict.py"]
+        assert f"results/{run}/trackb_eval/rescored_trained.json" in compare.outputs
+        assert all("trackb_full" not in path for path in compare.outputs + train.outputs)
+    figure = BY_NAME["m7_figure"]
+    assert figure.min_deps_done == 1 and figure.always_run
+    assert set(figure.depends_on) == {f"{run}_compare" for run in KTO_RUNS}
+    variants_cmd = figure.commands[0]
+    runs = variants_cmd[variants_cmd.index("--runs") + 1 : variants_cmd.index("--out")]
+    assert tuple(runs) == ("trackb_beta0.5", *KTO_RUNS)
+    assert figure.marker in figure.outputs
+
+
 def test_fp16_fallback_is_wired_to_both_float32_parity_runs() -> None:
     for name, run_name in (
         ("m2_parity_ours_fp16", "parity_full_fp16"),
@@ -260,7 +300,7 @@ def test_jobs_that_read_an_adapter_name_the_job_that_writes_it() -> None:
     produced = {j.produces_adapter: j.name for j in QUEUE if j.produces_adapter}
     readers = [j for j in QUEUE if j.needs_adapter]
     assert {j.name for j in readers} == {"m5_eval_trained", "m5_compare"} | {
-        f"{run}_{step}" for run in TRACKB_VARIANTS for step in ("eval", "compare")
+        f"{run}_{step}" for run in (*TRACKB_VARIANTS, *KTO_RUNS) for step in ("eval", "compare")
     }
     for j in readers:
         producer = produced[j.needs_adapter]
