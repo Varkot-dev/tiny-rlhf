@@ -292,3 +292,15 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Question:** RLHF and DPO learn from pairs ("A is better than B"). KTO (Ethayarajh et al., 2024) learns from single answers labelled good or bad. With the same Track B data and the same evaluation, does one teach the behavior better, and which damages the model less?
 - **Fair comparison:** KTO gets the same examples DPO saw, with each pair split into one good and one bad answer, so the information differs only in that KTO never sees which two answers belong together.
 - **Built after the current GPU runs,** in new files only, so the running Colab session is not affected.
+
+**2026-11-17, M7 built (KTO), not yet run on a GPU**
+- **What TRL 1.18.0's KTOTrainer does** (read from its source): each training row is a prompt, one answer and a good/bad label. The reference point z0 is the mean of log pi(y'|x) - log pi_ref(y'|x) over mismatched answers (each prompt paired with the answer of the previous row in its micro-batch), clamped at 0 and detached. A good answer's loss is 1 - sigmoid(beta * (r - z0)) and a bad answer's is 1 - sigmoid(beta * (z0 - r)), each times its weight, averaged over the batch. Log-probabilities are summed over answer tokens. With both weights 1 the step-0 loss is exactly 0.5.
+- **The loss is bounded** between 0 and the weight, so answers already far past the reference point get almost no gradient; DPO's loss has no upper bound for a pair ranked the wrong way.
+- **Fair comparison with DPO:** the same 3,000 Track B pairs split into 6,000 single answers, 16 answers per optimizer step (DPO used 8 pairs, also 16 answers), so both make 375 steps on the same schedule, same model, LoRA, learning rate and seed. Two runs, at beta 0.1 and 0.5, mirror the two main DPO runs. Beta does not mean exactly the same thing in the two losses.
+- **Halves of a pair are kept out of the same micro-batch,** so a prompt's mismatched answer is never its own pair-mate.
+- **Parity with TRL's KTOTrainer** on a tiny model in float32: same-batch loss within 1e-6, training curves within 1.5e-7 and weights within 6e-8 over two epochs. Six injected bugs (wrong rotation of mismatched answers, flipped sign, no clamp, z0 ignored, sum instead of mean, max instead of mean) each fail the tests.
+- **TRL defaults that differ** and are set explicitly where they matter: learning rate 1e-6 (we use 5e-5 for LoRA, as in the DPO runs), gradient checkpointing on, bf16 on whenever fp16 is off, dropout disabled.
+
+**2026-11-17, third Colab session**
+- **The session cloned the code four minutes before the shortened parity run's new time estimate was pushed,** so the queue still budgeted 75 minutes for M2 and skipped it. It ran the beta sweep's first value instead (`results/sweep_beta_0.01`: 907 seconds, 8.8 GB peak). No job failed.
+- **With the current estimates M2's two runs will usually land in different sessions** (the queue does not start a job that does not fit the time left). That is fine: each run is pushed when it finishes and the parity figure is drawn once both exist.

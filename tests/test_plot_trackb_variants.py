@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from tiny_rlhf.gpu_queue import TRACKB_VARIANTS
+from tiny_rlhf.gpu_queue import KTO_RUNS, TRACKB_VARIANTS
 from tiny_rlhf.trackb.evaluate import DEFAULT_SPLITS
 
 _path = Path(__file__).resolve().parents[1] / "scripts" / "plot_trackb_variants.py"
@@ -64,6 +64,9 @@ def test_pooled_stats_on_hand_built_rows() -> None:
 
 def test_variant_list_matches_the_queue() -> None:
     assert variants.VARIANTS == TRACKB_VARIANTS
+    assert variants.KTO_RUNS == KTO_RUNS
+    # Colour follows the model: every run has a fixed slot and at most 8 slots exist.
+    assert len(variants.ENTITIES) == len(set(variants.ENTITIES)) <= 8
 
 
 def _write_eval(directory: Path, label: str, fingerprint: str, rows: list[dict]) -> Path:
