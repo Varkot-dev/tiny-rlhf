@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794954248,
+  "updated_unix": 1794954255,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -25,61 +25,49 @@
       "minutes": 0.0
     },
     "trackb_beta0.5_train": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 10.6,
-      "wall_time_s": 593.43,
-      "peak_gpu_memory_mb": 7287.2,
-      "optimizer_steps": 375,
-      "scaler_retries": 6
+      "minutes": 0.0
     },
     "trackb_beta0.5_eval": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 6.3
+      "minutes": 0.0
     },
     "trackb_beta0.5_compare": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.9
+      "minutes": 0.0
     },
     "trackb_steps60_train": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 3.1,
-      "wall_time_s": 159.24,
-      "peak_gpu_memory_mb": 7192.1,
-      "optimizer_steps": 60,
-      "scaler_retries": 1
+      "minutes": 0.0
     },
     "trackb_steps60_eval": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 4.2
+      "minutes": 0.0
     },
     "trackb_steps60_compare": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.8
+      "minutes": 0.0
     },
     "trackb_sft1_train": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 10.3,
-      "wall_time_s": 591.12,
-      "peak_gpu_memory_mb": 7287.2,
-      "optimizer_steps": 375,
-      "scaler_retries": 3
+      "minutes": 0.0
     },
     "trackb_sft1_eval": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 2.4
+      "minutes": 0.0
     },
     "trackb_sft1_compare": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.8
+      "minutes": 0.0
     },
     "m5_followup_figure": {
       "status": "done",

@@ -34,7 +34,7 @@
         "ci_high": 0.0
       },
       "sources": [
-        "/home/user/tiny-rlhf/results/trackb_full/trackb_eval/summary_base.json"
+        "/content/tiny-rlhf/results/trackb_full/trackb_eval/summary_base.json"
       ]
     },
     "trackb_full": {
@@ -65,8 +65,8 @@
         "n": 183
       },
       "sources": [
-        "/home/user/tiny-rlhf/results/trackb_full/trackb_eval/summary_trained.json",
-        "/home/user/tiny-rlhf/results/trackb_full/general_regression.json"
+        "/content/tiny-rlhf/results/trackb_full/trackb_eval/summary_trained.json",
+        "/content/tiny-rlhf/results/trackb_full/general_regression.json"
       ]
     },
     "trackb_beta0.5": {
@@ -97,8 +97,8 @@
         "n": 183
       },
       "sources": [
-        "/home/user/tiny-rlhf/results/trackb_beta0.5/trackb_eval/summary_trained.json",
-        "/home/user/tiny-rlhf/results/trackb_beta0.5/general_regression.json"
+        "/content/tiny-rlhf/results/trackb_beta0.5/trackb_eval/summary_trained.json",
+        "/content/tiny-rlhf/results/trackb_beta0.5/general_regression.json"
       ]
     },
     "trackb_steps60": {
@@ -129,8 +129,8 @@
         "n": 183
       },
       "sources": [
-        "/home/user/tiny-rlhf/results/trackb_steps60/trackb_eval/summary_trained.json",
-        "/home/user/tiny-rlhf/results/trackb_steps60/general_regression.json"
+        "/content/tiny-rlhf/results/trackb_steps60/trackb_eval/summary_trained.json",
+        "/content/tiny-rlhf/results/trackb_steps60/general_regression.json"
       ]
     },
     "trackb_sft1": {
@@ -161,8 +161,8 @@
         "n": 183
       },
       "sources": [
-        "/home/user/tiny-rlhf/results/trackb_sft1/trackb_eval/summary_trained.json",
-        "/home/user/tiny-rlhf/results/trackb_sft1/general_regression.json"
+        "/content/tiny-rlhf/results/trackb_sft1/trackb_eval/summary_trained.json",
+        "/content/tiny-rlhf/results/trackb_sft1/general_regression.json"
       ]
     }
   },
