@@ -1,5 +1,7 @@
 # Running the ablation sweeps on Google Colab
 
+> **Recommended:** to run all remaining GPU work in one resumable cell, use [docs/COLAB_QUEUE.md](COLAB_QUEUE.md).
+
 Each sweep is several ordinary training runs in a row. One paste-ready cell per sweep is below. Setup is the same as for a single run and is described in `docs/COLAB.md`: a T4 GPU runtime and a `GH_TOKEN` secret with notebook access switched on.
 
 ## What each cell does

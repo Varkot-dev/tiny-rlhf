@@ -1,5 +1,7 @@
 # Running training on Google Colab
 
+> **Recommended:** to run all remaining GPU work in one resumable cell, use [docs/COLAB_QUEUE.md](COLAB_QUEUE.md).
+
 The development container has no GPU, so full training runs happen on a free Colab T4. The notebook `notebooks/colab_train.ipynb` clones this repo, runs one config, makes the figure, and pushes the results back, so every number is produced by a script in the repo and saved under `results/`.
 
 ## One-time setup

@@ -1,5 +1,7 @@
 # Track B on Colab: one cell
 
+> **Recommended:** to run all remaining GPU work in one resumable cell, use [docs/COLAB_QUEUE.md](COLAB_QUEUE.md).
+
 This runs the whole Track B experiment on a free Colab T4 and pushes every output to
 the repo. Setup is the same as in `docs/COLAB.md`: pick the T4 runtime and add a
 `GH_TOKEN` secret (fine-grained token, this repository only, Contents: Read and write)
