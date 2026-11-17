@@ -31,6 +31,8 @@ from tiny_rlhf.data import PreferenceCollator, TokenizedPair, pairs_fingerprint,
 from tiny_rlhf.losses import dpo_loss, sequence_logprob
 
 LOG2 = math.log(2.0)
+# How many times one optimizer step may be redone while GradScaler lowers its scale.
+MAX_SCALER_RETRIES = 20
 METRICS = (
     "loss",
     "reward_margin",
@@ -374,36 +376,47 @@ def train(
 
     step = 0
     last_eval_step = 0
+    scaler_retries = 0
     for epoch in range(cfg.epochs):
         for micro_batches in epoch_steps(len(train_pairs), cfg, shuffle_generator):
             if step >= total_steps:
                 break
             n_step_pairs = sum(len(m) for m in micro_batches)
-            per_batch, weights = [], []
-            for indices in micro_batches:
-                batch = to_device(collate([train_pairs[i] for i in indices]), device)
-                with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
-                    # Reference first: its tensors are freed before the policy's
-                    # computation graph is built, which lowers peak GPU memory.
-                    with torch.no_grad():
-                        ref_c, ref_r = pair_logps(reference, batch)
-                    pol_c, pol_r = pair_logps(policy, batch)
-                out = dpo_loss(pol_c, pol_r, ref_c, ref_r, beta=cfg.beta)
-                # Weight each micro-batch by its share of the step's pairs, so the
-                # accumulated gradient is the gradient of the mean loss over the step.
-                scaler.scale(out.loss * len(indices) / n_step_pairs).backward()
-                per_batch.append(batch_metrics(out, pol_c, pol_r))
-                weights.append(len(indices))
+            for attempt in range(MAX_SCALER_RETRIES + 1):
+                per_batch, weights = [], []
+                for indices in micro_batches:
+                    batch = to_device(collate([train_pairs[i] for i in indices]), device)
+                    with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
+                        # Reference first: its tensors are freed before the policy's
+                        # computation graph is built, which lowers peak GPU memory.
+                        with torch.no_grad():
+                            ref_c, ref_r = pair_logps(reference, batch)
+                        pol_c, pol_r = pair_logps(policy, batch)
+                    out = dpo_loss(pol_c, pol_r, ref_c, ref_r, beta=cfg.beta)
+                    # Weight each micro-batch by its share of the step's pairs, so the
+                    # accumulated gradient is the gradient of the mean loss over the step.
+                    scaler.scale(out.loss * len(indices) / n_step_pairs).backward()
+                    per_batch.append(batch_metrics(out, pol_c, pol_r))
+                    weights.append(len(indices))
 
-            scaler.unscale_(optimizer)
-            grad_norm = torch.nn.utils.clip_grad_norm_(trainable, cfg.max_grad_norm)
-            if not math.isfinite(grad_norm.item()):
-                # GradScaler would silently skip this update. Stop instead, so a run
-                # never logs steps that did not happen.
-                raise RuntimeError(
-                    f"non-finite gradient norm at optimizer step {step + 1}. "
-                    "Try amp: false, a lower lr, or a shorter max_length."
-                )
+                scaler.unscale_(optimizer)
+                grad_norm = torch.nn.utils.clip_grad_norm_(trainable, cfg.max_grad_norm)
+                if math.isfinite(grad_norm.item()):
+                    break
+                # In fp16 the scaled loss can overflow during backward. This is how
+                # GradScaler finds a workable scale: step() skips the update when it
+                # sees non-finite gradients and update() halves the scale. Redo the
+                # same pairs so that no logged optimizer step is one that did not happen.
+                if not amp or attempt == MAX_SCALER_RETRIES:
+                    raise RuntimeError(
+                        f"non-finite gradient norm at optimizer step {step + 1}"
+                        + (f" after {attempt + 1} attempts" if amp else "")
+                        + ". Try amp: false, a lower lr, or a shorter max_length."
+                    )
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad(set_to_none=True)
+                scaler_retries += 1
             lr_used = scheduler.get_last_lr()[0]
             scaler.step(optimizer)
             scaler.update()
@@ -445,6 +458,7 @@ def train(
         "implementation": "handwritten",
         "wall_time_s": round(wall_time, 2),
         "optimizer_steps": step,
+        "scaler_retries": scaler_retries,  # fp16 steps redone after an overflow
         "steps_per_epoch": steps_per_epoch,
         "warmup_steps": warmup_steps,
         "first_eval_loss": first_metrics["loss"],
