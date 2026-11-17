@@ -1,0 +1,42 @@
+# Label noise: flip chosen and rejected in 0%, 10% and 30% of the TRAINING pairs, then
+# see what TRL's label-smoothing option recovers (docs/PLAN.md section 4).
+#
+# The flipped pairs are chosen with the config's seed and an exact count is flipped.
+# Held-out pairs are never flipped, so every run is scored on the same clean pairs.
+#
+# What "TRL's label-smoothing option" is (trl 1.18.0, read from the installed source):
+# `label_smoothing` has no effect on the default sigmoid loss. It is used by
+# loss_type="robust" (and by udpo and exo_pair, not used here), where it is the assumed
+# probability that a label is flipped. The robust loss is implemented by hand in
+# src/tiny_rlhf/noise.py with its derivation, and tests check it against TRL's formula.
+# The last entry trains on the 30% noise data with the robust loss told the true rate.
+#
+# Reading the loss columns: runs with the robust loss log the robust loss, which is not
+# bounded below and can be negative. Compare runs on preference accuracy, reward margin
+# and the log-probability change, which do not depend on the loss used.
+#
+# Budget: reduced as in the beta sweep.
+name: label_noise
+description: 0%, 10%, 30% of training pairs flipped; robust loss on the 30% data
+base_config: configs/dpo_full.yaml
+field: noise_fraction
+flag: --noise-fraction
+script: scripts/train_dpo_noisy.py
+run_name: "sweep_noise_{label}"
+x_label: share of training pairs with flipped labels
+x_scale: categorical
+overrides:
+  n_train: 2000
+  n_eval: 300
+  eval_every: 50
+values:
+  - value: 0.0
+    series: ordinary DPO loss
+  - value: 0.1
+    series: ordinary DPO loss
+  - value: 0.3
+    series: ordinary DPO loss
+  - value: 0.3
+    label: "0.3_robust"
+    series: robust loss (label_smoothing 0.3)
+    extra_args: ["--label-smoothing", "0.3"]

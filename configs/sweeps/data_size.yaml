@@ -1,0 +1,38 @@
+# Dataset size curve: 100, 300, 1000, 3000 training pairs (docs/PLAN.md section 4).
+#
+# Design decision: the number of optimizer steps is held fixed, not the number of epochs.
+# With one epoch each, 100 pairs would get 12 updates and 3000 pairs about 345, and the
+# curve would mostly show "trained for less time". With 340 updates of 8 pairs for every
+# size, compute is equal and the only thing that changes is how many DISTINCT pairs the
+# model sees: 100 pairs are revisited about 27 times, 3000 pairs are seen about once.
+# The price: the small runs are heavily repeated, so their training metrics will look
+# better than their held-out metrics. That gap is part of the result, not a flaw.
+#
+# How it is done: max_steps caps the run at 340 optimizer steps, and epochs is set high
+# enough to reach the cap. Some pairs are dropped because their prompt alone fills
+# max_length (about 8% at 512 tokens, measured on the parity_full selection: 3696 of
+# 3997 kept), so the epoch counts below are generous: each run would still reach the
+# cap if a quarter of its pairs were dropped. Epochs beyond the cap are never run. The learning-rate schedule runs
+# over the 340 steps in every run. run_info.json records the pairs actually used.
+#
+# n_train is the number of pairs requested, which is what the x axis shows.
+name: data_size
+description: training pairs in {100, 300, 1000, 3000} at a fixed 340 optimizer steps
+base_config: configs/dpo_full.yaml
+field: n_train
+run_name: "sweep_size_{label}"
+x_label: training pairs requested
+x_scale: log
+overrides:
+  n_eval: 300
+  eval_every: 85
+  max_steps: 340
+values:
+  - value: 100
+    overrides: {epochs: 46}
+  - value: 300
+    overrides: {epochs: 13}
+  - value: 1000
+    overrides: {epochs: 4}
+  - value: 3000
+    overrides: {epochs: 2}

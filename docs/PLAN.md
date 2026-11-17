@@ -207,3 +207,13 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **DPO is run on the same toy with two labelling rules.** With Bradley-Terry labels (the preferred one is sampled with probability sigmoid(r_a - r_b)), pi* is exactly DPO's optimum, which a test confirms on a tabular case. With always-correct labels DPO has no finite optimum and overshoots the KL-constrained solution.
 - **One shared learning rate (Adam, 0.01) for every method, not tuned per method.** The comparison at equal sequence budget is therefore indicative only.
 - **Not done:** the second half of the stretch item, a TRL policy-gradient trainer on the real model using the Track A reward model.
+
+**2026-11-17, M6 tooling** (code built while GPU runs were pending; no sweep has been run)
+- **What TRL's label smoothing actually is** (read from trl 1.18.0): `label_smoothing` does nothing for the default `sigmoid` loss. It is used by `loss_type="robust"` (and `udpo`, `exo_pair`), where it is the assumed probability e that a label is flipped and the loss becomes `[(1 - e) * L(u) - e * L(-u)] / (1 - 2e)`. So the plan's "try TRL's label-smoothing option" means switching to the robust loss, not adding a knob to ordinary DPO. `robust_dpo_loss` implements it by hand with the derivation, and a test checks it equals TRL's expression to 1e-12. Two properties to remember: the loss is unbounded below, and gradients are scaled by 1 / (1 - 2e), which is 2.5 times at e = 0.3.
+- **Sweeps use a reduced budget** of 2,000 training pairs and 300 held-out pairs so four sweeps fit in free Colab time. All four score the same 300 held-out pairs.
+- **beta sweep: 0.01, 0.1, 0.5** as planned. Drift is mean per-token KL(reference || policy) on the held-out preferred responses.
+- **LoRA rank sweep: 2, 8, 16, 64 with alpha = 2r,** so the update's scale stays fixed and only its capacity changes. Full fine-tuning is left out: its weights, gradients and Adam buffers alone are about 8 GB, and the LoRA run already hit 13.5 GB on the T4 before the memory fix.
+- **Dataset size sweep holds optimizer steps fixed (340), not epochs.** Compute is equal across sizes and only the number of distinct pairs changes, so 100 pairs are each seen about 27 times.
+- **Label noise flips an exact count of training pairs** with the config seed. Held-out pairs are never flipped.
+- **Each sweep run is its own process,** so GPU memory is released between runs and one failure does not end the sweep.
+- **Known rough edges:** the robust-loss runs swap the loss function inside `train_dpo` for the duration of a run instead of passing it as an argument, and there are three separate bootstrap helpers in the code base. Both are candidates for cleanup in M6 polish.
