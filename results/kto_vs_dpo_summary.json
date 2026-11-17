@@ -1,0 +1,170 @@
+{
+  "splits": [
+    "test_in_dist",
+    "test_heldout_task",
+    "test_heldout_doc",
+    "test_heldout_injection",
+    "test_heldout_all"
+  ],
+  "entities": {
+    "base": {
+      "followed_injection": {
+        "rate": 0.1749271137026239,
+        "ci_low": 0.13702623906705538,
+        "ci_high": 0.21574344023323616,
+        "n": 343
+      },
+      "task_correct_no_injection": {
+        "rate": 0.6216216216216216,
+        "ci_low": 0.5749385749385749,
+        "ci_high": 0.6683046683046683,
+        "n": 407
+      },
+      "task_correct_no_injection_lenient": {
+        "rate": 0.7764127764127764,
+        "ci_low": 0.7345823095823097,
+        "ci_high": 0.8157248157248157,
+        "n": 407
+      },
+      "median_words": 13.0,
+      "n_examples": 750,
+      "nll_change_per_token": {
+        "difference": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0
+      },
+      "sources": [
+        "/content/tiny-rlhf/results/trackb_full/trackb_eval/summary_base.json"
+      ]
+    },
+    "trackb_full": {
+      "followed_injection": {
+        "rate": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 343
+      },
+      "task_correct_no_injection": {
+        "rate": 0.35872235872235875,
+        "ci_low": 0.31203931203931207,
+        "ci_high": 0.40540540540540543,
+        "n": 407
+      },
+      "task_correct_no_injection_lenient": {
+        "rate": 0.36363636363636365,
+        "ci_low": 0.31695331695331697,
+        "ci_high": 0.4103194103194103,
+        "n": 407
+      },
+      "median_words": 1.0,
+      "n_examples": 750,
+      "nll_change_per_token": {
+        "difference": 1.2130627108084502,
+        "ci_low": 0.943244562756763,
+        "ci_high": 1.5493592083119119,
+        "n": 183
+      },
+      "sources": [
+        "/content/tiny-rlhf/results/trackb_full/trackb_eval/summary_trained.json",
+        "/content/tiny-rlhf/results/trackb_full/general_regression.json"
+      ]
+    },
+    "trackb_beta0.5": {
+      "followed_injection": {
+        "rate": 0.011661807580174927,
+        "ci_low": 0.0029154518950437317,
+        "ci_high": 0.023323615160349854,
+        "n": 343
+      },
+      "task_correct_no_injection": {
+        "rate": 0.6437346437346437,
+        "ci_low": 0.597051597051597,
+        "ci_high": 0.6904176904176904,
+        "n": 407
+      },
+      "task_correct_no_injection_lenient": {
+        "rate": 0.7371007371007371,
+        "ci_low": 0.6928746928746928,
+        "ci_high": 0.7813267813267813,
+        "n": 407
+      },
+      "median_words": 10.0,
+      "n_examples": 750,
+      "nll_change_per_token": {
+        "difference": 0.2359986317025458,
+        "ci_low": 0.16689955507834067,
+        "ci_high": 0.3241403608243547,
+        "n": 183
+      },
+      "sources": [
+        "/content/tiny-rlhf/results/trackb_beta0.5/trackb_eval/summary_trained.json",
+        "/content/tiny-rlhf/results/trackb_beta0.5/general_regression.json"
+      ]
+    },
+    "trackb_kto": {
+      "followed_injection": {
+        "rate": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "n": 343
+      },
+      "task_correct_no_injection": {
+        "rate": 0.6560196560196561,
+        "ci_low": 0.6068796068796068,
+        "ci_high": 0.7003071253071249,
+        "n": 407
+      },
+      "task_correct_no_injection_lenient": {
+        "rate": 0.6633906633906634,
+        "ci_low": 0.6167076167076168,
+        "ci_high": 0.7076167076167076,
+        "n": 407
+      },
+      "median_words": 6.0,
+      "n_examples": 750,
+      "nll_change_per_token": {
+        "difference": 0.7016807093636178,
+        "ci_low": 0.5639653461908952,
+        "ci_high": 0.8661128621782515,
+        "n": 183
+      },
+      "sources": [
+        "/content/tiny-rlhf/results/trackb_kto/trackb_eval/summary_trained.json",
+        "/content/tiny-rlhf/results/trackb_kto/general_regression.json"
+      ]
+    },
+    "trackb_kto_beta0.5": {
+      "followed_injection": {
+        "rate": 0.014577259475218658,
+        "ci_low": 0.0029154518950437317,
+        "ci_high": 0.029154518950437316,
+        "n": 343
+      },
+      "task_correct_no_injection": {
+        "rate": 0.6535626535626535,
+        "ci_low": 0.6068796068796068,
+        "ci_high": 0.6978501228501225,
+        "n": 407
+      },
+      "task_correct_no_injection_lenient": {
+        "rate": 0.6855036855036855,
+        "ci_low": 0.6437346437346437,
+        "ci_high": 0.7297297297297297,
+        "n": 407
+      },
+      "median_words": 3.0,
+      "n_examples": 750,
+      "nll_change_per_token": {
+        "difference": 0.2057720403571211,
+        "ci_low": 0.15770726725678572,
+        "ci_high": 0.2634741054138848,
+        "n": 183
+      },
+      "sources": [
+        "/content/tiny-rlhf/results/trackb_kto_beta0.5/trackb_eval/summary_trained.json",
+        "/content/tiny-rlhf/results/trackb_kto_beta0.5/general_regression.json"
+      ]
+    }
+  },
+  "not_shown": []
+}
