@@ -80,10 +80,11 @@ ENSURE_TRL = (
 # is scaled from that by eye. They only decide whether a job is started near the end of
 # the budget; replace them as real timings arrive in results/queue_status.json.
 ESTIMATE_MIN = {
-    "m5_eval_base": 12,  # 750 test prompts + 300 probes, greedy, up to 96 new tokens
-    "m5_train": 20,  # 375 steps, sequences under 320 tokens
-    "m5_eval_trained": 12,
-    "m5_compare": 6,  # general regression check on 200 conversations, then tables
+    # Measured on a Colab T4 on 2026-11-17 (results/trackb_full), plus a margin for model loading.
+    "m5_eval_base": 5,  # 1,050 generations scored in 221 s
+    "m5_train": 11,  # 375 steps in 585 s
+    "m5_eval_trained": 4,  # 1,050 generations scored in 131 s (shorter answers)
+    "m5_compare": 2,  # general regression check and tables took under a minute
     # Measured for trackb_full on a T4: 375 training steps in 585 s with a 7.3 GB peak, and
     # the base evaluation (1,050 generations) in about 4 to 5 minutes with model loading.
     "m5f_train": 12,  # 375 steps, as trackb_full, plus loading two models
