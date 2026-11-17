@@ -15,6 +15,7 @@ max_grad_norm: 1.0
 eval_every: 10
 eval_batch_size: 8
 seed: 0
+shuffle: true
 use_lora: true
 lora_r: 8
 lora_alpha: 16
@@ -26,3 +27,4 @@ amp: auto
 device: auto
 max_steps: null
 save_adapter: true
+sft_weight: 0.0
