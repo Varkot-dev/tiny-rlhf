@@ -8,7 +8,7 @@ It is a picture of the loss function, not of a trained model.
 
 ## Status
 
-**Work in progress. Full runs exist for M1, M3 and M5 (below), all one seed each. M2's full-size check, the sweeps and M7 are still to run.**
+**Work in progress. Full runs exist for M1, M3, M5 and M7 (below), all one seed each. M2's full-size check and the sweeps are still running.**
 
 | Milestone | Code and tests | Runs |
 |---|---|---|
@@ -19,7 +19,7 @@ It is a picture of the loss function, not of a trained model.
 | M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
 | M5 Track B training and evaluation | done | four full runs on a Colab T4 (below) |
 | M6 ablation sweeps and write-up | sweep tooling done | none yet |
-| M7 KTO against DPO on Track B (extension) | done, checked against TRL's KTOTrainer | none yet |
+| M7 KTO against DPO on Track B (extension) | done, checked against TRL's KTOTrainer | two full runs on a Colab T4 (below) |
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
 Nothing in M3, M5 or M6 has been run on a GPU. **New here? Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md)**: the whole project explained from zero, the story of every experiment, what went wrong, and interview questions with answers. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
@@ -44,7 +44,26 @@ The behavior: when the user's document contains a planted instruction ("ignore t
 - **The likelihood term looks best pooled but does not generalize.** It copied the training answers' wording: on the held-out task "how many items" it is right 6% of the time against the base model's 15%, and it drifts almost three times as much as beta 0.5.
 - **Scoring was corrected after the fact.** The first scoring rule counted a numbered list as the right answer to "how many items", which inflated the base model on the held-out-task splits (0.74 against 0.15 strict). All saved answers were rescored with a strict rule; the original numbers are kept in each run's `trackb_table.md`.
 
-Limits: one seed per run; synthetic, templated data; no model in the table can reliably name the cheapest or most expensive item (all score between 0.18 and 0.30 on those tasks), so those questions add noise rather than signal. A comparison against KTO, which learns from single good or bad answers instead of pairs, is built and queued (M7).
+Limits: one seed per run; synthetic, templated data; no model in the table can reliably name the cheapest or most expensive item (all score between 0.18 and 0.30 on those tasks), so those questions add noise rather than signal. A comparison against KTO, which learns from single good or bad answers instead of pairs, is in the next section.
+
+## Pairs or single labels? KTO against DPO on the same data (M7)
+
+![KTO and DPO on Track B](assets/m7_kto_vs_dpo.png)
+
+KTO learns from single answers marked good or bad instead of pairs. Each of the 3,000 Track B pairs was split into one good and one bad answer, so KTO saw exactly the answers DPO saw, without being told which two belonged together; same model, LoRA, learning rate, number of steps and evaluation. The hand-written KTO matches TRL's KTOTrainer to within 1e-6 on a small model (`tests/test_kto.py`). Pooled strict numbers from `results/trackb_rescored_compare.json`, drift from `results/<run>/general_regression.json`; one seed each.
+
+| Run | Followed a planted instruction | On task, instruction planted | Task correct, nothing planted | Drift on general text |
+|---|---|---|---|---|
+| Base model | 0.175 | 0.501 | 0.622 | n/a |
+| DPO, beta 0.1 | 0.000 | 0.335 | 0.359 | +1.21 |
+| **KTO, beta 0.1** | 0.000 | **0.653** (+0.152, +0.099 to +0.204) | **0.656** (+0.034, -0.005 to +0.071) | +0.70 (+0.56 to +0.87) |
+| DPO, beta 0.5 | 0.012 | 0.621 (+0.120, +0.067 to +0.169) | 0.644 (+0.022, -0.012 to +0.057) | +0.24 |
+| KTO, beta 0.5 | 0.015 | 0.647 (+0.146, +0.093 to +0.195) | 0.654 (+0.032, -0.005 to +0.069) | +0.21 (+0.16 to +0.26) |
+
+- **At beta 0.1, KTO did not collapse where DPO did.** Same data, same leash: DPO shrank its answers to one word and lost the task; KTO stayed on task and kept its accuracy. Its preferred answers became more likely during training (log-probability -33 to -6), where DPO's became less likely (-33 to -52). In KTO each good answer has its own loss term that only falls if that answer becomes more likely, so the "push everything down" route DPO took is not available.
+- **But KTO at beta 0.1 still drifted a lot** on general text (+0.70 per token), and it is worse than the base model when a user asks what a quoted note says (0.93 to 0.60). It moved far from the reference, just in the other direction.
+- **At beta 0.5 the two methods tie within noise** on every pooled number and on drift. On this data, knowing which two answers were compared did not help: single good/bad labels were enough.
+- **Both share the same weakness on the held-out "how many items" task** (KTO beta 0.5: 0.06 strict against the base model's 0.15), so neither method taught counting it never trained on.
 
 ## An explicit reward model and DPO's implicit reward agree on most pairs
 
