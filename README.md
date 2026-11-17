@@ -8,12 +8,12 @@ It is a picture of the loss function, not of a trained model.
 
 ## Status
 
-**Work in progress. Every training run so far is a small check that the code works. There are no findings about DPO on a real model yet.**
+**Work in progress. One full training run exists (below); everything else so far is a small check that the code works.**
 
 | Milestone | Code and tests | Runs |
 |---|---|---|
 | M0 loss functions | done | not applicable |
-| M1 hand-written DPO training | done | tiny runs on CPU and on a Colab T4; full run not done |
+| M1 hand-written DPO training | done | tiny runs on CPU and T4; one full run on a Colab T4 |
 | M2 TRL parity | done | tiny pair on CPU; full pair not done |
 | M3 reward model | done | tiny run on CPU; full run not done |
 | M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
@@ -22,6 +22,24 @@ It is a picture of the loss function, not of a trained model.
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
 Nothing in M3, M5 or M6 has been run on a GPU. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
+
+## First full run (one run, one seed)
+
+![Training curves for the full hand-written DPO run on a Colab T4](assets/m1_training_dpo_full_t4.png)
+
+`configs/dpo_full.yaml`: the hand-written loop training a LoRA adapter (8.8M of 503M parameters) on `Qwen/Qwen2.5-0.5B-Instruct` with 3,699 pairs from `trl-lib/ultrafeedback_binarized`, 463 optimizer steps of 8 pairs, beta 0.1, fp16 on a Colab T4 (1,737 seconds, 8.8 GB peak). Numbers are from `results/dpo_full_t4/`, on 456 held-out pairs.
+
+| Held-out metric | Before | After |
+|---|---|---|
+| DPO loss | 0.6931 (log 2) | 0.6175 |
+| Reward margin | 0 | 0.463 |
+| Preference accuracy | ties | 0.654 (298 of 456; 95% bootstrap interval 0.607 to 0.693) |
+| Mean log-probability of the preferred response | -301.4 | -307.7 |
+| Mean log-probability of the other response | -271.6 | -282.5 |
+
+Read the last two rows before the first three. The loss fell and the margin grew, but the preferred responses became less likely, by 6.3 nats on average. The other responses fell further, by 10.9 nats, and that widening gap is what the loss rewards. On 76% of held-out pairs both responses lost probability. DPO only constrains the difference, so this is allowed by the objective, and it is the reason the absolute log-probability is logged next to the margin.
+
+Limits: this is a single run with one seed and untuned hyperparameters, about 30% of responses were cut at 512 tokens, and "preference accuracy" here is relative to the reference model, so it says the policy moved in the labelled direction on 65% of pairs, not that its answers are better. The matching TRL run on this model has not been done yet.
 
 ## Checks run so far (none of these is a result about DPO)
 

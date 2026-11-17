@@ -73,7 +73,7 @@ A 0.5B-parameter model with LoRA, sequences under 512 tokens, small batches with
 | # | Milestone | Done when |
 |---|---|---|
 | M0 (done 2026-11-17) | `sequence_logprob`, `dpo_loss`, `bradley_terry_loss` in PyTorch | Tests pass: loss is log 2 when policy equals reference; gradients raise the preferred response and lower the other; masking matches a hand-computed example |
-| M1 | Hand-written DPO training on the standard dataset | Tiny config then full run, logging loss, reward margin, preference accuracy and preferred log-probability |
+| M1 (done 2026-11-17) | Hand-written DPO training on the standard dataset | Tiny config then full run, logging loss, reward margin, preference accuracy and preferred log-probability |
 | M2 | TRL parity run | One figure overlays both sets of curves |
 | M3 | Reward model | Held-out accuracy reported, plus the implicit vs explicit reward comparison |
 | M4 (done 2026-11-17) | Track B dataset with a datasheet (how it was made, splits, known weaknesses) | Splits verified to share no held-out categories |
@@ -217,3 +217,11 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Label noise flips an exact count of training pairs** with the config seed. Held-out pairs are never flipped.
 - **Each sweep run is its own process,** so GPU memory is released between runs and one failure does not end the sweep.
 - **Known rough edges:** the robust-loss runs swap the loss function inside `train_dpo` for the duration of a run instead of passing it as an argument, and there are three separate bootstrap helpers in the code base. Both are candidates for cleanup in M6 polish.
+
+**2026-11-17, first complete full run (`results/dpo_full_t4/`), M1 done**
+- **Measured on a Colab T4:** 463 optimizer steps on 3,699 training pairs (4,000 requested, 301 dropped for prompt length) in 1,737 seconds, peak GPU memory 8.8 GB, fp16. Before the memory fix the same config failed at 13.5 GB with twice the micro-batch.
+- **The fp16 diagnosis is confirmed:** `scaler_retries` is 5. Five optimizer steps had non-finite gradients, the scaler lowered its scale, and each step was redone. The earlier version of the code would have stopped at the first of these.
+- **Held-out result (456 pairs):** loss 0.6931 to 0.6175, reward margin 0 to 0.463, preference accuracy 298 of 456 (0.654, 95% bootstrap interval 0.607 to 0.693).
+- **The plan's warning happened for real:** the preferred responses became LESS likely. Mean log-probability of the preferred response fell from -301.4 to -307.7 (6.3 nats) while the other response fell from -271.6 to -282.5 (10.9 nats). On 76% of held-out pairs both responses lost probability, and on 16% the preferred one rose while the other fell. The loss and the margin improved because the gap widened, not because preferred responses became more likely. This is the first thing to investigate in the beta and learning-rate sweeps.
+- **Step-0 accuracy reads 0.129, not 0,** for the fp16 rounding reason recorded above. The step-0 loss is still log 2 to six decimals.
+- **Run length is 463 steps, not 500:** 3,699 pairs in steps of 8, with a final step of 3 pairs.
