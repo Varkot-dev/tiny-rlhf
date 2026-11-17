@@ -1,0 +1,263 @@
+"""Build the Track B dataset, its statistics and the generated part of the datasheet.
+
+Usage:
+    python scripts/build_trackb.py --seed 0 --out data/trackb
+    python scripts/build_trackb.py --seed 0 --out data/trackb --token-stats \
+        --datasheet docs/DATASHEET.md
+
+Writes:
+    <out>/{train,val,test_*}.jsonl   one example per line
+    <out>/splits.json                seed, counts, held-out categories
+    <out>/stats.json                 every number quoted in docs/DATASHEET.md
+With --datasheet, the block between the two "stats" marker comments in that file is
+replaced by tables rendered from stats.json, so no number there is typed by hand.
+
+--token-stats needs the two tokenizers (downloaded from the Hugging Face Hub or read
+from the local cache). Without it the token-length section is left out.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import statistics
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+from tiny_rlhf.trackb.generate import generate, write_dataset
+
+TOKENIZERS = ("HuggingFaceTB/SmolLM2-135M-Instruct", "Qwen/Qwen2.5-0.5B-Instruct")
+BEGIN, END = "<!-- stats:begin -->", "<!-- stats:end -->"
+COUNT_FIELDS = ("kind", "task_category", "doc_style", "injection_type", "rejected_kind")
+
+
+def summary(values: list[int]) -> dict[str, float]:
+    ordered = sorted(values)
+
+    def pct(p: float) -> int:
+        return ordered[min(len(ordered) - 1, int(p * len(ordered)))]
+
+    return {
+        "mean": round(statistics.fmean(ordered), 1),
+        "p10": pct(0.10),
+        "median": pct(0.50),
+        "p90": pct(0.90),
+        "p99": pct(0.99),
+        "max": ordered[-1],
+    }
+
+
+def words(example: dict[str, Any], side: str) -> int:
+    return len(example[side][-1]["content"].split())
+
+
+def length_shortcut(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Could response length alone tell preferred from rejected?
+
+    `p_chosen_longer` is the chance that the preferred response has more words than
+    the rejected one in the same pair, counting ties as half. 0.5 means length carries
+    no information; 0 or 1 means length alone separates them.
+    """
+    longer = sum(words(e, "chosen") > words(e, "rejected") for e in rows)
+    ties = sum(words(e, "chosen") == words(e, "rejected") for e in rows)
+    return {
+        "chosen_words": summary([words(e, "chosen") for e in rows]),
+        "rejected_words": summary([words(e, "rejected") for e in rows]),
+        "p_chosen_longer": round((longer + 0.5 * ties) / len(rows), 3),
+    }
+
+
+def token_stats(data: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    from transformers import AutoTokenizer
+
+    out: dict[str, Any] = {}
+    for name in TOKENIZERS:
+        tokenizer = AutoTokenizer.from_pretrained(name)
+        per_split = {}
+        for split, rows in data.items():
+            lengths = []
+            for e in rows:
+                for side in ("chosen", "rejected"):
+                    ids = tokenizer.apply_chat_template(e[side], tokenize=True, return_dict=True)
+                    lengths.append(len(ids["input_ids"]))
+            per_split[split] = {
+                **summary(lengths),
+                "frac_over_256": round(sum(n > 256 for n in lengths) / len(lengths), 4),
+                "frac_over_384": round(sum(n > 384 for n in lengths) / len(lengths), 4),
+            }
+        out[name] = per_split
+    return out
+
+
+def compute_stats(data: dict[str, list[dict[str, Any]]], with_tokens: bool) -> dict[str, Any]:
+    stats: dict[str, Any] = {"n_examples": sum(len(r) for r in data.values()), "splits": {}}
+    for split, rows in data.items():
+        counts = {
+            field: dict(sorted(Counter(str(e[field]) for e in rows).items()))
+            for field in COUNT_FIELDS
+        }
+        stats["splits"][split] = {
+            "n": len(rows),
+            "share_without_injection": round(
+                sum(not e["has_injection"] for e in rows) / len(rows), 3
+            ),
+            "share_with_benign_imperative": round(
+                sum(e["has_benign_imperative"] for e in rows) / len(rows), 3
+            ),
+            "counts": counts,
+            "injection_position": dict(
+                sorted(Counter(str(e["injection_position"]) for e in rows).items())
+            ),
+            "length": length_shortcut(rows),
+            "length_by_kind": {
+                kind: length_shortcut([e for e in rows if e["kind"] == kind])
+                for kind in ("injected", "ordinary", "hard_negative")
+            },
+        }
+    if with_tokens:
+        stats["token_lengths"] = token_stats(data)
+    return stats
+
+
+def table(header: list[str], rows: list[list[Any]]) -> str:
+    lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+    lines += ["| " + " | ".join(str(c) for c in row) + " |" for row in rows]
+    return "\n".join(lines)
+
+
+def render(stats: dict[str, Any], seed: int) -> str:
+    splits = stats["splits"]
+    names = list(splits)
+    parts = [
+        f"_Generated by `scripts/build_trackb.py --seed {seed}` from `data/trackb/stats.json`. "
+        "Do not edit by hand._",
+        f"Total examples: {stats['n_examples']}.",
+        "**Examples per split and kind**",
+        table(
+            ["split", "n", "injected", "ordinary", "hard negative", "share without injection"],
+            [
+                [
+                    s,
+                    splits[s]["n"],
+                    splits[s]["counts"]["kind"].get("injected", 0),
+                    splits[s]["counts"]["kind"].get("ordinary", 0),
+                    splits[s]["counts"]["kind"].get("hard_negative", 0),
+                    splits[s]["share_without_injection"],
+                ]
+                for s in names
+            ],
+        ),
+    ]
+    for field, title in (
+        ("task_category", "Task category"),
+        ("doc_style", "Document style"),
+        ("injection_type", "Injection type (None = no injection)"),
+        ("rejected_kind", "Kind of rejected response"),
+    ):
+        keys = sorted({k for s in names for k in splits[s]["counts"][field]})
+        parts.append(f"**{title}, count per split**")
+        parts.append(
+            table(
+                [field, *names],
+                [[k, *[splits[s]["counts"][field].get(k, 0) for s in names]] for k in keys],
+            )
+        )
+    parts.append("**Response length in words (preferred vs rejected)**")
+    parts.append(
+        table(
+            [
+                "split",
+                "preferred median",
+                "preferred p10 to p90",
+                "rejected median",
+                "rejected p10 to p90",
+                "P(preferred is longer)",
+            ],
+            [
+                [
+                    s,
+                    splits[s]["length"]["chosen_words"]["median"],
+                    f"{splits[s]['length']['chosen_words']['p10']} to "
+                    f"{splits[s]['length']['chosen_words']['p90']}",
+                    splits[s]["length"]["rejected_words"]["median"],
+                    f"{splits[s]['length']['rejected_words']['p10']} to "
+                    f"{splits[s]['length']['rejected_words']['p90']}",
+                    splits[s]["length"]["p_chosen_longer"],
+                ]
+                for s in names
+            ],
+        )
+    )
+    parts.append("**P(preferred is longer) by example kind, train split**")
+    parts.append(
+        table(
+            ["kind", "P(preferred is longer)"],
+            [[k, v["p_chosen_longer"]] for k, v in splits["train"]["length_by_kind"].items()],
+        )
+    )
+    if "token_lengths" in stats:
+        for name, per_split in stats["token_lengths"].items():
+            parts.append(
+                f"**Tokens per full sequence (chat template, prompt plus response), `{name}`**"
+            )
+            parts.append(
+                table(
+                    [
+                        "split",
+                        "mean",
+                        "median",
+                        "p90",
+                        "p99",
+                        "max",
+                        "share over 256",
+                        "share over 384",
+                    ],
+                    [
+                        [
+                            s,
+                            v["mean"],
+                            v["median"],
+                            v["p90"],
+                            v["p99"],
+                            v["max"],
+                            v["frac_over_256"],
+                            v["frac_over_384"],
+                        ]
+                        for s, v in per_split.items()
+                    ],
+                )
+            )
+    return "\n\n".join(parts)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--out", default="data/trackb")
+    parser.add_argument("--token-stats", action="store_true")
+    parser.add_argument("--datasheet", help="markdown file whose stats block is rewritten")
+    args = parser.parse_args()
+
+    data = generate(args.seed)
+    write_dataset(data, args.out, args.seed)
+    stats = compute_stats(data, args.token_stats)
+    stats["seed"] = args.seed
+    Path(args.out, "stats.json").write_text(json.dumps(stats, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {stats['n_examples']} examples to {args.out}")
+
+    if args.datasheet:
+        path = Path(args.datasheet)
+        text = path.read_text(encoding="utf-8")
+        if BEGIN not in text or END not in text:
+            raise SystemExit(f"{path} has no {BEGIN} ... {END} block")
+        head, rest = text.split(BEGIN, 1)
+        tail = rest.split(END, 1)[1]
+        path.write_text(
+            f"{head}{BEGIN}\n\n{render(stats, args.seed)}\n\n{END}{tail}", encoding="utf-8"
+        )
+        print(f"updated the statistics block in {path}")
+
+
+if __name__ == "__main__":
+    main()
