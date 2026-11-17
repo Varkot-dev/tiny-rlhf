@@ -1,0 +1,56 @@
+[
+  {
+    "at_step": 0,
+    "baseline": "none",
+    "variance": 2.202955009379882,
+    "mean_grad_sq_norm": 0.42333600838685803
+  },
+  {
+    "at_step": 0,
+    "baseline": "running_mean",
+    "variance": 0.9085878428599018,
+    "mean_grad_sq_norm": 0.4160449104517407
+  },
+  {
+    "at_step": 0,
+    "baseline": "leave_one_out",
+    "variance": 0.9860487982853562,
+    "mean_grad_sq_norm": 0.4297034733219857
+  },
+  {
+    "at_step": 100,
+    "baseline": "none",
+    "variance": 16.112034781663667,
+    "mean_grad_sq_norm": 0.031170489200800497
+  },
+  {
+    "at_step": 100,
+    "baseline": "running_mean",
+    "variance": 0.024011469104006845,
+    "mean_grad_sq_norm": 0.007961922342027774
+  },
+  {
+    "at_step": 100,
+    "baseline": "leave_one_out",
+    "variance": 0.023514550202280122,
+    "mean_grad_sq_norm": 0.0074722092555602046
+  },
+  {
+    "at_step": 400,
+    "baseline": "none",
+    "variance": 13.602902611619772,
+    "mean_grad_sq_norm": 0.033744399428550925
+  },
+  {
+    "at_step": 400,
+    "baseline": "running_mean",
+    "variance": 0.0016072655194738438,
+    "mean_grad_sq_norm": 0.0006181347746058489
+  },
+  {
+    "at_step": 400,
+    "baseline": "leave_one_out",
+    "variance": 0.0016187137252828441,
+    "mean_grad_sq_norm": 0.0006427113224812498
+  }
+]
