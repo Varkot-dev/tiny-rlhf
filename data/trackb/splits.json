@@ -1,0 +1,249 @@
+{
+  "seed": 0,
+  "generator": "tiny_rlhf.trackb.generate",
+  "counts": {
+    "train": 3000,
+    "val": 300,
+    "test_in_dist": 300,
+    "test_heldout_task": 300,
+    "test_heldout_doc": 300,
+    "test_heldout_injection": 300,
+    "test_heldout_all": 300
+  },
+  "held_out": {
+    "task_category": [
+      "count_items",
+      "extract_date"
+    ],
+    "doc_style": [
+      "chat_transcript",
+      "log_excerpt"
+    ],
+    "injection_type": [
+      "fake_turn",
+      "persona_switch"
+    ]
+  },
+  "train_categories": {
+    "task_category": [
+      "extract_id",
+      "extract_person",
+      "extract_city",
+      "lookup_price",
+      "lookup_quantity",
+      "cheapest_item",
+      "priciest_item",
+      "yes_no_listed"
+    ],
+    "doc_style": [
+      "email",
+      "support_ticket",
+      "meeting_notes",
+      "invoice",
+      "news_brief",
+      "recipe_card",
+      "memo",
+      "delivery_note"
+    ],
+    "injection_type": [
+      "ignore_previous",
+      "fake_system",
+      "authority_urgent",
+      "append_link",
+      "append_sentence",
+      "different_question",
+      "format_override",
+      "note_to_ai"
+    ]
+  },
+  "split_pools": {
+    "train": {
+      "task_category": [
+        "extract_id",
+        "extract_person",
+        "extract_city",
+        "lookup_price",
+        "lookup_quantity",
+        "cheapest_item",
+        "priciest_item",
+        "yes_no_listed"
+      ],
+      "doc_style": [
+        "email",
+        "support_ticket",
+        "meeting_notes",
+        "invoice",
+        "news_brief",
+        "recipe_card",
+        "memo",
+        "delivery_note"
+      ],
+      "injection_type": [
+        "ignore_previous",
+        "fake_system",
+        "authority_urgent",
+        "append_link",
+        "append_sentence",
+        "different_question",
+        "format_override",
+        "note_to_ai"
+      ]
+    },
+    "val": {
+      "task_category": [
+        "extract_id",
+        "extract_person",
+        "extract_city",
+        "lookup_price",
+        "lookup_quantity",
+        "cheapest_item",
+        "priciest_item",
+        "yes_no_listed"
+      ],
+      "doc_style": [
+        "email",
+        "support_ticket",
+        "meeting_notes",
+        "invoice",
+        "news_brief",
+        "recipe_card",
+        "memo",
+        "delivery_note"
+      ],
+      "injection_type": [
+        "ignore_previous",
+        "fake_system",
+        "authority_urgent",
+        "append_link",
+        "append_sentence",
+        "different_question",
+        "format_override",
+        "note_to_ai"
+      ]
+    },
+    "test_in_dist": {
+      "task_category": [
+        "extract_id",
+        "extract_person",
+        "extract_city",
+        "lookup_price",
+        "lookup_quantity",
+        "cheapest_item",
+        "priciest_item",
+        "yes_no_listed"
+      ],
+      "doc_style": [
+        "email",
+        "support_ticket",
+        "meeting_notes",
+        "invoice",
+        "news_brief",
+        "recipe_card",
+        "memo",
+        "delivery_note"
+      ],
+      "injection_type": [
+        "ignore_previous",
+        "fake_system",
+        "authority_urgent",
+        "append_link",
+        "append_sentence",
+        "different_question",
+        "format_override",
+        "note_to_ai"
+      ]
+    },
+    "test_heldout_task": {
+      "task_category": [
+        "count_items",
+        "extract_date"
+      ],
+      "doc_style": [
+        "email",
+        "support_ticket",
+        "meeting_notes",
+        "invoice",
+        "news_brief",
+        "recipe_card",
+        "memo",
+        "delivery_note"
+      ],
+      "injection_type": [
+        "ignore_previous",
+        "fake_system",
+        "authority_urgent",
+        "append_link",
+        "append_sentence",
+        "different_question",
+        "format_override",
+        "note_to_ai"
+      ]
+    },
+    "test_heldout_doc": {
+      "task_category": [
+        "extract_id",
+        "extract_person",
+        "extract_city",
+        "lookup_price",
+        "lookup_quantity",
+        "cheapest_item",
+        "priciest_item",
+        "yes_no_listed"
+      ],
+      "doc_style": [
+        "chat_transcript",
+        "log_excerpt"
+      ],
+      "injection_type": [
+        "ignore_previous",
+        "fake_system",
+        "authority_urgent",
+        "append_link",
+        "append_sentence",
+        "different_question",
+        "format_override",
+        "note_to_ai"
+      ]
+    },
+    "test_heldout_injection": {
+      "task_category": [
+        "extract_id",
+        "extract_person",
+        "extract_city",
+        "lookup_price",
+        "lookup_quantity",
+        "cheapest_item",
+        "priciest_item",
+        "yes_no_listed"
+      ],
+      "doc_style": [
+        "email",
+        "support_ticket",
+        "meeting_notes",
+        "invoice",
+        "news_brief",
+        "recipe_card",
+        "memo",
+        "delivery_note"
+      ],
+      "injection_type": [
+        "fake_turn",
+        "persona_switch"
+      ]
+    },
+    "test_heldout_all": {
+      "task_category": [
+        "count_items",
+        "extract_date"
+      ],
+      "doc_style": [
+        "chat_transcript",
+        "log_excerpt"
+      ],
+      "injection_type": [
+        "fake_turn",
+        "persona_switch"
+      ]
+    }
+  }
+}
