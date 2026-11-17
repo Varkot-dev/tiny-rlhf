@@ -174,3 +174,11 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Separate learning rate for the head** (1e-3 against 1e-4 or 5e-5 for the LoRA adapter). These values are guesses and have not been tuned.
 - **Held-out accuracy is reported with a 95% percentile bootstrap interval** (2,000 resamples over pairs, seeded). Ties count as wrong, as in DPO.
 - **The comparison with DPO joins per-pair rows on pair index** and refuses to run if the two runs' fingerprints differ.
+
+**2026-11-17, first full run on the T4 ran out of memory**
+- **What happened:** `dpo_full` with 2 pairs per micro-batch (4 sequences of 512 tokens) failed with CUDA out of memory at the first training step, 13.5 GB in use on a 14.6 GB T4. The step-0 check had passed (held-out loss 0.6931 in fp16 on Qwen2.5-0.5B).
+- **Cause:** `sequence_logprob` built a float32 `log_softmax` over every position and the whole 152k-token vocabulary, about 1.2 GB per tensor, several of them alive at once for the policy and the reference.
+- **Fix 1:** `sequence_logprob` now selects the response positions first and computes `logit[target] - logsumexp(logits)` on those rows only. Same numbers (all M0 tests unchanged and passing), and prompt and padding positions are never read at all.
+- **Fix 2:** the training step scores the frozen reference before the policy, so the reference's tensors are freed before the policy's graph is built.
+- **Fix 3:** `dpo_full` and `parity_full` use `batch_size: 1`, `grad_accum: 8`, `eval_batch_size: 2`. The effective batch stays 8 pairs per optimizer step.
+- **Measured memory after the fixes:** not yet. The next run's `run_info.json` will have it.

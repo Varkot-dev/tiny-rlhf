@@ -6,7 +6,7 @@
 #   n_train: 3997       with seed 0 and max_length 512, 3696 pairs survive the
 #                       over-long-prompt drop: exactly 462 optimizer steps of 8 pairs, so no
 #                       short micro-batch (the one place the two loops weight differently)
-#   n_eval: 500         456 pairs survive: 114 equal held-out batches of 4
+#   n_eval: 500         456 pairs survive: 228 equal held-out batches of 2
 run_name: parity_full
 model_name: Qwen/Qwen2.5-0.5B-Instruct
 dataset_name: trl-lib/ultrafeedback_binarized
@@ -18,11 +18,11 @@ lr: 5.0e-5
 weight_decay: 0.0
 warmup_ratio: 0.1
 epochs: 1
-batch_size: 2
-grad_accum: 4
+batch_size: 1
+grad_accum: 8
 max_grad_norm: 1.0
 eval_every: 100
-eval_batch_size: 4
+eval_batch_size: 2
 seed: 0
 shuffle: false
 use_lora: true

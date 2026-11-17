@@ -1,5 +1,6 @@
 # Full M1 run, sized for a free Colab T4 (16 GB).
-# Effective batch = batch_size * grad_accum = 8 pairs, so 4000 pairs give 500 optimizer steps.
+# Effective batch = batch_size * grad_accum = 8 pairs per optimizer step.
+# batch_size 1 because batch_size 2 ran out of memory on a 15 GB T4 (2026-11-17).
 run_name: dpo_full
 model_name: Qwen/Qwen2.5-0.5B-Instruct
 dataset_name: trl-lib/ultrafeedback_binarized
@@ -11,11 +12,11 @@ lr: 5.0e-5
 weight_decay: 0.0
 warmup_ratio: 0.1
 epochs: 1
-batch_size: 2
-grad_accum: 4
+batch_size: 1
+grad_accum: 8
 max_grad_norm: 1.0
 eval_every: 100
-eval_batch_size: 4
+eval_batch_size: 2
 seed: 0
 use_lora: true
 lora_r: 16

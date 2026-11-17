@@ -383,9 +383,11 @@ def train(
             for indices in micro_batches:
                 batch = to_device(collate([train_pairs[i] for i in indices]), device)
                 with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
-                    pol_c, pol_r = pair_logps(policy, batch)
+                    # Reference first: its tensors are freed before the policy's
+                    # computation graph is built, which lowers peak GPU memory.
                     with torch.no_grad():
                         ref_c, ref_r = pair_logps(reference, batch)
+                    pol_c, pol_r = pair_logps(policy, batch)
                 out = dpo_loss(pol_c, pol_r, ref_c, ref_r, beta=cfg.beta)
                 # Weight each micro-batch by its share of the step's pairs, so the
                 # accumulated gradient is the gradient of the mean loss over the step.

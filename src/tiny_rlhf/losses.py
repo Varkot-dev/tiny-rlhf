@@ -62,16 +62,25 @@ def sequence_logprob(logits: Tensor, input_ids: Tensor, response_mask: Tensor) -
     targets = input_ids[:, 1:]
     target_mask = mask[:, 1:]
 
-    # Do the softmax and the sum in float32 when the logits arrive in half precision
-    # (float64 is kept). This cannot undo rounding already present in the logits: under
-    # fp16 autocast a summed log-probability carries noise of a few hundredths of a nat.
-    if pred_logits.dtype in (torch.float16, torch.bfloat16):
-        pred_logits = pred_logits.float()
-    log_probs = F.log_softmax(pred_logits, dim=-1)
-    token_logps = log_probs.gather(dim=-1, index=targets.unsqueeze(-1)).squeeze(-1)
-    # torch.where, not multiplication: a -inf at a masked position times 0 would be nan.
-    token_logps = torch.where(target_mask, token_logps, torch.zeros_like(token_logps))
-    return token_logps.sum(dim=-1)
+    # Keep only the response positions before doing anything expensive. A full
+    # log_softmax over [batch, seq_len, vocab] in float32 is several GB for a 150k
+    # vocabulary; this touches the same numbers and never builds that tensor. Prompt
+    # and padding positions are not merely zeroed, they are never read.
+    rows = pred_logits[target_mask]  # [n_response_tokens, vocab]
+    row_targets = targets[target_mask]  # [n_response_tokens]
+    # Do the arithmetic in float32 when the logits arrive in half precision (float64
+    # is kept). This cannot undo rounding already present in the logits: under fp16
+    # autocast a summed log-probability carries noise of a few hundredths of a nat.
+    if rows.dtype in (torch.float16, torch.bfloat16):
+        rows = rows.float()
+    # log softmax(z)[k] = z[k] - log(sum_j exp(z[j]))
+    token_logps = rows.gather(dim=-1, index=row_targets.unsqueeze(-1)).squeeze(-1)
+    token_logps = token_logps - torch.logsumexp(rows, dim=-1)
+
+    # Add each token's log-probability to the total of the sequence it belongs to.
+    sequence_index = target_mask.nonzero(as_tuple=True)[0]
+    totals = torch.zeros(logits.shape[0], dtype=token_logps.dtype, device=logits.device)
+    return totals.index_add(0, sequence_index, token_logps)
 
 
 def bradley_terry_loss(reward_chosen: Tensor, reward_rejected: Tensor) -> Tensor:

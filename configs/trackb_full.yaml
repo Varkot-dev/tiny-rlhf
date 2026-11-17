@@ -1,0 +1,34 @@
+# Track B main run, sized for a free Colab T4 (16 GB).
+# Effective batch = batch_size * grad_accum = 8 pairs, so 3000 pairs give 375 optimizer steps.
+#
+# Memory: nothing has been measured for this model yet. The only measurement is the
+# 135M model at 8 sequences of 256 tokens, which peaked at 3.9 GB on a T4. This config
+# sends 8 sequences of at most 320 tokens through a 494M model with a 152k vocabulary,
+# so the batch is kept small. The run records its real peak in run_info.json.
+run_name: trackb_full
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+dataset_name: data/trackb          # a directory: train.jsonl and val.jsonl are read from it
+n_train: 3000
+n_eval: 300
+max_length: 320                    # the longest Track B example is 305 tokens: nothing is cut
+beta: 0.1
+lr: 5.0e-5
+weight_decay: 0.0
+warmup_ratio: 0.1
+epochs: 1
+batch_size: 4
+grad_accum: 2
+max_grad_norm: 1.0
+eval_every: 50
+eval_batch_size: 4
+seed: 0
+shuffle: true
+use_lora: true
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+amp: auto
+device: auto
+max_steps: null
+save_adapter: true

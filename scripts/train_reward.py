@@ -10,9 +10,13 @@ Writes results/<run_name>/{config.yaml,train.csv,eval.csv,eval_pairs_final.csv,r
 from __future__ import annotations
 
 import argparse
+import os
 from typing import Any
 
 import yaml
+
+# Lets the GPU allocator return fragmented memory instead of failing; set before torch loads.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 from tiny_rlhf.reward_model import load_reward_config, main
 

@@ -14,9 +14,13 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import os
 from typing import Any
 
 import yaml
+
+# Lets the GPU allocator return fragmented memory instead of failing; set before torch loads.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 from tiny_rlhf.train_dpo import load_config
 from tiny_rlhf.train_trl import main
