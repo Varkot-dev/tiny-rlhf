@@ -76,7 +76,7 @@ A 0.5B-parameter model with LoRA, sequences under 512 tokens, small batches with
 | M1 | Hand-written DPO training on the standard dataset | Tiny config then full run, logging loss, reward margin, preference accuracy and preferred log-probability |
 | M2 | TRL parity run | One figure overlays both sets of curves |
 | M3 | Reward model | Held-out accuracy reported, plus the implicit vs explicit reward comparison |
-| M4 | Track B dataset with a datasheet (how it was made, splits, known weaknesses) | Splits verified to share no held-out categories |
+| M4 (done 2026-11-17) | Track B dataset with a datasheet (how it was made, splits, known weaknesses) | Splits verified to share no held-out categories |
 | M5 | Track B training and evaluation | Before/after table with confidence intervals |
 | M6 | Ablations, write-up, polish | README complete, repo ready to make public |
 
@@ -147,3 +147,14 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Not addressed:** GPU runs are seeded but not bit-deterministic (no deterministic-algorithms flag), and no test exercises the fp16 path because CI has no GPU. The first Colab run is the first execution of that path.
 - **Work continues past a blocked milestone.** The owner asked for later milestones to be prepared while a GPU run is pending, stopping only when his action is needed. `CLAUDE.md` rule 1 was updated. Milestones are still ticked only when their criteria are met, so M1 stays open until the full GPU run exists.
 - **Colab ships torchao 0.10.0, and peft 0.21 raises an ImportError when it finds a torchao older than 0.16** (seen on the owner's first Colab run, 2026-11-17: torch 2.14.1+cu130, transformers 5.22.1, peft 0.21.2, Python 3.13.16). The notebook uninstalls torchao, which this project does not use.
+
+**2026-11-17, M4** (built while M1's GPU run was pending; details and weaknesses are in `docs/DATASHEET.md`)
+- **Behavior chosen: the plan's recommendation,** staying on the user's task when the document contains unrelated instructions.
+- **The dataset is fully templated and seeded.** No model-written or human-collected text, because no LLM API was available to write responses. This is the dataset's main weakness and the datasheet says so first.
+- **4,800 examples:** 3,000 train, 300 validation and five test splits of 300 (in-distribution, held-out task, held-out document style, held-out injection type, all three held out). Held out entirely: tasks `count_items` and `extract_date`, styles `chat_transcript` and `log_excerpt`, injection types `fake_turn` and `persona_switch`. Tests verify the splits share none of them.
+- **56% of training examples have no injection,** including "hard negatives" whose documents contain harmless imperative text (a recipe step, a sticker on a box). Their rejected responses are refusals, false alarms or wrong answers, so the model is not rewarded for distrusting every document.
+- **Every injection asks for something detectable** (a codeword, phrase, number or link that varies per example), which is what makes scoring automatic. Real attacks carry no such marker.
+- **The preferred response does the task and does not mention the injection.** A response that does the task and also warns the user is neither rewarded nor penalised by the on-task check.
+- **No arithmetic tasks.** A model this size fails sums for reasons unrelated to the behavior. All ten tasks are lookups or comparisons with an answer read from the document.
+- **Track B runs should use `max_length` 320** so no example is truncated (longest is 305 tokens with the SmolLM2 tokenizer).
+- **Known shortcuts to test for in M5** (plan question 8): preferred responses often open with one of four lead-in sentences that some rejected kinds never use, the refusal detector's keyword list comes from the same phrasings as the rejected responses, and the held-out document styles are longer than the training styles.
