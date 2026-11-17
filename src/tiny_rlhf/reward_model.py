@@ -29,6 +29,8 @@ from torch import Tensor, nn
 from tiny_rlhf.data import PreferenceCollator, TokenizedPair, pairs_fingerprint, truncation_stats
 from tiny_rlhf.losses import bradley_terry_loss
 from tiny_rlhf.train_dpo import (
+    accumulate_with_retries,
+    clear_stale_outputs,
     git_sha,
     library_versions,
     lr_factor,
@@ -246,8 +248,11 @@ def train(
     eval_pairs: list[TokenizedPair],
     pad_token_id: int,
     out_dir: str | Path,
+    scaler: torch.amp.GradScaler | None = None,
 ) -> dict[str, Any]:
     """Train the reward model on preference pairs. Writes logs to out_dir.
+
+    `scaler` is for tests (it lets the fp16 retry path run on a CPU); leave it out.
 
     Whatever has requires_grad=True in `model` is trained; the caller decides that
     (see `main`). Returns the run_info dict that is also written to run_info.json.
@@ -256,6 +261,7 @@ def train(
         raise ValueError("train_pairs and eval_pairs must both be non-empty")
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    clear_stale_outputs(out_dir)
     (out_dir / "config.yaml").write_text(yaml.safe_dump(dataclasses.asdict(cfg), sort_keys=False))
 
     device = resolve_device(cfg.device)
@@ -286,7 +292,8 @@ def train(
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer, lambda s: lr_factor(s, total_steps, warmup_steps)
     )
-    scaler = torch.amp.GradScaler(device.type, enabled=amp)
+    if scaler is None:
+        scaler = torch.amp.GradScaler(device.type, enabled=amp)
 
     train_file = (out_dir / "train.csv").open("w", newline="")
     eval_file = (out_dir / "eval.csv").open("w", newline="")
@@ -316,30 +323,35 @@ def train(
 
     step = 0
     last_eval_step = 0
+    scaler_retries = 0
     for epoch in range(cfg.epochs):
         for micro_batches in epoch_steps(len(train_pairs), cfg, shuffle_generator):
             if step >= total_steps:
                 break
             n_step_pairs = sum(len(m) for m in micro_batches)
-            per_batch, weights = [], []
-            for indices in micro_batches:
-                batch = to_device(collate([train_pairs[i] for i in indices]), device)
-                with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
-                    chosen, rejected = pair_rewards(model, batch)
-                loss = bradley_terry_loss(chosen, rejected)
-                # Weight each micro-batch by its share of the step's pairs, so the
-                # accumulated gradient is the gradient of the mean loss over the step.
-                scaler.scale(loss * len(indices) / n_step_pairs).backward()
-                per_batch.append(batch_metrics(loss, chosen, rejected))
-                weights.append(len(indices))
 
-            scaler.unscale_(optimizer)
-            grad_norm = torch.nn.utils.clip_grad_norm_(trainable, cfg.max_grad_norm)
-            if not math.isfinite(grad_norm.item()):
-                raise RuntimeError(
-                    f"non-finite gradient norm at optimizer step {step + 1}. "
-                    "Try amp: false, a lower lr, or a shorter max_length."
-                )
+            def accumulate(
+                micro_batches: list[list[int]] = micro_batches, n_step_pairs: int = n_step_pairs
+            ) -> tuple[list[dict[str, float]], list[int]]:
+                per_batch, weights = [], []
+                for indices in micro_batches:
+                    batch = to_device(collate([train_pairs[i] for i in indices]), device)
+                    with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
+                        chosen, rejected = pair_rewards(model, batch)
+                    loss = bradley_terry_loss(chosen, rejected)
+                    # Weight each micro-batch by its share of the step's pairs, so the
+                    # accumulated gradient is the gradient of the mean loss over the step.
+                    scaler.scale(loss * len(indices) / n_step_pairs).backward()
+                    per_batch.append(batch_metrics(loss, chosen, rejected))
+                    weights.append(len(indices))
+                return per_batch, weights
+
+            # Under fp16 a non-finite gradient is redone at a lower scale; see
+            # tiny_rlhf.train_dpo.accumulate_with_retries.
+            (per_batch, weights), grad_norm, retries = accumulate_with_retries(
+                accumulate, scaler, optimizer, trainable, cfg.max_grad_norm, step + 1
+            )
+            scaler_retries += retries
             # Logged lr is the backbone lr when a backbone is trained, else the head lr.
             lr_used = scheduler.get_last_lr()[-1]
             scaler.step(optimizer)
@@ -380,6 +392,7 @@ def train(
         "run_name": cfg.run_name,
         "wall_time_s": round(wall_time, 2),
         "optimizer_steps": step,
+        "scaler_retries": scaler_retries,  # fp16 steps redone after an overflow
         "steps_per_epoch": steps_per_epoch,
         "warmup_steps": warmup_steps,
         "first_eval_loss": first_metrics["loss"],

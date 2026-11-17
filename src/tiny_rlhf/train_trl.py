@@ -23,13 +23,20 @@ import torch
 import yaml
 from torch import nn
 
-from tiny_rlhf.data import PreferenceCollator, TokenizedPair, tokenize_pair, truncation_stats
+from tiny_rlhf.data import (
+    PreferenceCollator,
+    TokenizedPair,
+    pairs_fingerprint,
+    tokenize_pair,
+    truncation_stats,
+)
 from tiny_rlhf.train_dpo import (
     EVAL_COLUMNS,
     METRICS,
     PAIR_COLUMNS,
     TRAIN_COLUMNS,
     DPOConfig,
+    clear_stale_outputs,
     evaluate,
     git_sha,
     library_versions,
@@ -154,6 +161,7 @@ def train_with_trl(
 
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    clear_stale_outputs(out_dir)
     (out_dir / "config.yaml").write_text(yaml.safe_dump(dataclasses.asdict(cfg), sort_keys=False))
     work_dir = Path(checkpoint_dir) if checkpoint_dir is not None else out_dir / "_trl_work"
 
@@ -170,6 +178,7 @@ def train_with_trl(
     eval_log.writeheader()
     eval_steps_seen: list[int] = []
     first_eval: dict[str, float] = {}
+    skipped_steps: list[int] = []
     start = time.perf_counter()
 
     class CsvLogger(TrainerCallback):
@@ -182,6 +191,14 @@ def train_with_trl(
             # this step is about to use, which is what the hand-written loop logs.
             if optimizer is not None:
                 self.lr_used = optimizer.param_groups[0]["lr"]
+
+        def on_optimizer_step(self, args, state, control, **kwargs):
+            # Under fp16 the Trainer's gradient scaler skips an update when it sees
+            # non-finite gradients. The Trainer then drops that batch and still counts
+            # the step, while the hand-written loop redoes the same pairs, so exact
+            # parity ends at the first skip. Record where that happens.
+            if trainer.accelerator.optimizer_step_was_skipped:
+                skipped_steps.append(state.global_step + 1)
 
         def on_log(self, args, state, control, logs=None, **kwargs):
             logs = logs or {}
@@ -295,6 +312,8 @@ def train_with_trl(
         "git_sha": git_sha(),
         "versions": library_versions(),
         "tokenization_matches_handwritten": tokens_match,
+        "skipped_optimizer_steps": skipped_steps,  # fp16 scaler skips; empty in float32
+        "eval_pairs_sha256": pairs_fingerprint(eval_pairs, cfg.max_length),
         "train_order": "random (TRL sampler)" if cfg.shuffle else "sequential",
         # TRL averages per-batch means; ours weights by pairs. They agree only when
         # every held-out batch has the same size.

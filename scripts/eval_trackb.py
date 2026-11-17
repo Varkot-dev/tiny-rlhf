@@ -17,14 +17,18 @@ from __future__ import annotations
 
 import argparse
 import time
+from pathlib import Path
 
 import torch
 
 from tiny_rlhf.trackb.evaluate import (
+    DEFAULT_MAX_NEW_TOKENS,
     DEFAULT_RESAMPLES,
     DEFAULT_SPLITS,
     evaluate_model,
+    evaluation_settings,
     load_model_for_eval,
+    summary_is_current,
 )
 from tiny_rlhf.trackb.probes import PROBE_NAMES
 from tiny_rlhf.train_dpo import git_sha, library_versions, resolve_device
@@ -47,11 +51,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--with-probes", action="store_true", help="also score every probe set")
     parser.add_argument("--limit", type=int, help="score only the first N examples of each split")
     parser.add_argument("--batch-size", type=int, default=8)
-    parser.add_argument("--max-new-tokens", type=int, default=64)
+    parser.add_argument("--max-new-tokens", type=int, default=DEFAULT_MAX_NEW_TOKENS)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--no-amp", action="store_true", help="float32 even on a GPU")
     parser.add_argument("--resamples", type=int, default=DEFAULT_RESAMPLES)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--reuse-if-current",
+        action="store_true",
+        help="do nothing if summary_<label>.json already exists for exactly this model, "
+        "adapter, data, seed, limit and decoding; otherwise evaluate again",
+    )
     return parser.parse_args()
 
 
@@ -60,6 +70,16 @@ def main() -> None:
     splits = list(args.splits)
     if args.with_probes:
         splits += [p for p in PROBE_NAMES if p not in splits]
+    if args.reuse_if_current:
+        settings = evaluation_settings(
+            splits, args.data_dir, args.seed, args.limit, args.max_new_tokens
+        )
+        saved = Path(args.out) / f"summary_{args.label}.json"
+        if summary_is_current(saved, settings, args.model, args.adapter):
+            print(f"{saved} matches the current data and settings; not evaluating again")
+            return
+        if saved.exists():
+            print(f"{saved} was made with different data or settings; evaluating again")
     device = resolve_device(args.device)
     amp = device.type == "cuda" and not args.no_amp
     torch.manual_seed(args.seed)

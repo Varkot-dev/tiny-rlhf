@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import sys
 import textwrap
+import time
 from pathlib import Path
 
 import pytest
@@ -323,9 +325,44 @@ def test_sweep_summary_lists_unfinished_runs_as_missing(tmp_path: Path) -> None:
     sweep = load_sweep(write_sweep(tmp_path, BASIC))
     write_pairs(tmp_path / "results" / "demo_0.1", [(-1.0, -2.0, -1.5, -1.5, 0.3)])
     (tmp_path / "results" / "demo_0.1" / "drift.json").write_text('{"kl": 0.01}')
+    # Pair rows without run_info.json are a run that did not finish (or a crashed rerun).
+    assert sweep_summary(sweep, tmp_path, n_resamples=50)["missing_runs"] == [
+        "demo_0.01",
+        "demo_0.1",
+        "demo_0.5",
+    ]
+    (tmp_path / "results" / "demo_0.1" / "run_info.json").write_text("{}")
     summary = sweep_summary(sweep, tmp_path, n_resamples=50)
     assert summary["missing_runs"] == ["demo_0.01", "demo_0.5"]
     (only,) = summary["runs"]
     assert only["label"] == "0.1" and only["value"] == 0.1
     assert only["run_dir"] == "results/demo_0.1"  # relative, so summaries are portable
     assert only["drift"] == {"kl": 0.01}
+
+
+def test_a_rerun_that_writes_nothing_is_failed_even_if_an_old_run_info_is_there(
+    tmp_path: Path,
+) -> None:
+    # The stub exits 0 without writing anything, like a run that died quietly. A
+    # run_info.json left by an earlier session must not make it count as done.
+    path = write_sweep(
+        tmp_path,
+        """
+        name: demo
+        base_config: configs/base.yaml
+        field: mode
+        script: stub.py
+        run_name: "demo_{label}"
+        values: [silent]
+        """,
+    )
+    old = tmp_path / "results" / "demo_silent"
+    old.mkdir(parents=True)
+    (old / "run_info.json").write_text('{"from": "an earlier session"}')
+    two_hours_ago = time.time() - 7200
+    os.utime(old / "run_info.json", (two_hours_ago, two_hours_ago))
+
+    assert run_is_complete("demo_silent", tmp_path)
+    assert not run_is_complete("demo_silent", tmp_path, written_after=time.time())
+    index = run_sweep(load_sweep(path), root=tmp_path)
+    assert [r["status"] for r in index["runs"]] == ["failed"]

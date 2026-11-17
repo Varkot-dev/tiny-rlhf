@@ -527,3 +527,213 @@ def test_summarize_general_schema() -> None:
     assert summary["nll_per_token_change"]["ci_low"] == pytest.approx(0.5)
     assert summary["kl_base_to_trained_per_token"]["mean"] == pytest.approx(0.2)
     assert summary["mean_response_tokens_scored"] == 3.0
+
+
+# --------------------------------------------------------------------------------------
+# Second review: greedy decoding, cut-off answers, comparing like with like
+# --------------------------------------------------------------------------------------
+
+
+def test_generation_ignores_decoding_settings_shipped_with_the_model() -> None:
+    # Qwen2.5 ships a generation_config.json with repetition_penalty 1.1 and sampling
+    # settings. generate() fills in anything it is not given from that file, so "greedy"
+    # must be spelled out or the evaluation silently uses the penalty.
+    tok = toy_tokenizer()
+    plain = tiny_model()
+    shipped = tiny_model()
+    shipped.generation_config.repetition_penalty = 1.8
+    shipped.generation_config.no_repeat_ngram_size = 2
+    shipped.generation_config.do_sample = True
+    shipped.generation_config.temperature = 0.7
+    shipped.generation_config.top_p = 0.8
+    shipped.generation_config.top_k = 5
+
+    kwargs = {"batch_size": 3, "max_new_tokens": 10}
+    expected = ev.generate_responses(plain, tok, CONVERSATIONS, **kwargs)
+    assert ev.generate_responses(shipped, tok, CONVERSATIONS, **kwargs) == expected
+
+    # The test is only meaningful if the shipped settings do change the output when
+    # they are left in force. With the penalty alone (still no sampling) they do.
+    shipped.generation_config.do_sample = False
+    enc = tok(
+        tok.apply_chat_template(CONVERSATIONS[1], tokenize=False, add_generation_prompt=True),
+        return_tensors="pt",
+        add_special_tokens=False,
+    )
+    with torch.no_grad():
+        ours = plain.eval().generate(**enc, max_new_tokens=10, pad_token_id=0, **ev.GREEDY_DECODING)
+        theirs = shipped.eval().generate(**enc, max_new_tokens=10, pad_token_id=0)
+    assert ours.shape != theirs.shape or not torch.equal(ours, theirs)
+
+
+def test_summary_records_the_exact_decoding_settings(tmp_path: Path) -> None:
+    summary = ev.evaluate_model(
+        tiny_model(), toy_tokenizer(), ["test_in_dist"], tmp_path, "base", data_dir=DATA, limit=2
+    )
+    assert summary["decoding"] == {"strategy": "greedy", **ev.GREEDY_DECODING}
+    assert summary["decoding"]["repetition_penalty"] == 1.0
+    assert summary["max_new_tokens"] == ev.DEFAULT_MAX_NEW_TOKENS
+
+
+def _model_that_always_says(token_id: int) -> LlamaForCausalLM:
+    """A tiny model whose next token is always `token_id` (a large bias on its logit)."""
+    model = tiny_model()
+    bias = torch.zeros(len(WORDS))
+    bias[token_id] = 1000.0
+    model.lm_head = torch.nn.Linear(32, len(WORDS))
+    with torch.no_grad():
+        model.lm_head.weight.zero_()
+        model.lm_head.bias.copy_(bias)
+    return model
+
+
+def test_cut_off_answers_are_flagged() -> None:
+    tok = toy_tokenizer()
+    stops_at_once = _model_that_always_says(tok.eos_token_id)
+    never_stops = _model_that_always_says(tok.convert_tokens_to_ids("h"))
+    kwargs = {"batch_size": 2, "max_new_tokens": 5, "return_truncated": True}
+    responses, cut = ev.generate_responses(stops_at_once, tok, CONVERSATIONS, **kwargs)
+    assert responses == ["", "", ""] and cut == [False, False, False]
+    responses, cut = ev.generate_responses(never_stops, tok, CONVERSATIONS, **kwargs)
+    assert responses == ["h h h h h"] * 3 and cut == [True, True, True]
+
+
+def test_on_task_is_also_reported_without_cut_off_answers() -> None:
+    rows = [
+        ev.score_row(example(0), "The quantity is 42.", hit_max_new_tokens=False),
+        ev.score_row(example(1), "The quantity is 42.", hit_max_new_tokens=True),
+        ev.score_row(example(2), "ZEPHYR-1234", hit_max_new_tokens=True),
+        ev.score_row(example(3), "ZEPHYR-1234", hit_max_new_tokens=False),
+    ]
+    injected = ev.summarize_rows(rows, n_resamples=50)["groups"]["injected"]
+    assert injected["metrics"]["on_task"]["k"] == 2 and injected["metrics"]["on_task"]["n"] == 4
+    assert injected["metrics"]["hit_max_new_tokens"]["rate"] == 0.5
+    complete = injected["on_task_excluding_truncated"]
+    assert (complete["k"], complete["n"]) == (1, 2)
+    # Rows written before the flag existed count as not cut off.
+    old = [
+        dict(r, scores={k: v for k, v in r["scores"].items() if k != "hit_max_new_tokens"})
+        for r in rows
+    ]
+    assert ev.group_rows(old)["injected"] and not any(ev._truncated(r) for r in old)
+
+
+def test_compare_rows_refuses_same_ids_with_different_prompts() -> None:
+    base = [ev.score_row(example(i), "The quantity is 42.") for i in range(3)]
+    trained = [dict(r) for r in base]
+    assert ev.compare_rows(base, trained, n_resamples=20)["injected"]["n"] == 3
+    trained[1]["prompt"] = trained[1]["prompt"] + " (regenerated)"
+    with pytest.raises(ValueError, match="different prompts"):
+        ev.compare_rows(base, trained, n_resamples=20)
+
+
+def test_summary_mismatches_separate_blocking_from_warning() -> None:
+    base = {
+        "seed": 0,
+        "decoding": {"strategy": "greedy"},
+        "max_new_tokens": 96,
+        "limit": None,
+        "model": "m",
+        "examples_sha256": "abc",
+        "git_sha": "111",
+    }
+    assert ev.summary_mismatches(base, dict(base)) == ([], [])
+    blocking, warning = ev.summary_mismatches(base, {**base, "seed": 1, "git_sha": "222"})
+    assert len(blocking) == 1 and blocking[0].startswith("seed")
+    assert len(warning) == 1 and warning[0].startswith("git_sha")
+    blocking, _ = ev.summary_mismatches(base, {**base, "examples_sha256": "xyz"})
+    assert blocking and "examples_sha256" in blocking[0]
+
+
+def test_a_saved_summary_is_reused_only_for_the_same_data_and_settings(tmp_path: Path) -> None:
+    tok, model = toy_tokenizer(), tiny_model()
+    splits = ["test_in_dist", "probe_new_marker"]
+    ev.evaluate_model(
+        model,
+        tok,
+        splits,
+        tmp_path,
+        "base",
+        data_dir=DATA,
+        limit=3,
+        max_new_tokens=4,
+        n_resamples=20,
+        meta={"model": "tiny", "adapter": None},
+    )
+    path = tmp_path / "summary_base.json"
+
+    def settings(**changes: object) -> dict:
+        args = {"splits": splits, "data_dir": DATA, "seed": 0, "limit": 3, "max_new_tokens": 4}
+        args.update(changes)
+        return ev.evaluation_settings(**args)
+
+    assert ev.summary_is_current(path, settings(), "tiny", None)
+    assert not ev.summary_is_current(path, settings(), "other-model", None)
+    assert not ev.summary_is_current(path, settings(), "tiny", "checkpoints/x")
+    assert not ev.summary_is_current(path, settings(max_new_tokens=8), "tiny", None)
+    assert not ev.summary_is_current(path, settings(limit=2), "tiny", None)
+    # Probe ids do not depend on the seed, but their prompts do: the fingerprint sees it.
+    assert not ev.summary_is_current(path, settings(seed=1), "tiny", None)
+    assert not ev.summary_is_current(tmp_path / "missing.json", settings(), "tiny", None)
+    (tmp_path / "test_in_dist_base.jsonl").unlink()
+    assert not ev.summary_is_current(path, settings(), "tiny", None)
+
+
+def test_a_crashed_evaluation_does_not_leave_the_old_summary(tmp_path: Path) -> None:
+    (tmp_path / "summary_base.json").write_text('{"from": "an earlier evaluation"}')
+
+    class Broken:
+        training = False
+        generation_config = None
+
+        def eval(self):
+            return self
+
+        def train(self, mode: bool = True):
+            return self
+
+        def generate(self, **kwargs: object):
+            raise RuntimeError("out of memory")
+
+    with pytest.raises(RuntimeError, match="out of memory"):
+        ev.evaluate_model(
+            Broken(), toy_tokenizer(), ["test_in_dist"], tmp_path, "base", data_dir=DATA, limit=2
+        )
+    assert not (tmp_path / "summary_base.json").exists()
+
+
+def test_general_check_matches_a_full_vocabulary_computation() -> None:
+    # The memory-lean version (response positions only, in chunks) must give the same
+    # numbers as the direct one that builds log_softmax over every position.
+    import torch.nn.functional as F
+
+    from tiny_rlhf import trackb
+    from tiny_rlhf.data import PreferenceCollator
+
+    base, trained = tiny_model(seed=0), tiny_model(seed=1)
+    pairs = general_pairs()
+    for chunk in (1, 2, 256):
+        trackb.general.ROW_CHUNK, saved = chunk, trackb.general.ROW_CHUNK
+        try:
+            got = response_nll_and_kl(base, trained, pairs, 0, None, batch_size=3)
+        finally:
+            trackb.general.ROW_CHUNK = saved
+        batch = PreferenceCollator(0)(pairs)
+        ids, attention = batch["input_ids"][:3], batch["attention_mask"][:3]
+        mask = batch["response_mask"][:3, 1:]
+        with torch.no_grad():
+            base_logp = F.log_softmax(
+                base(input_ids=ids, attention_mask=attention).logits[:, :-1], -1
+            )
+            trained_logp = F.log_softmax(
+                trained(input_ids=ids, attention_mask=attention).logits[:, :-1], -1
+            )
+        n = mask.sum(dim=1)
+        targets = ids[:, 1:].unsqueeze(-1)
+        nll_base = (-base_logp.gather(-1, targets).squeeze(-1) * mask).sum(1) / n
+        nll_trained = (-trained_logp.gather(-1, targets).squeeze(-1) * mask).sum(1) / n
+        kl = ((base_logp.exp() * (base_logp - trained_logp)).sum(-1) * mask).sum(1) / n
+        assert got["nll_base"] == pytest.approx(nll_base.tolist(), rel=1e-5)
+        assert got["nll_trained"] == pytest.approx(nll_trained.tolist(), rel=1e-5)
+        assert got["kl"] == pytest.approx(kl.tolist(), rel=1e-4, abs=1e-7)
+        assert got["n_tokens"] == n.tolist()

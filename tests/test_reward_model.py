@@ -469,3 +469,78 @@ def test_shipped_configs_load_and_align_with_the_dpo_configs(name: str) -> None:
     # These five fields decide which held-out pairs are scored and how they are cut.
     for key in ("model_name", "dataset_name", "n_eval", "seed", "max_length"):
         assert getattr(cfg, key) == dpo[key], key
+
+
+# --------------------------------------------------------------------------------------
+# fp16 retry path and stale outputs (same behaviour as the DPO loop)
+# --------------------------------------------------------------------------------------
+
+
+def poison_head_gradients(model: RewardModel, times: int | None) -> dict[str, int]:
+    state = {"calls": 0}
+
+    def hook(grad: torch.Tensor) -> torch.Tensor:
+        state["calls"] += 1
+        if times is None or state["calls"] <= times:
+            return grad * float("nan")
+        return grad
+
+    model.head.weight.register_hook(hook)
+    return state
+
+
+def test_reward_training_redoes_an_overflowed_step(tmp_path: Path) -> None:
+    def one(name: str, poison: int | None) -> tuple:
+        model = tiny_reward_model()
+        state = poison_head_gradients(model, poison) if poison else {"calls": 0}
+        scaler = torch.amp.GradScaler("cpu", enabled=True)
+        cfg = make_cfg(epochs=3, batch_size=8, warmup_ratio=0.5, lr=1e-3)
+        info = train(cfg, model, make_pairs(8), make_pairs(8), PAD, tmp_path / name, scaler=scaler)
+        return info, read_csv(tmp_path / name / "train.csv")[1], model, scaler, state
+
+    clean_info, clean_rows, clean_model, clean_scaler, _ = one("clean", None)
+    info, rows, model, scaler, state = one("poisoned", 1)
+    assert clean_info["scaler_retries"] == 0 and info["scaler_retries"] == 1
+    assert state["calls"] == 3 + 1
+    assert info["optimizer_steps"] == clean_info["optimizer_steps"] == 3
+    assert [float(r["lr"]) for r in rows] == [float(r["lr"]) for r in clean_rows]
+    assert scaler.get_scale() == pytest.approx(clean_scaler.get_scale() / 2)
+    for a, b in zip(rows, clean_rows, strict=True):
+        assert float(a["loss"]) == pytest.approx(float(b["loss"]), abs=1e-6)
+    for p, q in zip(model.parameters(), clean_model.parameters(), strict=True):
+        assert torch.allclose(p, q, atol=1e-6)
+
+
+def test_reward_training_stops_at_the_retry_cap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import tiny_rlhf.train_dpo as train_dpo
+
+    monkeypatch.setattr(train_dpo, "MAX_SCALER_RETRIES", 2)
+    model = tiny_reward_model()
+    state = poison_head_gradients(model, None)
+    with pytest.raises(RuntimeError, match="non-finite gradient norm at optimizer step 1 after 3"):
+        train(
+            make_cfg(epochs=3, batch_size=8),
+            model,
+            make_pairs(8),
+            make_pairs(8),
+            PAD,
+            tmp_path / "run",
+            scaler=torch.amp.GradScaler("cpu", enabled=True),
+        )
+    assert state["calls"] == 3
+    assert not (tmp_path / "run" / "run_info.json").exists()
+
+
+def test_reward_training_removes_a_previous_runs_completion_files(tmp_path: Path) -> None:
+    out = tmp_path / "run"
+    out.mkdir()
+    for name in ("run_info.json", "eval_pairs_final.csv", "reward_vs_dpo.json"):
+        (out / name).write_text("left over")
+    model = tiny_reward_model()
+    poison_head_gradients(model, None)
+    with pytest.raises(RuntimeError, match="non-finite"):
+        train(make_cfg(epochs=1, batch_size=8), model, make_pairs(8), make_pairs(8), PAD, out)
+    assert not any((out / n).exists() for n in ("run_info.json", "eval_pairs_final.csv"))
+    assert not (out / "reward_vs_dpo.json").exists()

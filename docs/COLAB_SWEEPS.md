@@ -6,7 +6,7 @@ Each sweep is several ordinary training runs in a row. One paste-ready cell per 
 
 1. Clones the branch, installs the project, removes Colab's outdated `torchao`, and runs the tests.
 2. For each run of the sweep: trains it, then commits and pushes that run's results straight away. If Colab disconnects, at most the run in progress is lost.
-3. Skips runs whose results are already in the repo, so running the same cell again continues where the last session stopped.
+3. Skips runs whose results are already in the repo, so running the same cell again continues where the last session stopped. Only a run the sweep runner marks as done is committed; a run that crashes leaves nothing in the repo.
 4. Makes the sweep's figure, commits it with a summary of the plotted numbers, and pushes.
 5. A run that fails is recorded as failed in `results/sweeps/<name>/index.json` and the cell carries on with the next run.
 
@@ -98,6 +98,15 @@ runs = subprocess.run(
     check=True,
 ).stdout.split()
 
+import json
+
+
+def run_status(run):
+    """The sweep runner's own verdict on a run it just launched: "done" or "failed"."""
+    index = json.load(open(f"results/sweeps/{name}/index.json"))
+    return next(r["status"] for r in index["runs"] if r["run_name"] == run)
+
+
 for run in runs:
     finished = os.path.exists(f"results/{run}/run_info.json")
     have_drift = os.path.exists(f"results/{run}/drift.json")
@@ -106,15 +115,27 @@ for run in runs:
         continue
     # A finished run without drift.json is trained again: the drift measurement needs the
     # trained adapter, which is not stored in git and is gone with the previous runtime.
-    skip = "" if finished else " --skip-existing"
-    failed = sh(f"python scripts/run_sweep.py --sweep {SWEEP} --only {run}{skip}", check=False)
-    if failed:
-        print(f"{run} FAILED. Its error is printed above. Carrying on with the next run.")
-    elif NEEDS_DRIFT:
-        sh(f"python scripts/eval_drift.py --run results/{run}", check=False)
+    # Training deletes the old run_info.json first, so a crash cannot look like a finished run.
+    sh(f"python scripts/run_sweep.py --sweep {SWEEP} --only {run}", check=False)
+    status = run_status(run)
     sh(f"git add results/sweeps/{name}")
-    if os.path.exists(f"results/{run}/run_info.json"):
-        sh(f"git add results/{run}")
+    if status != "done":
+        print(
+            f"{run} FAILED (status {status}). Its error is printed above. Nothing of this run is committed."
+        )
+        # Put back the committed copy of this run's files, if an earlier session pushed one.
+        subprocess.run(
+            f"git ls-files --error-unmatch results/{run} >/dev/null 2>&1 && git checkout -q -- results/{run}",
+            shell=True,
+        )
+        push(f"Record failed sweep run {run} (Colab {gpu})")
+        continue
+    if NEEDS_DRIFT and sh(f"python scripts/eval_drift.py --run results/{run}", check=False) != 0:
+        print(
+            f"{run}: training finished but the drift measurement FAILED (error above). The run is "
+            "committed without drift.json, and this cell will train it again next time."
+        )
+    sh(f"git add results/{run}")
     push(f"Add sweep run {run} (Colab {gpu})")
 
 sh("python scripts/plot_beta_sweep.py")
@@ -198,6 +219,15 @@ runs = subprocess.run(
     check=True,
 ).stdout.split()
 
+import json
+
+
+def run_status(run):
+    """The sweep runner's own verdict on a run it just launched: "done" or "failed"."""
+    index = json.load(open(f"results/sweeps/{name}/index.json"))
+    return next(r["status"] for r in index["runs"] if r["run_name"] == run)
+
+
 for run in runs:
     finished = os.path.exists(f"results/{run}/run_info.json")
     have_drift = os.path.exists(f"results/{run}/drift.json")
@@ -206,15 +236,27 @@ for run in runs:
         continue
     # A finished run without drift.json is trained again: the drift measurement needs the
     # trained adapter, which is not stored in git and is gone with the previous runtime.
-    skip = "" if finished else " --skip-existing"
-    failed = sh(f"python scripts/run_sweep.py --sweep {SWEEP} --only {run}{skip}", check=False)
-    if failed:
-        print(f"{run} FAILED. Its error is printed above. Carrying on with the next run.")
-    elif NEEDS_DRIFT:
-        sh(f"python scripts/eval_drift.py --run results/{run}", check=False)
+    # Training deletes the old run_info.json first, so a crash cannot look like a finished run.
+    sh(f"python scripts/run_sweep.py --sweep {SWEEP} --only {run}", check=False)
+    status = run_status(run)
     sh(f"git add results/sweeps/{name}")
-    if os.path.exists(f"results/{run}/run_info.json"):
-        sh(f"git add results/{run}")
+    if status != "done":
+        print(
+            f"{run} FAILED (status {status}). Its error is printed above. Nothing of this run is committed."
+        )
+        # Put back the committed copy of this run's files, if an earlier session pushed one.
+        subprocess.run(
+            f"git ls-files --error-unmatch results/{run} >/dev/null 2>&1 && git checkout -q -- results/{run}",
+            shell=True,
+        )
+        push(f"Record failed sweep run {run} (Colab {gpu})")
+        continue
+    if NEEDS_DRIFT and sh(f"python scripts/eval_drift.py --run results/{run}", check=False) != 0:
+        print(
+            f"{run}: training finished but the drift measurement FAILED (error above). The run is "
+            "committed without drift.json, and this cell will train it again next time."
+        )
+    sh(f"git add results/{run}")
     push(f"Add sweep run {run} (Colab {gpu})")
 
 sh("python scripts/plot_sweep.py --sweep lora_rank")
@@ -298,6 +340,15 @@ runs = subprocess.run(
     check=True,
 ).stdout.split()
 
+import json
+
+
+def run_status(run):
+    """The sweep runner's own verdict on a run it just launched: "done" or "failed"."""
+    index = json.load(open(f"results/sweeps/{name}/index.json"))
+    return next(r["status"] for r in index["runs"] if r["run_name"] == run)
+
+
 for run in runs:
     finished = os.path.exists(f"results/{run}/run_info.json")
     have_drift = os.path.exists(f"results/{run}/drift.json")
@@ -306,15 +357,27 @@ for run in runs:
         continue
     # A finished run without drift.json is trained again: the drift measurement needs the
     # trained adapter, which is not stored in git and is gone with the previous runtime.
-    skip = "" if finished else " --skip-existing"
-    failed = sh(f"python scripts/run_sweep.py --sweep {SWEEP} --only {run}{skip}", check=False)
-    if failed:
-        print(f"{run} FAILED. Its error is printed above. Carrying on with the next run.")
-    elif NEEDS_DRIFT:
-        sh(f"python scripts/eval_drift.py --run results/{run}", check=False)
+    # Training deletes the old run_info.json first, so a crash cannot look like a finished run.
+    sh(f"python scripts/run_sweep.py --sweep {SWEEP} --only {run}", check=False)
+    status = run_status(run)
     sh(f"git add results/sweeps/{name}")
-    if os.path.exists(f"results/{run}/run_info.json"):
-        sh(f"git add results/{run}")
+    if status != "done":
+        print(
+            f"{run} FAILED (status {status}). Its error is printed above. Nothing of this run is committed."
+        )
+        # Put back the committed copy of this run's files, if an earlier session pushed one.
+        subprocess.run(
+            f"git ls-files --error-unmatch results/{run} >/dev/null 2>&1 && git checkout -q -- results/{run}",
+            shell=True,
+        )
+        push(f"Record failed sweep run {run} (Colab {gpu})")
+        continue
+    if NEEDS_DRIFT and sh(f"python scripts/eval_drift.py --run results/{run}", check=False) != 0:
+        print(
+            f"{run}: training finished but the drift measurement FAILED (error above). The run is "
+            "committed without drift.json, and this cell will train it again next time."
+        )
+    sh(f"git add results/{run}")
     push(f"Add sweep run {run} (Colab {gpu})")
 
 sh("python scripts/plot_sweep.py --sweep data_size")
@@ -398,6 +461,15 @@ runs = subprocess.run(
     check=True,
 ).stdout.split()
 
+import json
+
+
+def run_status(run):
+    """The sweep runner's own verdict on a run it just launched: "done" or "failed"."""
+    index = json.load(open(f"results/sweeps/{name}/index.json"))
+    return next(r["status"] for r in index["runs"] if r["run_name"] == run)
+
+
 for run in runs:
     finished = os.path.exists(f"results/{run}/run_info.json")
     have_drift = os.path.exists(f"results/{run}/drift.json")
@@ -406,15 +478,27 @@ for run in runs:
         continue
     # A finished run without drift.json is trained again: the drift measurement needs the
     # trained adapter, which is not stored in git and is gone with the previous runtime.
-    skip = "" if finished else " --skip-existing"
-    failed = sh(f"python scripts/run_sweep.py --sweep {SWEEP} --only {run}{skip}", check=False)
-    if failed:
-        print(f"{run} FAILED. Its error is printed above. Carrying on with the next run.")
-    elif NEEDS_DRIFT:
-        sh(f"python scripts/eval_drift.py --run results/{run}", check=False)
+    # Training deletes the old run_info.json first, so a crash cannot look like a finished run.
+    sh(f"python scripts/run_sweep.py --sweep {SWEEP} --only {run}", check=False)
+    status = run_status(run)
     sh(f"git add results/sweeps/{name}")
-    if os.path.exists(f"results/{run}/run_info.json"):
-        sh(f"git add results/{run}")
+    if status != "done":
+        print(
+            f"{run} FAILED (status {status}). Its error is printed above. Nothing of this run is committed."
+        )
+        # Put back the committed copy of this run's files, if an earlier session pushed one.
+        subprocess.run(
+            f"git ls-files --error-unmatch results/{run} >/dev/null 2>&1 && git checkout -q -- results/{run}",
+            shell=True,
+        )
+        push(f"Record failed sweep run {run} (Colab {gpu})")
+        continue
+    if NEEDS_DRIFT and sh(f"python scripts/eval_drift.py --run results/{run}", check=False) != 0:
+        print(
+            f"{run}: training finished but the drift measurement FAILED (error above). The run is "
+            "committed without drift.json, and this cell will train it again next time."
+        )
+    sh(f"git add results/{run}")
     push(f"Add sweep run {run} (Colab {gpu})")
 
 sh("python scripts/plot_sweep.py --sweep label_noise")

@@ -15,6 +15,11 @@
 # cap if a quarter of its pairs were dropped. Epochs beyond the cap are never run. The learning-rate schedule runs
 # over the 340 steps in every run. run_info.json records the pairs actually used.
 #
+# Caveat for the 3000 point: 340 steps of 8 pairs is 2,720 pairs, fewer than the
+# roughly 2,775 that survive the drop at this size, so that run stops just short of one
+# full pass and about 2% of its pairs are never seen. Read the largest point as "about
+# 2,700 distinct pairs", not 3,000.
+#
 # n_train is the number of pairs requested, which is what the x axis shows.
 name: data_size
 description: training pairs in {100, 300, 1000, 3000} at a fixed 340 optimizer steps

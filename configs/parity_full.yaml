@@ -7,6 +7,18 @@
 #                       over-long-prompt drop: exactly 462 optimizer steps of 8 pairs, so no
 #                       short micro-batch (the one place the two loops weight differently)
 #   n_eval: 500         456 pairs survive: 228 equal held-out batches of 2
+#   amp: false          float32, not fp16. Under fp16 a GradScaler overflow is handled
+#                       differently by the two loops: ours redoes the same pairs, the
+#                       Trainer drops the batch, counts the step and leaves the scheduler
+#                       where it was. After one such event the runs see different data
+#                       and exact parity is over. Float32 has no scaler, so it cannot
+#                       happen. The cost is speed and memory: activations and logits
+#                       are twice the size. With 1 pair per micro-batch (2 sequences of
+#                       512 tokens) this should fit a 15 GB T4, but that is an estimate:
+#                       the only measurement so far is 13.5 GB for 2 pairs in fp16 before
+#                       the scoring rewrite. If it runs out of memory, use
+#                       --set amp=true and read parity_summary.json's
+#                       exact_parity_expected field before trusting step-by-step equality.
 run_name: parity_full
 model_name: Qwen/Qwen2.5-0.5B-Instruct
 dataset_name: trl-lib/ultrafeedback_binarized
@@ -30,7 +42,7 @@ lora_r: 16
 lora_alpha: 32
 lora_dropout: 0.0
 lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
-amp: auto
+amp: false
 device: auto
 max_steps: null
 save_adapter: false

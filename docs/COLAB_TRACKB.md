@@ -16,7 +16,12 @@ commits after each one, so an earlier stage is saved even if a later one fails:
 Time and memory are not known in advance for this model. The training run records
 both in `results/trackb_full/run_info.json`. If stage 2 stops with an out-of-memory
 error, set `TRAIN_ARGS = "--set batch_size=1 --set grad_accum=8"` and run the cell
-again: stage 1 is skipped when its output already exists in the repo.
+again: stage 1 is skipped when its output is already in the repo and was made with the
+same data and settings (the evaluation script checks this itself).
+
+Every command stops the cell if it fails, and each stage is pushed only after its
+commands finished. Starting a training run deletes the previous run's completion files
+in the same directory, so a run that crashes cannot be pushed as if it had finished.
 
 ```python
 # tiny-rlhf, Track B: evaluate base, train, evaluate trained, compare, push.
@@ -74,13 +79,17 @@ RUN, MODEL = cfg["run_name"], cfg["model_name"]
 EVAL = f"results/{RUN}/trackb_eval"
 GPU = torch.cuda.get_device_name(0)
 
-# Stage 1: the base model, before any training. Committed first.
-if not os.path.exists(f"{EVAL}/summary_base.json"):
-    sh(f"python scripts/eval_trackb.py --model {MODEL} --label base --out {EVAL} {EVAL_ARGS}")
-    save(f"Add Track B base-model evaluation for {RUN} (Colab {GPU})", EVAL)
+# Stage 1: the base model, before any training. Committed first. An evaluation from an
+# earlier session is reused only if it scored the same prompts with the same settings;
+# the script checks that itself and evaluates again otherwise.
+sh(
+    f"python scripts/eval_trackb.py --model {MODEL} --label base --out {EVAL} {EVAL_ARGS} --reuse-if-current"
+)
+save(f"Add Track B base-model evaluation for {RUN} (Colab {GPU})", EVAL)
 
 # Stage 2: train.
 sh(f"python scripts/train_trackb.py --config {CONFIG} {TRAIN_ARGS}")
+assert os.path.exists(f"results/{RUN}/run_info.json"), "Training did not finish; not pushed."
 sh(f"python scripts/plot_training.py --run results/{RUN} --out assets/m5_training_{RUN}.png")
 save(f"Add Track B training run {RUN} (Colab {GPU})", f"results/{RUN}", "assets")
 

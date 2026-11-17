@@ -37,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset", default="trl-lib/ultrafeedback_binarized")
     parser.add_argument("--n", type=int, default=200, help="conversations to request")
     parser.add_argument("--max-length", type=int, default=512)
-    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--batch-size", type=int, default=2)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--no-amp", action="store_true")
     parser.add_argument("--resamples", type=int, default=DEFAULT_RESAMPLES)

@@ -446,3 +446,136 @@ def test_parity_configs_load_and_fix_the_order(name: str) -> None:
     cfg = load_config(Path(__file__).resolve().parents[1] / "configs" / name)
     assert cfg.shuffle is False
     assert cfg.lora_dropout == 0.0
+
+
+# --------------------------------------------------------------------------------------
+# The fp16 retry path, exercised on a CPU with an injected GradScaler
+# --------------------------------------------------------------------------------------
+
+
+def poison_gradients(model: torch.nn.Module, times: int | None) -> dict[str, int]:
+    """Make the first `times` backward passes produce nan gradients (None: all of them).
+
+    This stands in for an fp16 overflow, which cannot be produced on a CPU.
+    """
+    state = {"calls": 0}
+    param = next(p for p in model.parameters() if p.requires_grad)
+
+    def hook(grad: torch.Tensor) -> torch.Tensor:
+        state["calls"] += 1
+        if times is None or state["calls"] <= times:
+            return grad * float("nan")
+        return grad
+
+    param.register_hook(hook)
+    return state
+
+
+def run_with_scaler(tmp_path: Path, name: str, poison: int | None | bool) -> tuple:
+    policy = tiny_model()
+    reference = copy.deepcopy(policy)
+    scaler = torch.amp.GradScaler("cpu", enabled=True)
+    state = poison_gradients(policy, poison) if poison is not False else {"calls": 0}
+    cfg = make_cfg(epochs=3, batch_size=8, warmup_ratio=0.5, lr=1e-3)
+    info = train(
+        cfg, policy, reference, make_pairs(8), make_pairs(8), PAD, tmp_path / name, scaler=scaler
+    )
+    return info, read_csv(tmp_path / name / "train.csv")[1], policy, scaler, state
+
+
+def test_an_overflowed_step_is_redone_and_the_schedule_does_not_move(tmp_path: Path) -> None:
+    clean_info, clean_rows, clean_policy, clean_scaler, _ = run_with_scaler(tmp_path, "a", False)
+    info, rows, policy, scaler, state = run_with_scaler(tmp_path, "b", 2)
+
+    assert clean_info["scaler_retries"] == 0
+    assert info["scaler_retries"] == 2  # the first step was attempted three times
+    assert state["calls"] == 3 + 2  # three optimizer steps, plus the two redone attempts
+    # Same number of optimizer steps and the same learning rate at each of them.
+    assert info["optimizer_steps"] == clean_info["optimizer_steps"] == 3
+    assert [r["step"] for r in rows] == ["1", "2", "3"]
+    assert [float(r["lr"]) for r in rows] == [float(r["lr"]) for r in clean_rows]
+    # GradScaler halved its scale once per skipped attempt.
+    assert scaler.get_scale() == pytest.approx(clean_scaler.get_scale() / 4)
+    # The redone step used the same pairs, so the run ends where the clean one does.
+    for a, b in zip(rows, clean_rows, strict=True):
+        assert float(a["loss"]) == pytest.approx(float(b["loss"]), abs=1e-6)
+        assert float(a["grad_norm"]) == pytest.approx(float(b["grad_norm"]), rel=1e-4)
+    for p, q in zip(policy.parameters(), clean_policy.parameters(), strict=True):
+        assert torch.allclose(p, q, atol=1e-6)
+
+
+def test_a_gradient_that_never_becomes_finite_stops_at_the_retry_cap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import tiny_rlhf.train_dpo as train_dpo
+
+    monkeypatch.setattr(train_dpo, "MAX_SCALER_RETRIES", 3)
+    policy = tiny_model()
+    state = poison_gradients(policy, None)
+    with pytest.raises(RuntimeError, match="non-finite gradient norm at optimizer step 1 after 4"):
+        train(
+            make_cfg(epochs=3, batch_size=8),
+            policy,
+            copy.deepcopy(policy),
+            make_pairs(8),
+            make_pairs(8),
+            PAD,
+            tmp_path / "run",
+            scaler=torch.amp.GradScaler("cpu", enabled=True),
+        )
+    assert state["calls"] == 4
+    # Nothing was logged as a step, and the run is not marked as finished.
+    assert read_csv(tmp_path / "run" / "train.csv")[1] == []
+    assert not (tmp_path / "run" / "run_info.json").exists()
+
+
+def test_without_a_scaler_a_non_finite_gradient_stops_at_once(tmp_path: Path) -> None:
+    policy = tiny_model()
+    state = poison_gradients(policy, 1)
+    with pytest.raises(RuntimeError, match=r"non-finite gradient norm at optimizer step 1\."):
+        train(
+            make_cfg(epochs=3, batch_size=8),
+            policy,
+            copy.deepcopy(policy),
+            make_pairs(8),
+            make_pairs(8),
+            PAD,
+            tmp_path / "run",
+        )
+    assert state["calls"] == 1  # float32: a retry would give the same numbers
+
+
+# --------------------------------------------------------------------------------------
+# A crashed rerun must not look like the finished run it replaced
+# --------------------------------------------------------------------------------------
+
+
+def test_starting_a_run_removes_the_previous_runs_completion_files(tmp_path: Path) -> None:
+    from tiny_rlhf.train_dpo import STALE_OUTPUTS, clear_stale_outputs
+
+    out = tmp_path / "run"
+    (out / "trackb_eval").mkdir(parents=True)
+    for name in STALE_OUTPUTS:
+        (out / name).write_text("left over from an earlier, finished run")
+    (out / "trackb_eval" / "test_in_dist_trained.jsonl").write_text("{}")
+    (out / "trackb_eval" / "summary_base.json").write_text("{}")
+    (out / "trackb_eval" / "test_in_dist_base.jsonl").write_text("{}")
+
+    # A rerun that fails its step-0 check (the reference is a different model).
+    with pytest.raises(RuntimeError, match="log 2"):
+        train(
+            make_cfg(epochs=1),
+            tiny_model(seed=0),
+            tiny_model(seed=1),
+            make_pairs(8),
+            make_pairs(8),
+            PAD,
+            out,
+        )
+    for name in STALE_OUTPUTS:
+        assert not (out / name).exists(), name
+    assert not (out / "trackb_eval" / "test_in_dist_trained.jsonl").exists()
+    # The base model's evaluation does not depend on the training run and is kept.
+    assert (out / "trackb_eval" / "summary_base.json").exists()
+    assert (out / "trackb_eval" / "test_in_dist_base.jsonl").exists()
+    assert clear_stale_outputs(out) == []  # nothing left to remove

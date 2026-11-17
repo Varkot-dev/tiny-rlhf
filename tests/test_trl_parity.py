@@ -264,3 +264,49 @@ def test_training_runs_agree_step_by_step(tmp_path: Path, grad_accum: int, lora:
 # response positions through its fused LM head), so bit equality is not expected.
 TRAIN_TOL = 1e-5
 WEIGHT_TOL = 1e-6
+
+
+def test_truncated_rows_are_batched_and_scored_the_same_way(tmp_path: Path) -> None:
+    # max_length 12 keeps every prompt (8 to 10 tokens) but cuts the longer responses,
+    # which the other parity tests never do (their rows are at most 16 of 32 tokens).
+    max_length = 12
+    cfg = make_cfg(max_length=max_length)
+    trainer, pairs, _ = make_trainer(cfg, tmp_path)
+    assert len(pairs) == 8
+    lengths = [len(p.prompt_ids) + len(p.chosen_ids) for p in pairs[:4]]
+    assert max(lengths) > max_length > max(len(p.prompt_ids) for p in pairs)
+
+    batch = PreferenceCollator(pad_token_id=0, max_length=max_length)(pairs[:4])
+    trl_batch = trainer.data_collator([trainer.train_dataset[i] for i in range(4)])
+    assert batch["input_ids"].shape[1] == max_length
+    assert torch.equal(batch["input_ids"], trl_batch["input_ids"])
+    assert torch.equal(batch["attention_mask"], trl_batch["attention_mask"])
+    assert torch.equal(batch["response_mask"], trl_batch["completion_mask"].bool())
+
+    pol_c, pol_r = pair_logps(make_model(), batch)
+    with torch.no_grad():
+        ref_c, ref_r = pair_logps(make_model(seed=1), batch)
+    ours = dpo_loss(pol_c, pol_r, ref_c, ref_r, beta=BETA)
+    trainer.model.train()
+    trl_loss = trainer.compute_loss(trainer.model, trl_batch)
+    logged = {k: v[-1] for k, v in trainer._metrics["train"].items()}
+    assert trl_loss.item() == pytest.approx(ours.loss.item(), abs=1e-5)
+    assert logged["rewards/margins"] == pytest.approx(ours.reward_margin.mean().item(), abs=1e-5)
+    assert logged["logps/chosen"] == pytest.approx(pol_c.mean().item(), abs=1e-4)
+    assert logged["logps/rejected"] == pytest.approx(pol_r.mean().item(), abs=1e-4)
+
+
+def test_trl_run_info_records_skips_and_the_held_out_fingerprint(tmp_path: Path) -> None:
+    from tiny_rlhf.data import pairs_fingerprint
+
+    cfg = make_cfg(epochs=1)
+    tokenizer = make_tokenizer()
+    rows, pairs = keep_rows_that_fit(make_rows(8), tokenizer, cfg.max_length)
+    out = tmp_path / "trl"
+    out.mkdir()
+    (out / "parity_summary.json").write_text("left over from an earlier comparison")
+    info = train_with_trl(cfg, make_model(), make_model(), tokenizer, rows, rows, pairs, pairs, out)
+    assert info["tokenization_matches_handwritten"] is True
+    assert info["skipped_optimizer_steps"] == []  # float32 on a CPU: no scaler, no skips
+    assert info["eval_pairs_sha256"] == pairs_fingerprint(pairs, cfg.max_length)
+    assert not (out / "parity_summary.json").exists()

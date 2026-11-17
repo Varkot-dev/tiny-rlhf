@@ -104,6 +104,39 @@ def shown_path(path: Path) -> str:
         return str(path)
 
 
+def exact_parity_expectation(ours_info: dict, trl_info: dict) -> dict:
+    """Whether step-by-step equality can be expected, given how the two runs trained.
+
+    Under fp16 a gradient-scaler overflow is handled differently: the hand-written loop
+    redoes the same pairs, the Trainer drops the batch and still counts the step. From
+    the first such event the two runs see different data.
+    """
+    retries = ours_info.get("scaler_retries")
+    skipped = trl_info.get("skipped_optimizer_steps")
+    out = {"scaler_retries_ours": retries, "skipped_optimizer_steps_trl": skipped}
+    if not (ours_info.get("amp_fp16") or trl_info.get("amp_fp16")):
+        out["exact_parity_expected"] = True
+        out["exact_parity_note"] = "float32 on both sides: no gradient scaler, nothing skipped"
+    elif retries or skipped:
+        first = min(skipped) if skipped else None
+        out["exact_parity_expected"] = False
+        out["exact_parity_note"] = (
+            f"fp16 overflow: hand-written loop redid {retries or 0} step(s), the Trainer "
+            f"skipped {len(skipped or [])} (first at step {first}). Exact parity is not "
+            "expected after the first of these; compare the curves only up to there."
+        )
+    elif retries is None or skipped is None:
+        out["exact_parity_expected"] = None
+        out["exact_parity_note"] = (
+            "fp16 run without overflow records on both sides (older run_info.json): "
+            "cannot tell whether a step was skipped"
+        )
+    else:
+        out["exact_parity_expected"] = True
+        out["exact_parity_note"] = "fp16, and neither side redid or skipped a step"
+    return out
+
+
 def summarize(ours_dir: Path, trl_dir: Path) -> tuple[dict, dict]:
     """Compare the two runs. Returns (summary for the JSON file, aligned data to plot)."""
     data = {}
@@ -128,6 +161,7 @@ def summarize(ours_dir: Path, trl_dir: Path) -> tuple[dict, dict]:
     for key in ("device", "amp_fp16", "n_train_pairs", "n_eval_pairs", "wall_time_s", "git_sha"):
         summary[key] = {"ours": ours_info.get(key), "trl": trl_info.get(key)}
     summary["versions"] = trl_info.get("versions")
+    summary.update(exact_parity_expectation(ours_info, trl_info))
     return summary, data
 
 
@@ -266,6 +300,8 @@ def main() -> None:
         print(f"{name}: {summary[name]['rows_compared']} rows compared")
         for key, d in summary[name]["metrics"].items():
             print(f"  {key:16s} max |diff| {d['max_abs_diff']:.3e}   mean {d['mean_abs_diff']:.3e}")
+    print(f"exact parity expected: {summary['exact_parity_expected']}")
+    print(f"  {summary['exact_parity_note']}")
     if not summary["same_train_order"]:
         print(
             "note: the two runs did not use the same batch order, so step-level gaps are expected"

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from tiny_rlhf.trackb.evaluate import (
@@ -26,6 +27,7 @@ from tiny_rlhf.trackb.evaluate import (
     compare_rows,
     comparison_table,
     read_rows,
+    summary_mismatches,
 )
 
 
@@ -36,6 +38,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-dir", help="default: the parent of the base summary's directory")
     parser.add_argument("--resamples", type=int, default=DEFAULT_RESAMPLES)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--allow-mismatch",
+        action="store_true",
+        help="compare even if seed, decoding, token limit, limit, model or data differ",
+    )
     return parser.parse_args()
 
 
@@ -46,11 +53,18 @@ def main() -> None:
     splits = [s for s in base["files"] if s in trained["files"]]
     if not splits:
         raise SystemExit("the two summaries share no split")
-    for key in ("max_new_tokens", "limit", "decoding"):
-        if base.get(key) != trained.get(key):
-            raise SystemExit(
-                f"the two evaluations differ in {key}: {base.get(key)} vs {trained.get(key)}"
-            )
+    blocking, warnings = summary_mismatches(base, trained)
+    for line in warnings:
+        print(f"WARNING: the two evaluations differ in {line}", file=sys.stderr)
+    if blocking and not args.allow_mismatch:
+        raise SystemExit(
+            "the two evaluations were not run the same way, so their difference would not "
+            "be a before/after effect:\n  "
+            + "\n  ".join(blocking)
+            + "\nRe-run the older one, or pass --allow-mismatch to compare anyway."
+        )
+    for line in blocking:
+        print(f"WARNING (--allow-mismatch): the two evaluations differ in {line}", file=sys.stderr)
     comparison = {
         split: compare_rows(
             read_rows(base_path.parent / base["files"][split]),
@@ -81,6 +95,7 @@ def main() -> None:
                 "trained_summary": str(trained_path),
                 "n_resamples": args.resamples,
                 "seed": args.seed,
+                "setting_mismatches": {"blocking": blocking, "warning": warnings},
                 "splits": comparison,
             },
             indent=2,

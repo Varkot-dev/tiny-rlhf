@@ -162,9 +162,21 @@ def index_path(sweep: Sweep, root: str | Path = ".") -> Path:
     return Path(root) / "results" / "sweeps" / sweep.name / "index.json"
 
 
-def run_is_complete(run_name: str, root: str | Path = ".") -> bool:
-    """A run counts as finished when it wrote run_info.json, the last file train() writes."""
-    return (Path(root) / "results" / run_name / "run_info.json").exists()
+def run_is_complete(
+    run_name: str, root: str | Path = ".", written_after: float | None = None
+) -> bool:
+    """A run counts as finished when it wrote run_info.json, the last file train() writes.
+
+    train() deletes an old run_info.json when it starts, so a leftover file from an
+    earlier run cannot make a crashed rerun look finished. `written_after` (a
+    time.time() value) is a second guard for a run that was just launched: the file
+    must also be newer than the launch.
+    """
+    path = Path(root) / "results" / run_name / "run_info.json"
+    if not path.exists():
+        return False
+    # One second of slack for file systems with coarse timestamps.
+    return written_after is None or path.stat().st_mtime >= written_after - 1.0
 
 
 def run_sweep(
@@ -250,6 +262,7 @@ def run_sweep(
             continue
         print(f"[sweep {sweep.name}] {run.run_name}: {record['command']}", flush=True)
         start = time.perf_counter()
+        launched_at = time.time()
         try:
             returncode = runner([python, *run.command], cwd=root).returncode
         except OSError as err:  # for example a missing script
@@ -257,8 +270,9 @@ def run_sweep(
             returncode = -1
         record["returncode"] = returncode
         record["seconds"] = round(time.perf_counter() - start, 1)
-        # Exit code 0 is not enough: the run must also have written its final file.
-        ok = returncode == 0 and run_is_complete(run.run_name, root)
+        # Exit code 0 is not enough: the run must also have written its final file,
+        # and written it during this launch (not left over from an earlier run).
+        ok = returncode == 0 and run_is_complete(run.run_name, root, written_after=launched_at)
         record["status"] = "done" if ok else "failed"
         print(f"[sweep {sweep.name}] {run.run_name}: {record['status']}", flush=True)
         write_index()
@@ -271,7 +285,7 @@ def run_sweep(
 
 
 def _mean_ci(values: Sequence[float], n_resamples: int, seed: int) -> dict[str, float]:
-    from tiny_rlhf.trackb.evaluate import bootstrap_interval
+    from tiny_rlhf.stats import bootstrap_interval
 
     low, high = bootstrap_interval(values, n_resamples, seed)
     return {"mean": sum(values) / len(values), "ci_low": low, "ci_high": high}
@@ -330,7 +344,11 @@ def sweep_summary(
     runs, missing = [], []
     for run in sweep.runs:
         run_dir = root / "results" / run.run_name
-        if not (run_dir / "eval_pairs_final.csv").exists():
+        # run_info.json is the completion marker; the pair rows alone are not enough.
+        if (
+            not run_is_complete(run.run_name, root)
+            or not (run_dir / "eval_pairs_final.csv").exists()
+        ):
             missing.append(run.run_name)
             continue
         entry = run_summary(run_dir, n_resamples, seed)

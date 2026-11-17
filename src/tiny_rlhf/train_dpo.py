@@ -19,6 +19,7 @@ import json
 import math
 import subprocess
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -287,6 +288,90 @@ def library_versions() -> dict[str, str]:
     return versions
 
 
+# Files that say "this run finished" or that were derived from a finished run. They
+# are removed when a new run starts in the same directory, so a run that crashes
+# half way cannot be mistaken for the earlier, complete one.
+STALE_OUTPUTS = (
+    "run_info.json",
+    "eval_pairs_final.csv",
+    "drift.json",
+    "parity_summary.json",
+    "reward_vs_dpo.json",
+    "general_regression.json",
+    "trackb_table.md",
+    "trackb_compare.json",
+    "examples.md",
+    "trackb_eval/summary_trained.json",
+)
+
+
+def clear_stale_outputs(out_dir: str | Path) -> list[str]:
+    """Delete completion files left in out_dir by an earlier run. Returns what was removed.
+
+    The base model's Track B evaluation (trackb_eval/*_base.*) is kept: it does not
+    depend on the training run. Rows scored for a previously trained adapter are removed.
+    """
+    out_dir = Path(out_dir)
+    targets = [out_dir / name for name in STALE_OUTPUTS]
+    targets += sorted((out_dir / "trackb_eval").glob("*_trained.jsonl"))
+    removed = []
+    for path in targets:
+        if path.is_file():
+            path.unlink()
+            removed.append(str(path.relative_to(out_dir)))
+    return removed
+
+
+def accumulate_with_retries(
+    accumulate: Callable[[], Any],
+    scaler: torch.amp.GradScaler,
+    optimizer: torch.optim.Optimizer,
+    trainable: list[nn.Parameter],
+    max_grad_norm: float,
+    step_number: int,
+    max_retries: int | None = None,
+) -> tuple[Any, Tensor, int]:
+    """Build one optimizer step's gradients, redoing it while fp16 overflows.
+
+    `accumulate` runs the forward and backward passes of every micro-batch of the step
+    (calling scaler.scale(loss).backward()) and returns whatever the caller wants to
+    log. This function then unscales and clips the gradients and checks them.
+
+    In fp16 the scaled loss can overflow during backward. That is how GradScaler finds
+    a workable scale: step() skips the update when it sees non-finite gradients and
+    update() halves the scale. Here the same pairs are then redone, so no logged
+    optimizer step is one that did not happen. The caller still has to call
+    scaler.step, scaler.update and the scheduler once for the attempt that succeeded;
+    the schedule does not move on a retry.
+
+    Returns:
+        (what accumulate returned, gradient norm before clipping, number of retries).
+
+    Raises:
+        RuntimeError: if the gradients are non-finite and the scaler is disabled (plain
+            float32, where a retry would give the same result), or still non-finite
+            after max_retries retries.
+    """
+    if max_retries is None:
+        max_retries = MAX_SCALER_RETRIES
+    for attempt in range(max_retries + 1):
+        logged = accumulate()
+        scaler.unscale_(optimizer)
+        grad_norm = torch.nn.utils.clip_grad_norm_(trainable, max_grad_norm)
+        if math.isfinite(grad_norm.item()):
+            return logged, grad_norm, attempt
+        if not scaler.is_enabled() or attempt == max_retries:
+            raise RuntimeError(
+                f"non-finite gradient norm at optimizer step {step_number}"
+                + (f" after {attempt + 1} attempts" if scaler.is_enabled() else "")
+                + ". Try amp: false, a lower lr, or a shorter max_length."
+            )
+        scaler.step(optimizer)  # sees the non-finite gradients and skips the update
+        scaler.update()  # lowers the scale for the next attempt
+        optimizer.zero_grad(set_to_none=True)
+    raise AssertionError("unreachable")
+
+
 def train(
     cfg: DPOConfig,
     policy: nn.Module,
@@ -296,8 +381,12 @@ def train(
     pad_token_id: int,
     out_dir: str | Path,
     checkpoint_dir: str | Path | None = None,
+    scaler: torch.amp.GradScaler | None = None,
 ) -> dict[str, Any]:
     """Train `policy` with DPO against the frozen `reference`. Writes logs to out_dir.
+
+    `scaler` is for tests: it lets the fp16 retry path be exercised on a CPU. Leave it
+    out and the scaler follows the config (enabled only for fp16 on a GPU).
 
     Returns the run_info dict that is also written to out_dir/run_info.json.
     """
@@ -305,6 +394,7 @@ def train(
         raise ValueError("train_pairs and eval_pairs must both be non-empty")
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    clear_stale_outputs(out_dir)
     (out_dir / "config.yaml").write_text(yaml.safe_dump(dataclasses.asdict(cfg), sort_keys=False))
 
     device = resolve_device(cfg.device)
@@ -333,7 +423,8 @@ def train(
     )
     # fp16 gradients can underflow to zero; the scaler multiplies the loss up before
     # backward and divides the gradients back down before the optimizer step.
-    scaler = torch.amp.GradScaler(device.type, enabled=amp)
+    if scaler is None:
+        scaler = torch.amp.GradScaler(device.type, enabled=amp)
 
     train_file = (out_dir / "train.csv").open("w", newline="")
     eval_file = (out_dir / "eval.csv").open("w", newline="")
@@ -382,7 +473,10 @@ def train(
             if step >= total_steps:
                 break
             n_step_pairs = sum(len(m) for m in micro_batches)
-            for attempt in range(MAX_SCALER_RETRIES + 1):
+
+            def accumulate(
+                micro_batches: list[list[int]] = micro_batches, n_step_pairs: int = n_step_pairs
+            ) -> tuple[list[dict[str, float]], list[int]]:
                 per_batch, weights = [], []
                 for indices in micro_batches:
                     batch = to_device(collate([train_pairs[i] for i in indices]), device)
@@ -398,25 +492,12 @@ def train(
                     scaler.scale(out.loss * len(indices) / n_step_pairs).backward()
                     per_batch.append(batch_metrics(out, pol_c, pol_r))
                     weights.append(len(indices))
+                return per_batch, weights
 
-                scaler.unscale_(optimizer)
-                grad_norm = torch.nn.utils.clip_grad_norm_(trainable, cfg.max_grad_norm)
-                if math.isfinite(grad_norm.item()):
-                    break
-                # In fp16 the scaled loss can overflow during backward. This is how
-                # GradScaler finds a workable scale: step() skips the update when it
-                # sees non-finite gradients and update() halves the scale. Redo the
-                # same pairs so that no logged optimizer step is one that did not happen.
-                if not amp or attempt == MAX_SCALER_RETRIES:
-                    raise RuntimeError(
-                        f"non-finite gradient norm at optimizer step {step + 1}"
-                        + (f" after {attempt + 1} attempts" if amp else "")
-                        + ". Try amp: false, a lower lr, or a shorter max_length."
-                    )
-                scaler.step(optimizer)
-                scaler.update()
-                optimizer.zero_grad(set_to_none=True)
-                scaler_retries += 1
+            (per_batch, weights), grad_norm, retries = accumulate_with_retries(
+                accumulate, scaler, optimizer, trainable, cfg.max_grad_norm, step + 1
+            )
+            scaler_retries += retries
             lr_used = scheduler.get_last_lr()[0]
             scaler.step(optimizer)
             scaler.update()

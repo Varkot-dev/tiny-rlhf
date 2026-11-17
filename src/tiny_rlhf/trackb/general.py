@@ -28,11 +28,28 @@ import torch
 import torch.nn.functional as F
 
 from tiny_rlhf.data import PreferenceCollator, TokenizedPair
-from tiny_rlhf.trackb.evaluate import (
-    DEFAULT_RESAMPLES,
-    bootstrap_interval,
-    paired_bootstrap_difference,
-)
+from tiny_rlhf.stats import DEFAULT_RESAMPLES, bootstrap_interval, paired_bootstrap_difference
+
+# Response positions are scored this many at a time. Each chunk builds a few float32
+# tensors of shape [chunk, vocab]; with a 152k vocabulary 256 rows is about 150 MB each.
+ROW_CHUNK = 256
+
+
+def _nll_and_kl_rows(
+    base_rows: torch.Tensor, trained_rows: torch.Tensor, targets: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Per-position (nll_base, nll_trained, kl) for logits of shape [n_positions, vocab]."""
+    nll_base, nll_trained, kl = [], [], []
+    for start in range(0, base_rows.shape[0], ROW_CHUNK):
+        rows = slice(start, start + ROW_CHUNK)
+        base_logp = F.log_softmax(base_rows[rows].float(), dim=-1)
+        trained_logp = F.log_softmax(trained_rows[rows].float(), dim=-1)
+        target = targets[rows].unsqueeze(-1)
+        nll_base.append(-base_logp.gather(-1, target).squeeze(-1))
+        nll_trained.append(-trained_logp.gather(-1, target).squeeze(-1))
+        # KL(base || trained) = sum over the vocabulary of p_base * (log p_base - log p_trained).
+        kl.append((base_logp.exp() * (base_logp - trained_logp)).sum(dim=-1))
+    return torch.cat(nll_base), torch.cat(nll_trained), torch.cat(kl)
 
 
 @torch.no_grad()
@@ -42,7 +59,7 @@ def response_nll_and_kl(
     pairs: list[TokenizedPair],
     pad_token_id: int,
     max_length: int | None,
-    batch_size: int = 4,
+    batch_size: int = 2,
     device: torch.device | str = "cpu",
     amp: bool = False,
 ) -> dict[str, list[float]]:
@@ -60,23 +77,25 @@ def response_nll_and_kl(
         with torch.autocast(device.type, dtype=torch.float16, enabled=amp):
             base_logits = base(input_ids=ids, attention_mask=attention).logits
             trained_logits = trained(input_ids=ids, attention_mask=attention).logits
-        # Position t-1 predicts token t, as in tiny_rlhf.losses.sequence_logprob.
-        base_logp = F.log_softmax(base_logits[:, :-1].float(), dim=-1)
-        trained_logp = F.log_softmax(trained_logits[:, :-1].float(), dim=-1)
-        targets = ids[:, 1:].unsqueeze(-1)
-        n_tokens = mask.sum(dim=1).clamp(min=1)
+        # Position t-1 predicts token t, as in tiny_rlhf.losses.sequence_logprob. Keep
+        # only the response positions before any softmax: a float32 log_softmax over
+        # every position and a 152k vocabulary does not fit next to two models on a T4.
+        nll_base, nll_trained, kl = _nll_and_kl_rows(
+            base_logits[:, :-1][mask], trained_logits[:, :-1][mask], ids[:, 1:][mask]
+        )
+        sequence_index = mask.nonzero(as_tuple=True)[0]
+        n_tokens = mask.sum(dim=1)
 
-        def mean_over_response(per_position: torch.Tensor, m=mask, n=n_tokens) -> torch.Tensor:
-            return torch.where(m, per_position, torch.zeros_like(per_position)).sum(dim=1) / n
+        def mean_over_response(
+            per_position: torch.Tensor, index=sequence_index, n=n_tokens
+        ) -> torch.Tensor:
+            totals = torch.zeros(len(n), dtype=per_position.dtype, device=per_position.device)
+            return totals.index_add(0, index, per_position) / n.clamp(min=1)
 
-        nll_base = mean_over_response(-base_logp.gather(-1, targets).squeeze(-1))
-        nll_trained = mean_over_response(-trained_logp.gather(-1, targets).squeeze(-1))
-        # KL(base || trained) = sum over the vocabulary of p_base * (log p_base - log p_trained).
-        kl = mean_over_response((base_logp.exp() * (base_logp - trained_logp)).sum(dim=-1))
-        out["nll_base"] += nll_base.tolist()
-        out["nll_trained"] += nll_trained.tolist()
-        out["kl"] += kl.tolist()
-        out["n_tokens"] += mask.sum(dim=1).tolist()
+        out["nll_base"] += mean_over_response(nll_base).tolist()
+        out["nll_trained"] += mean_over_response(nll_trained).tolist()
+        out["kl"] += mean_over_response(kl).tolist()
+        out["n_tokens"] += n_tokens.tolist()
     return out
 
 
