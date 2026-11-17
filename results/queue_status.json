@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794945893,
+  "updated_unix": 1794946531,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -8,6 +8,30 @@
       "stage": "m5",
       "minutes": 0.0,
       "note": "checked: already current"
+    },
+    "m5_train": {
+      "status": "skipped-existing",
+      "stage": "m5",
+      "minutes": 0.0
+    },
+    "m5_eval_trained": {
+      "status": "skipped-existing",
+      "stage": "m5",
+      "minutes": 0.0
+    },
+    "m5_compare": {
+      "status": "skipped-existing",
+      "stage": "m5",
+      "minutes": 0.0
+    },
+    "trackb_beta0.5_train": {
+      "status": "done",
+      "stage": "m5_followup",
+      "minutes": 10.6,
+      "wall_time_s": 593.43,
+      "peak_gpu_memory_mb": 7287.2,
+      "optimizer_steps": 375,
+      "scaler_retries": 6
     }
   }
 }
