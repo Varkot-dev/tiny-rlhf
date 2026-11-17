@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794954255,
+  "updated_unix": 1794954268,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -229,6 +229,12 @@
       "stage": "label_noise",
       "minutes": 0.0,
       "blocked_by": "label_noise_0.0"
+    },
+    "m5_rescore_strict": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.2,
+      "note": "checked: already current"
     }
   }
 }
