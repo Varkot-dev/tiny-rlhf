@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794955348,
+  "updated_unix": 1794955537,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -244,6 +244,11 @@
       "peak_gpu_memory_mb": 7321.6,
       "optimizer_steps": 375,
       "scaler_retries": 0
+    },
+    "trackb_kto_eval": {
+      "status": "done",
+      "stage": "m7_kto",
+      "minutes": 3.1
     }
   }
 }
