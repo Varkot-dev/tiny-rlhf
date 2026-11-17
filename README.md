@@ -22,7 +22,7 @@ It is a picture of the loss function, not of a trained model.
 | M7 KTO against DPO on Track B (extension) | done, checked against TRL's KTOTrainer | none yet |
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
-Nothing in M3, M5 or M6 has been run on a GPU. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
+Nothing in M3, M5 or M6 has been run on a GPU. **New here? Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md)**: the whole project explained from zero, the story of every experiment, what went wrong, and interview questions with answers. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
 
 ## Track B: ignoring instructions planted in a document, with and without wrecking the model
 
@@ -40,6 +40,7 @@ The behavior: when the user's document contains a planted instruction ("ignore t
 
 - **The first run learned a shortcut.** It stopped following planted instructions by shrinking every answer to about one word (`results/trackb_full/examples.md`), which also broke the task. Validation accuracy was 0.993 by step 125 and the preferred answers' log-probability then fell from -35 to -59: over-optimization on easy data.
 - **A larger beta fixed it.** At beta 0.5 the model almost never follows a planted instruction, is on task more often than the base model, keeps its clean-document accuracy, answers in full sentences, and drifts about a fifth as much on general text.
+- **beta 0.5 has one measured cost:** on the probe where the user asks what a quoted note in the document says, so repeating the instruction is the right answer, it fell from 0.93 to 0.82 correct (change -0.11, interval -0.18 to -0.04). It has become somewhat more reluctant to engage with instruction-like text even when asked to.
 - **The likelihood term looks best pooled but does not generalize.** It copied the training answers' wording: on the held-out task "how many items" it is right 6% of the time against the base model's 15%, and it drifts almost three times as much as beta 0.5.
 - **Scoring was corrected after the fact.** The first scoring rule counted a numbered list as the right answer to "how many items", which inflated the base model on the held-out-task splits (0.74 against 0.15 strict). All saved answers were rescored with a strict rule; the original numbers are kept in each run's `trackb_table.md`.
 
