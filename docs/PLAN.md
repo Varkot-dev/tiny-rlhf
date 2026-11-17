@@ -250,3 +250,9 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Truncated preferred responses lost less per token** (-0.035 against -0.091). This follows from the previous points (totals do not grow with length, so long responses have smaller per-token changes) and is not evidence that truncation itself matters.
 - **Pairs by quadrant:** both responses down 76%, preferred up and other down 16%, preferred down and other up 6%, both up 2%.
 - **Hypothesis, not yet tested:** the update mostly lowers probability on tokens shared by both kinds of answer and lowers it more on the dispreferred ones. A larger beta (the beta sweep) should shrink both drops; whether it keeps the preferred response from falling is the question that sweep can answer.
+
+**2026-11-17, resumable GPU queue**
+- **`scripts/colab_queue.py` holds every remaining GPU job as data** (M5, M3, M2, then one job per sweep value), with dependencies, a completion marker per job and a rough time estimate. `docs/COLAB_QUEUE.md` is the one cell that runs it within a time budget. It does not start a job that will not fit, pushes after every finished job, commits failure logs, and skips finished work on the next launch.
+- **The jobs reuse the exact commands of the one-hour cell,** and a test enforces the match, so results from either path can be compared.
+- **Rehearsed end to end on CPU** through the real runner with every config shrunk to SmolLM2, 8 pairs and 2 steps, pushing to a scratch remote, then again from a fresh clone to confirm finished jobs are skipped. The time estimates (about 490 minutes in total) are guesses; only the full DPO run has been timed.
+- **The hero figure no longer crashes when a split has no examples in a group,** which the rehearsal found at a tiny limit. That cannot happen at the real limit of 150, but the figure now leaves an empty slot.
