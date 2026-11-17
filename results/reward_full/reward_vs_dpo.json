@@ -1,0 +1,32 @@
+{
+  "dpo_run": "results/dpo_full_t4",
+  "reward_run": "results/reward_full",
+  "n_pairs": 456,
+  "pair_alignment": "verified by fingerprint",
+  "reward_model_accuracy": 0.6381578947368421,
+  "reward_model_accuracy_ci95": [
+    0.5942434210526316,
+    0.6820175438596491
+  ],
+  "dpo_accuracy": 0.6535087719298246,
+  "dpo_accuracy_ci95": [
+    0.6074561403508771,
+    0.6929824561403509
+  ],
+  "agreement_rate": 0.7127192982456141,
+  "agreement_rate_ci95": [
+    0.6731907894736843,
+    0.7544407894736839
+  ],
+  "quadrant_counts": {
+    "both_right": 229,
+    "both_wrong": 96,
+    "only_reward_model_right": 62,
+    "only_dpo_right": 69
+  },
+  "spearman_margins": 0.493891056542214,
+  "spearman_response_scores": 0.43468579200772384,
+  "bootstrap_resamples": 2000,
+  "bootstrap_seed": 0,
+  "tie_rule": "a margin of exactly 0 counts as wrong"
+}
