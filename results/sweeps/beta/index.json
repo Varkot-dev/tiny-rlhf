@@ -20,9 +20,9 @@
       "series": null,
       "run_name": "sweep_beta_0.1",
       "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_beta_0.1 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set beta=0.1",
-      "status": "not_run",
-      "returncode": null,
-      "seconds": null
+      "status": "done",
+      "returncode": 0,
+      "seconds": 949.9
     },
     {
       "label": "0.5",
