@@ -20,9 +20,9 @@
       "series": null,
       "run_name": "sweep_size_300",
       "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_size_300 --set n_eval=300 --set eval_every=85 --set max_steps=340 --set epochs=13 --set n_train=300",
-      "status": "not_run",
-      "returncode": null,
-      "seconds": null
+      "status": "done",
+      "returncode": 0,
+      "seconds": 1163.3
     },
     {
       "label": "1000",
