@@ -1,0 +1,48 @@
+{
+  "sweep": "data_size",
+  "source": "configs/sweeps/data_size.yaml",
+  "base_config": "configs/dpo_full.yaml",
+  "field": "n_train",
+  "runs": [
+    {
+      "label": "100",
+      "value": 100,
+      "series": null,
+      "run_name": "sweep_size_100",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_size_100 --set n_eval=300 --set eval_every=85 --set max_steps=340 --set epochs=46 --set n_train=100",
+      "status": "done",
+      "returncode": 0,
+      "seconds": 1180.5
+    },
+    {
+      "label": "300",
+      "value": 300,
+      "series": null,
+      "run_name": "sweep_size_300",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_size_300 --set n_eval=300 --set eval_every=85 --set max_steps=340 --set epochs=13 --set n_train=300",
+      "status": "not_run",
+      "returncode": null,
+      "seconds": null
+    },
+    {
+      "label": "1000",
+      "value": 1000,
+      "series": null,
+      "run_name": "sweep_size_1000",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_size_1000 --set n_eval=300 --set eval_every=85 --set max_steps=340 --set epochs=4 --set n_train=1000",
+      "status": "not_run",
+      "returncode": null,
+      "seconds": null
+    },
+    {
+      "label": "3000",
+      "value": 3000,
+      "series": null,
+      "run_name": "sweep_size_3000",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_size_3000 --set n_eval=300 --set eval_every=85 --set max_steps=340 --set epochs=2 --set n_train=3000",
+      "status": "not_run",
+      "returncode": null,
+      "seconds": null
+    }
+  ]
+}
