@@ -1,0 +1,44 @@
+{
+  "run_name": "sweep_beta_0.5",
+  "beta": 0.5,
+  "kl_reference_to_policy_per_token": {
+    "mean": 0.009820829782532427,
+    "ci_low": 0.0070314194966634635,
+    "ci_high": 0.014866473249312933
+  },
+  "nll_per_token_reference": {
+    "mean": 1.3943690002798388,
+    "ci_low": 1.3225159382793905,
+    "ci_high": 1.465011671564747
+  },
+  "nll_per_token_policy": {
+    "mean": 1.403693417080473,
+    "ci_low": 1.333046316498023,
+    "ci_high": 1.4729705681721763
+  },
+  "nll_per_token_change": {
+    "difference": 0.009324416800634096,
+    "ci_low": 0.0028971400854954435,
+    "ci_high": 0.01692034448681917,
+    "n": 277
+  },
+  "n_pairs": 277,
+  "mean_response_tokens_scored": 231.28519855595667,
+  "scored": "preferred responses of the run's held-out pairs, response positions only",
+  "interval": "95% percentile bootstrap over conversations",
+  "n_resamples": 2000,
+  "seed": 0,
+  "eval_pairs_sha256": "218b442d7f2bc3de21ef34ccdfb147180e73bb9664ad07aa086e08222bd3a5d1",
+  "pairs_match_run": true,
+  "adapter": "checkpoints/sweep_beta_0.5",
+  "device": "cuda",
+  "amp_fp16": true,
+  "git_sha": "07ec660552774e0b186053068033efb3af370be2",
+  "versions": {
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "peft": "0.21.2",
+    "datasets": "4.8.5",
+    "trl": "1.18.1"
+  }
+}
