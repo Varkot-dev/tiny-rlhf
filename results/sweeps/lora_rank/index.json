@@ -20,9 +20,9 @@
       "series": null,
       "run_name": "sweep_rank_8",
       "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_rank_8 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set lora_alpha=16 --set lora_r=8",
-      "status": "not_run",
-      "returncode": null,
-      "seconds": null
+      "status": "done",
+      "returncode": 0,
+      "seconds": 982.3
     },
     {
       "label": "16",
