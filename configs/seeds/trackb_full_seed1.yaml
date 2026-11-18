@@ -1,0 +1,54 @@
+# Seed 1 of trackb_full: identical to configs/trackb_full.yaml except `seed` and `run_name`
+# (tests/test_seeds.py checks that). Part of the `seeds` queue stage, which repeats the key
+# Track B runs with two more seeds so their conclusions can be checked for seed noise.
+#
+# What the seed changes here, read from the code:
+#   - the LoRA A matrices' random initialisation (torch.manual_seed before get_peft_model;
+#     B starts at zero, so the step-0 loss is unchanged)
+#   - the LoRA dropout masks (global torch generator)
+#   - the order of the training pairs: tiny_rlhf.trackb.train shuffles train.jsonl with
+#     random.Random(seed) before taking n_train, and the training loop reshuffles each epoch
+#     with a seeded torch.Generator. n_train is 3000, the whole file, so the SET of training
+#     pairs is the same for every seed; only the order changes
+#   - the order of the 300 validation pairs (all of val.jsonl, so the same set)
+# What it does not change: the model, data, hyperparameters, and the test evaluation
+# (fixed files, first 150 examples per split, greedy decoding, its own seed of 0).
+#
+# The queue runs this with --set eval_every=125, exactly as the m5_train job ran the
+# original trackb_full (the file itself keeps the original's eval_every: 50).
+#
+# Track B main run, sized for a free Colab T4 (16 GB).
+# Effective batch = batch_size * grad_accum = 8 pairs, so 3000 pairs give 375 optimizer steps.
+#
+# Memory: the Track A full config ran out of memory on a 15 GB T4 with this model at
+# batch_size 2 and 512-token sequences (4 sequences per forward pass, before the loss
+# was changed to score response positions only). Track B sequences are at most 320
+# tokens, so this config keeps batch_size 2 (4 sequences per forward pass) to stay safe.
+# Nothing has been measured for this config; the run records its real peak in run_info.json.
+run_name: trackb_full_seed1
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+dataset_name: data/trackb          # a directory: train.jsonl and val.jsonl are read from it
+n_train: 3000
+n_eval: 300
+max_length: 320                    # the longest Track B example is 305 tokens: nothing is cut
+beta: 0.1
+lr: 5.0e-5
+weight_decay: 0.0
+warmup_ratio: 0.1
+epochs: 1
+batch_size: 2
+grad_accum: 4
+max_grad_norm: 1.0
+eval_every: 50
+eval_batch_size: 4
+seed: 1
+shuffle: true
+use_lora: true
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+amp: auto
+device: auto
+max_steps: null
+save_adapter: true
