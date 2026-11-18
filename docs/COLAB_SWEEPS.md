@@ -16,7 +16,7 @@ Each sweep is several ordinary training runs in a row. One paste-ready cell per 
 
 Not known yet, and this document does not guess. What has been measured so far:
 
-- The tiny config (135M-parameter model, 41 optimizer steps) took 19.75 seconds on a T4 with a peak of 3.9 GB of GPU memory (`results/dpo_tiny_t4/run_info.json`).
+- The tiny config (135M-parameter model, 41 optimizer steps) took 19.75 seconds on a T4 with a peak of 3.8 GiB of GPU memory (`results/dpo_tiny_t4/run_info.json`).
 - Nothing has been measured for the 494M-parameter Qwen model that the sweeps use. The first full run failed with out of memory and its settings were changed afterwards (decision log, 2026-11-17).
 
 Every run records its own `wall_time_s` and `peak_gpu_memory_mb` in `run_info.json`. After the first run of any sweep finishes, that number tells you how long the rest will take, since the runs in a sweep are the same size (the dataset size sweep holds optimizer steps fixed for exactly this reason). The sweeps use a reduced budget, 2,000 training pairs and 300 held-out pairs, stated at the top of each file under `configs/sweeps/`.

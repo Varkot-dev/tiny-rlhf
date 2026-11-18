@@ -371,13 +371,13 @@ per layer: 2*28,672 + 2*16,384 + 3*92,160 = 366,592
 - **autocast** runs the forward pass in fp16 where that is safe. The weights stay in fp32.
 - **GradScaler** deals with the backward pass. Small gradients underflow to zero in fp16, so it multiplies the loss by a large scale (PyTorch's default starts at 65,536) before backward and divides the gradients back before the optimizer step. If that scale makes something overflow, it skips the update and halves the scale.
 
-**Incident 1: out of memory (decision log, "first full run on the T4").** The full config failed at the first training step with 13.5 GB in use on a 14.56 GB card. The failed allocation was 1.16 GiB. That number can be reproduced (computed here):
+**Incident 1: out of memory (decision log, "first full run on the T4").** The full config failed at the first training step with 13.5 GiB in use on a 14.56 GiB card (PyTorch's error message reports GiB). The failed allocation was 1.16 GiB. That number can be reproduced (computed here):
 
 ```
 4 sequences * 511 positions * 151,936 vocabulary entries * 4 bytes = 1.157 GiB
 ```
 
-That is one float32 table over every position and the whole vocabulary, and several were alive at once for the policy and the reference. Three fixes: score only the response positions (same numbers, far less memory), score the reference before the policy so its tensors are freed first, and use 1 pair per micro-batch with 8 accumulated. Lesson: the vocabulary dimension, not the model size, was the memory hog. The 135M model had peaked at only 3.9 GB (`results/dpo_tiny_t4/run_info.json`).
+That is one float32 table over every position and the whole vocabulary, and several were alive at once for the policy and the reference. Three fixes: score only the response positions (same numbers, far less memory), score the reference before the policy so its tensors are freed first, and use 1 pair per micro-batch with 8 accumulated. Lesson: the vocabulary dimension, not the model size, was the memory hog. The 135M model had peaked at only 3.8 GiB (`results/dpo_tiny_t4/run_info.json`; the field `peak_gpu_memory_mb` is in MiB).
 
 **Incident 2: a safety check that was too strict (decision log, "second full run").** After the first code review, the loop raised an error on any non-finite gradient. The next full run stopped at its first training step. The cause, inferred at the time because the error text was not captured and confirmed by the next run: under fp16 a non-finite gradient in the first steps is how GradScaler finds a workable scale, and the check turned that normal adjustment into a crash. The fix lets the scaler skip and lower its scale, then redoes the same optimizer step on the same pairs, up to 20 times, and records the count as `scaler_retries`. Lesson: a check that is right in fp32 can be wrong in fp16, and a check that hides its error message costs a whole round trip.
 
@@ -743,9 +743,9 @@ So the step-0 check for KTO is 0.5, the way log 2 is for DPO. Both M7 runs start
 run              on task (planted)   correct (clean)   drift   chosen log-prob, step 0 to end
 DPO beta 0.1     0.335               0.359             +1.21   -33.1 to -51.6
 KTO beta 0.1     0.653               0.656             +0.70   -33.1 to -6.3
-DPO beta 0.5     0.621               0.644             +0.24   -33.1 to -28.2
+DPO beta 0.5     0.621               0.646             +0.24   -33.1 to -28.2
 KTO beta 0.5     0.647               0.654             +0.21   -33.1 to -17.0
-(base model      0.501               0.622)
+(base model      0.513               0.656)
 ```
 
 At beta 0.5 the two tie within noise, so knowing which two answers were compared added nothing measurable on this data. At beta 0.1 KTO avoided the collapse but moved far the other way: its chosen answers became much more likely, its drift was almost three times DPO beta 0.5's, and on the quoted-instruction probe it fell from 0.93 to 0.60.
@@ -907,8 +907,8 @@ At beta 0.5 the two tie within noise, so knowing which two answers were compared
 | KL folded into the per-sample return | differentiate the KL separately | the extra term has zero expectation | relies on that identity |
 | One untuned learning rate for all toy methods | tune each | no method gets an unfair tuning budget | the comparison is indicative only |
 | KTO gets the same answers, steps and betas as DPO | KTO's own defaults (TRL's learning rate is 1e-6) | isolates whether knowing the pairing helps | beta is not the same constraint in both losses |
-| Float32 for the full parity run | fp16 like the training runs | the two implementations handle fp16 overflow differently, which would end exact parity | slower; 8.6 GB peak, which still fitted the T4 |
-| Strict scoring, lenient kept | lenient only | lenient counted numbered lists as correct counts (base `count_items` 0.736 against 0.149 strict) | rare false negatives, such as a count stated after a date |
+| Float32 for the full parity run | fp16 like the training runs | the two implementations handle fp16 overflow differently, which would end exact parity | slower; 8.4 GiB peak, which still fitted the T4 |
+| Strict scoring, lenient kept | lenient only | lenient counted numbered lists as correct counts (base `count_items` 0.736 lenient against 0.253 strict) | an answer that only lists the items without stating a count fails by design |
 
 ---
 
@@ -919,12 +919,12 @@ At beta 0.5 the two tie within noise, so knowing which two answers were compared
 | What | Headline numbers | File |
 |---|---|---|
 | M1 tiny runs (SmolLM2-135M) | held-out loss 0.693147 to 0.6826 on CPU (571 s) and 0.6825 on a T4 in fp16 (19.75 s) | `results/dpo_tiny/`, `results/dpo_tiny_t4/` |
-| M1 full run (Qwen2.5-0.5B, 3,699 pairs, 463 steps, T4) | loss 0.6931 to 0.6175, accuracy 0.654 (0.607 to 0.693), chosen log-prob -301.4 to -307.7, 1,737 s, 8.8 GB, 5 fp16 retries | `results/dpo_full_t4/` |
+| M1 full run (Qwen2.5-0.5B, 3,699 pairs, 463 steps, T4) | loss 0.6931 to 0.6175, accuracy 0.654 (0.607 to 0.693), chosen log-prob -301.4 to -307.7, 1,737 s, 8.6 GiB peak, 5 fp16 retries | `results/dpo_full_t4/` |
 | Where the log-probability went | both answers fell on 76% of pairs; change uncorrelated with length | `results/dpo_full_t4/logp_change.json` |
 | Reproducibility reruns on newer code | full run loss 0.6178 against 0.6175; tiny T4 run 0.6829 against 0.6825 | `results/dpo_full_t4_rerun/`, `results/dpo_tiny_t4_rerun/` |
 | M2 parity, tiny and full | loss gaps at most 8.2e-06 (tiny, 41 steps) and 3.3e-05 (full, 100 steps) | `results/parity_tiny/`, `results/parity_full/parity_summary.json` |
 | M3 reward model against DPO | 0.638 against 0.654 accuracy, agreement 0.713 | `results/reward_full/reward_vs_dpo.json` |
-| M5 Track B, four DPO runs | first run collapsed (0.335 on task, 1-word answers); beta 0.5 on task 0.621 with clean accuracy 0.644 and drift +0.24 | `results/trackb_*`, `results/trackb_rescored_compare.json` |
+| M5 Track B, four DPO runs | first run collapsed (0.335 on task, 1-word answers); beta 0.5 on task 0.621 (base 0.513) with clean accuracy 0.646 (base 0.656, so held, not improved) and drift +0.24 | `results/trackb_*`, `results/trackb_rescored_compare.json` |
 | M7 KTO, two runs | beta 0.5 ties DPO beta 0.5 within noise; beta 0.1 avoided the collapse but drifted +0.70 | `results/trackb_kto*`, `results/kto_vs_dpo_summary.json` |
 | M6 beta sweep | accuracy 0.62 to 0.66 at all three betas; drift 0.591, 0.041, 0.010 | `results/sweeps/beta/summary.json` |
 | M6 LoRA rank 2, 8, 16 | held-out accuracy 0.661, 0.668, 0.661 | `results/sweep_rank_*` |
