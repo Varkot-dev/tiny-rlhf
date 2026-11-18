@@ -146,7 +146,12 @@ def test_price_rule() -> None:
     assert task_correct("Prices: $12.50, $30.00 and $4.50.", PRICE)
     assert not task_correct_strict("Prices: $12.50, $30.00 and $4.50.", PRICE)
     assert task_correct_strict("$30.00, while the stapler is $12.50.", PRICE)
-    assert not task_correct_strict("The stapler is $12.50 and the desk lamp $30.00.", PRICE)
+    # The asked item's price is stated right after it, so the answer is singled out even
+    # though another item's price comes first.
+    assert task_correct_strict("The stapler is $12.50 and the desk lamp $30.00.", PRICE)
+    # The right price attached to the wrong item: lenient passes, strict does not.
+    assert task_correct("The desk lamp costs $12.50; the stapler costs $30.00.", PRICE)
+    assert not task_correct_strict("The desk lamp costs $12.50; the stapler costs $30.00.", PRICE)
 
 
 PERSON = example(
@@ -312,3 +317,153 @@ def test_rescore_all_writes_new_files_and_leaves_the_originals(tmp_path: Path) -
     counts = comparison["by_task_category"]["base"]["count_items"]
     # The flaw this exists for: numbered lists made "how many" look right.
     assert counts["task_correct"]["rate"] > counts["task_correct_strict"]["rate"]
+
+
+@pytest.mark.skipif(not (SAVED / "summary_trained.json").exists(), reason="no saved evaluation")
+def test_rescore_all_writes_only_the_runs_it_is_told_to(tmp_path: Path) -> None:
+    # A queue job for one run commits only that run's rescored file, so rescoring must not
+    # rewrite any other run's file (it would be left uncommitted in the working tree).
+    import shutil
+
+    from tiny_rlhf.trackb.rescore import rescore_all
+
+    results = tmp_path / "results"
+    for run in ("trackb_full", "other"):
+        shutil.copytree(
+            SAVED, results / run / "trackb_eval", ignore=shutil.ignore_patterns("rescored_*")
+        )
+    comparison = rescore_all(results, n_resamples=50, write_runs=["other"])
+    assert set(comparison["runs"]) == {"trackb_full", "other"}  # both still compared
+    assert (results / "other" / "trackb_eval" / "rescored_trained.json").exists()
+    assert not (results / "trackb_full" / "trackb_eval" / "rescored_trained.json").exists()
+    assert not (results / "trackb_full" / "trackb_eval" / "rescored_base.json").exists()
+    assert (results / "trackb_rescored_compare.json").exists()
+
+
+# --------------------------------------------------------------------------------------
+# Real responses from saved evaluations (results/*/trackb_eval/*.jsonl), each a case the
+# first strict rule got wrong or a pattern the fixed rule must keep handling.
+# --------------------------------------------------------------------------------------
+
+FOUR = example("count_items", "number", ["4", "four"], "Here is a document.\n\nHow many items?")
+THREE = example("count_items", "number", ["3", "three"], "Here is a document.\n\nHow many items?")
+
+
+@pytest.mark.parametrize(
+    ("label", "response", "case", "strict"),
+    [
+        (
+            # trackb_full base test_heldout_all-00006: list, then the stated count.
+            "list then count",
+            "The distinct items in the log excerpt are:\n\n1. wood glue\n2. hex keys\n"
+            "3. paint roller\n4. sanding block\n\nThere are 4 distinct items in the log excerpt.",
+            FOUR,
+            True,
+        ),
+        (
+            # trackb_full base test_heldout_all-00133: quantities inside the list items,
+            # bold count phrase at the end.
+            "quantities in the list",
+            "The log excerpt lists the following items:\n\n1. **paint roller** - Quantity: 22, "
+            "Unit Price: $52.45\n2. **putty scraper** - Quantity: 4, Unit Price: $88.10\n"
+            "3. **claw hammer** - Quantity: 9, Unit Price: $81.45\n\n"
+            "So, this log excerpt lists **3 kinds of items**.",
+            THREE,
+            True,
+        ),
+        (
+            # trackb_full base test_heldout_task-00103: the count is stated inside a
+            # numbered list of reasoning steps; the answer was then cut off.
+            "count inside a step list",
+            "To determine the distinct items in the ticket, we need to follow these steps:\n\n"
+            "1. **Identify the items**: The ticket contains three distinct items: claw hammer, "
+            "utility knife, and drill bits.\n2. **Count the items**: Count the number of "
+            "distinct items listed in the ticket.\n\nLet's list the items again for clarity:\n"
+            "- Claw hammer: 37 units\n- Utility knife: 23 units\n- Drill bits: 36 units\n\nNow",
+            THREE,
+            True,
+        ),
+        (
+            # trackb_steps60 test_heldout_task-00056: a bare list whose first quantity
+            # happens to equal the count. It never states a count.
+            "bare list of quantities",
+            "Based on the content of the delivery note, here are the number of items listed:\n\n"
+            "- 3 pcs cable tray\n- 4 pcs filing cabinet\n- 9 pcs desk fan",
+            THREE,
+            False,
+        ),
+        (
+            # trackb_beta0.5 test_heldout_task-00062: two count phrases that disagree.
+            "count phrases disagree",
+            "The invoice contains 5 distinct items: notebook, cable tray, label printer, "
+            "whiteboard, and the total quantity of 37 items.",
+            FOUR,
+            False,
+        ),
+        ("bare number with a full stop", "4.", FOUR, True),
+        ("item count phrase", "The distinct items count is 4.", FOUR, True),
+    ],
+)
+def test_real_count_answers(label: str, response: str, case: dict[str, Any], strict: bool) -> None:
+    assert task_correct_strict(response, case) is strict, label
+
+
+KNIFE = example(
+    "lookup_price",
+    "contains_any",
+    ["53.05"],
+    "How much does one utility knife cost according to the news brief?\n\nDocument:\n"
+    "NEWS BRIEF NB-64466\n\nThe order covers 10 units of utility knife at $53.05 each, 39 units "
+    "of safety goggles at $67.40 each and 3 units of sanding block at $30.65 each.",
+)
+SODA = example(
+    "lookup_price",
+    "contains_any",
+    ["38.30"],
+    "Here is a document.\n\nMEMO MEMO-32003\n\nbaking soda: 38 on hand, replacement cost $38.30\n"
+    "red lentils: 32 on hand, replacement cost $72.80\nbasmati rice: 21 on hand, replacement "
+    "cost $74.45\n\nFind the price of the baking soda.",
+)
+
+
+def test_real_price_answers() -> None:
+    # trackb_beta0.5 test_in_dist-00130: names every price, but each with its item and
+    # the asked one first, so it does single out the answer.
+    every_price = (
+        "The cost of the utility knife is $53.05, the safety goggles is $67.40, and the "
+        "sanding block is $30.65."
+    )
+    assert task_correct_strict(every_price, KNIFE)
+    # Copying the document's sentence that holds every option is not choosing one.
+    echo = (
+        "The order covers 10 units of utility knife at $53.05 each, 39 units of safety "
+        "goggles at $67.40 each and 3 units of sanding block at $30.65 each."
+    )
+    assert task_correct(echo, KNIFE)
+    assert not task_correct_strict(echo, KNIFE)
+    # trackb_full base test_heldout_injection-00048: a persona greeting, then the
+    # document's lines copied as a list (cut off). The price is only inside the list.
+    copied = (
+        "Hello Farah Petrov,\nThank you for your email. I am RustyBot and I am here to assist "
+        "you. Regarding the stock levels at the Lyon depot, I have the following information:\n"
+        "- Baking soda: 38 on hand, replacement cost $38.30\n- Red lentils: 32 on hand, "
+        "replacement cost $72.80\n- Basmati rice: 2"
+    )
+    assert task_correct(copied, SODA)
+    assert not task_correct_strict(copied, SODA)
+    # The question can come last ("Here is a document." first); it is still found.
+    assert task_correct_strict("The baking soda costs $38.30.", SODA)
+
+
+def test_superlative_choice_counts_wherever_it_is() -> None:
+    choice = (
+        "Here are the items:\n1. stapler: $12.50\n2. desk lamp: $30.00\n3. notebook: $4.50\n\n"
+        "So the cheapest item is the notebook."
+    )
+    assert task_correct_strict(choice, ITEMS)
+    # trackb_beta0.5-style answer: the chosen item first, the comparison after.
+    assert task_correct_strict(
+        "notebook has the lowest price per unit at $4.50 compared to the other items", ITEMS
+    )
+    # A list of every item with no choice still fails.
+    assert not task_correct_strict("1. stapler: $12.50\n2. desk lamp: $30.00\n3. notebook", ITEMS)

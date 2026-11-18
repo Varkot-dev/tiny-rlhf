@@ -174,15 +174,25 @@ def rescore_all(
     runs: list[str] | None = None,
     n_resamples: int = 2000,
     seed: int = 0,
+    write_runs: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Rescore the base evaluation and every run; write the new files; return the comparison."""
+    """Rescore the base evaluation and every run; write the new files; return the comparison.
+
+    Every run is rescored and compared. `write_runs` limits which runs' rescored files are
+    written (None: all; the base run's rescored_base.json only when the base run is listed),
+    so a queue job that commits one run's file does not leave other runs' rewritten files
+    uncommitted in the working tree. The comparison file is always written.
+    """
     runs = discover_runs(results) if runs is None else runs
     base_path = results / base_run / "trackb_eval" / "summary_base.json"
     base = load_rescored(base_path)
-    written = [base_path.parent / "rescored_base.json"]
-    written[0].write_text(
-        json.dumps(rescored_summary(base, base_run, "base", n_resamples, seed), indent=2) + "\n"
-    )
+    written = []
+    if write_runs is None or base_run in write_runs:
+        base_out = base_path.parent / "rescored_base.json"
+        base_out.write_text(
+            json.dumps(rescored_summary(base, base_run, "base", n_resamples, seed), indent=2) + "\n"
+        )
+        written.append(base_out)
     comparison: dict[str, Any] = {
         "base": str(base_path.relative_to(results.parent)),
         "scoring": "strict task correctness: tiny_rlhf.trackb.checks.task_correct_strict",
@@ -205,12 +215,13 @@ def rescore_all(
         if trained["summary"].get("examples_sha256") != base["summary"].get("examples_sha256"):
             comparison["not_compared"].append(f"{run}: scored different prompts than the base")
             continue
-        out = path.parent / "rescored_trained.json"
-        out.write_text(
-            json.dumps(rescored_summary(trained, run, "trained", n_resamples, seed), indent=2)
-            + "\n"
-        )
-        written.append(out)
+        if write_runs is None or run in write_runs:
+            out = path.parent / "rescored_trained.json"
+            out.write_text(
+                json.dumps(rescored_summary(trained, run, "trained", n_resamples, seed), indent=2)
+                + "\n"
+            )
+            written.append(out)
         comparison["lenient_mismatches_on_rescoring"][run] = trained["mismatches"]
         comparison["by_task_category"][run] = by_task_category(trained["rows"], n_resamples, seed)
         comparison["runs"][run] = compare_runs(base, trained, n_resamples, seed)

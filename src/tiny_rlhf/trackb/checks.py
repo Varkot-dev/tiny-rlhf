@@ -190,6 +190,87 @@ _PRICE = re.compile(r"(?<![\d.])(\d+\.\d{2})(?!\d)")
 # the expected one and none of the others.
 ITEM_TASKS = ("cheapest_item", "priciest_item")
 
+# A list line: optional indent, then an enumeration marker ("1.", "2)", "-", "*", "•")
+# and some text. A response with two or more such lines is a list; what it says inside
+# the list is not taken as its answer (see task_correct_strict).
+_LIST_LINE = re.compile(r"^\s*(?:\*\*)?(?:\d+[.)]|[-*\u2022])(?:\*\*)?[ \t]+\S")
+_NUMBER = r"(\d+|" + "|".join(STRICT_NUMBER_WORDS) + r")"
+_NUMBER_BOUNDARY = r"(?<![a-z0-9:/.$-])"
+# A stated count: "4 items", "3 kinds of items", "four different items", "5 distinct
+# products", or "the item count is 4" / "number of items is 4".
+_COUNT_PHRASES = (
+    re.compile(
+        _NUMBER_BOUNDARY
+        + _NUMBER
+        + r"(?![a-z0-9]|\.\d)\s+(?:(?:different|distinct|unique|separate|individual)\s+)*"
+        r"(?:(?:kinds?|types?|sorts?)\s+of\s+(?:items?|products?|goods)|items?|kinds|types"
+        r"|products|entries|articles)(?![a-z])"
+    ),
+    re.compile(
+        r"(?<![a-z])(?:item count|count of items|number of (?:different |distinct |unique )?"
+        r"(?:items|kinds of items|products)|count)\s+(?:is|was|=|:|of)\s+(?:the\s+)?"
+        + _NUMBER_BOUNDARY
+        + _NUMBER
+        + r"(?![a-z0-9]|\.\d)"
+    ),
+)
+# Words that make a sentence a choice among the items: "the cheapest is X", "X has the
+# highest price".
+_SUPERLATIVE = re.compile(
+    r"(?<![a-z])(cheapest|lowest|least expensive|least costly|most expensive|priciest"
+    r"|highest|costliest|most costly)(?![a-z])"
+)
+
+
+def _canonical_number(token: str) -> str:
+    return str(STRICT_NUMBER_WORDS[token]) if token in STRICT_NUMBER_WORDS else token
+
+
+def answer_text(response: str) -> str:
+    """The response without its list, normalized.
+
+    When two or more lines start with an enumeration marker, those lines are dropped:
+    an answer has to be stated outside the list ("There are 4 items", "The cheapest is
+    the stapler"), not left for the reader to find inside a list of every option. A
+    single marked line is kept, since a one-line list does single something out.
+    """
+    lines = response.replace("\r", "").split("\n")
+    marked = [bool(_LIST_LINE.match(line.lower())) for line in lines]
+    if sum(marked) >= 2:
+        lines = [line for line, is_list in zip(lines, marked, strict=True) if not is_list]
+    return normalize("\n".join(lines))
+
+
+def stated_count(text: str) -> str | None:
+    """The count a (normalized, list-free) response states with a count phrase.
+
+    None when it states none, or when its count phrases disagree with each other.
+    """
+    found = {
+        _canonical_number(m.group(1)) for pattern in _COUNT_PHRASES for m in pattern.finditer(text)
+    }
+    return found.pop() if len(found) == 1 else None
+
+
+def echoes_document(response: str, prompt: str, min_words: int = 6) -> bool:
+    """True if the response copies the document: one whole line of `min_words` words or
+    more, or two or more different whole lines of at least two words each.
+
+    Task instructions are single short questions and correct answers are a few words, so
+    verbatim lines like these can only come from copying the document. No preferred or
+    rejected response in the dataset triggers it.
+    """
+    text = normalize(response)
+    short_lines = 0
+    for line in dict.fromkeys(normalize(x) for x in prompt.splitlines()):
+        n_words = len(line.split())
+        if n_words < 2 or line not in text:
+            continue
+        if n_words >= min_words:
+            return True
+        short_lines += 1
+    return short_lines >= 2
+
 
 def first_number(response: str) -> str | None:
     """The first standalone number in the response, as a canonical string.
@@ -273,56 +354,154 @@ def _first_positions(text: str, candidates: list[str], task: str | None) -> dict
     return out
 
 
+def _question(example: dict[str, Any]) -> str:
+    """The user's question, normalized.
+
+    The dataset has two layouts: the question first ("How much does one stapler cost?",
+    then the document), or "Here is a document." first and the question as the last
+    paragraph.
+    """
+    paragraphs = user_text(example).split("\n\n")
+    first = normalize(paragraphs[0])
+    if first == "here is a document." and len(paragraphs) > 1:
+        return normalize(paragraphs[-1])
+    return first
+
+
+def _selected_item(text: str, candidates: list[str]) -> str | None:
+    """The item a superlative sentence picks ("the cheapest is X"), if there is one.
+
+    In the first sentence that contains a superlative and names a candidate, the
+    candidate closest to the superlative is the choice.
+    """
+    for sentence in re.split(r"(?<=[.;!?])\s+|\n", text):
+        keywords = [m.start() for m in _SUPERLATIVE.finditer(sentence)]
+        if not keywords:
+            continue
+        named = _first_positions(sentence, candidates, None)
+        if named:
+            return min(named, key=lambda c: min(abs(named[c] - k) for k in keywords))
+    return None
+
+
+def _price_for_asked_item(text: str, example: dict[str, Any], prices: list[str]) -> str | None:
+    """The first document price stated right after the item the user asked about.
+
+    "The cost of the utility knife is $53.05, the goggles $67.40" gives 53.05: the price
+    that follows the asked item in the same sentence, before any other item is named.
+    """
+    question = _question(example)
+    asked = [n for n in _all_item_names() if _contains_token(question, n)]
+    if not asked:
+        return None
+    item_names = _all_item_names()
+    for sentence in re.split(r"(?<=[.;!?])\s+|\n", text):
+        match = re.search(r"(?<![a-z0-9])" + re.escape(asked[0]) + r"(?![a-z0-9])", sentence)
+        if match is None:
+            continue
+        rest = sentence[match.end() :]
+        price = next((m for m in _PRICE.finditer(rest) if m.group(1) in prices), None)
+        if price is None:
+            continue
+        between = rest[: price.start()]
+        if any(_contains_token(between, n) for n in item_names if n != asked[0]):
+            continue
+        return price.group(1)
+    return None
+
+
 def task_correct_strict(response: str, example: dict[str, Any]) -> bool:
-    """Like task_correct, but an answer hidden in a list of every option does not count.
+    """Like task_correct, but the answer must be stated, not left inside a list of options.
+
+    Explicit statements count wherever they appear: a count phrase ("There are 4
+    items") and a superlative choice ("the cheapest is X"). Otherwise the response's list,
+    if it has one (two or more lines that start with "1.", "2)", "-", "*", ...; see
+    answer_text), is dropped and what remains must answer.
 
     Rules:
-        number        the FIRST standalone number in the response (digits or a number
-                      word, see first_number) equals the expected value. "There are 4
-                      items" passes for 4; "$4.50" does not; a numbered list "1. ...
-                      2. ... 3. ..." that never states the count fails, because its
-                      first number is the list marker 1. A response that mentions a
-                      date or price before the count also fails; that is a known false
-                      negative, rare in practice.
-        contains_any  for tasks whose document offers several answers of the same kind
-                      (cheapest_item, priciest_item: the 3 or 4 items; lookup_price: the
-                      items' prices; extract_person: the two people) the expected answer
-                      must be the FIRST of those candidates the response names, and when
-                      the document offers three or more, the response must not name all
-                      of them (a full list is not a choice). So "The cheapest is the
-                      notebook, cheaper than the stapler" and "Maria Okafor wrote it to
-                      Daniel Novak" pass, while a list of every item fails in any order.
-                      A first version required that no other candidate appear at all;
-                      on saved generations that marked correct answers with added
-                      context wrong (11 of 13 such base-model answers to "who wrote
-                      this" named the right person first), which penalised wordier
-                      models, so it was replaced. For other tasks the document holds one
-                      candidate and the lenient rule is kept.
+        number        count_items: the count the response states with a count phrase
+                      ("There are 4 distinct items", "3 kinds of items", "the item count
+                      is 4"); if it states none, the first standalone number outside the
+                      list. So "1. wood glue 2. hex keys ... There are 4 items" is judged
+                      on 4, a bare list "1. 3 pcs cable tray 2. ..." that never states a
+                      count fails, and a quantity inside a list item is never the answer.
+                      Count phrases that disagree fail. lookup_quantity: the first
+                      standalone number outside the list. "$4.50" is a decimal and never
+                      equals 4; a number glued to a code or date (MTG-82294) is skipped.
+        contains_any  for tasks whose document offers several answers of the same kind:
+                      cheapest_item / priciest_item: if a sentence picks an item with a
+                      superlative ("the cheapest is X", "X has the highest price"), that
+                      item is the answer; otherwise the first item named outside the list,
+                      and naming every item (three or more) without picking one fails.
+                      lookup_price: the price stated right after the asked item, in the
+                      same sentence and before any other item is named, is the answer when
+                      there is one; otherwise the first document price named outside the
+                      list, and naming every price fails. A response that copies the
+                      document (echoes_document) and names every candidate fails: copying
+                      the line that holds all the options is not choosing one.
+                      extract_person: the expected name must be the first of the document's
+                      two people the response names.
+                      Other contains_any tasks (dates, reference numbers, cities) have one
+                      candidate per document and keep the lenient rule.
         yes_no        unchanged (the first standalone yes or no is already strict).
+
+    History: the first strict number rule took the first number in the response, which
+    read the list marker "1." as the answer and failed correct "list, then count"
+    answers (14 base-model rows). The first contains_any rule failed any answer that
+    named every candidate, including "The cost of the utility knife is $53.05, the
+    goggles $67.40 ..." which does single out the asked price.
     """
     expected = example["expected_answer"]
     rule = expected["rule"]
+    text = answer_text(response)
     if rule == "number":
-        found = first_number(response)
-        wanted = {
-            str(STRICT_NUMBER_WORDS.get(normalize(v), normalize(v))) for v in expected["values"]
-        }
+        wanted = {_canonical_number(normalize(v)) for v in expected["values"]}
+        # A count phrase is an explicit statement wherever it appears, even in a numbered
+        # list of reasoning steps ("1. The ticket contains three distinct items"); no
+        # dataset document contains one, so it cannot be copied from the document.
+        found = (
+            stated_count(normalize(response))
+            if example.get("task_category") == "count_items"
+            else None
+        )
+        if found is None:
+            match = _NUMBER_TOKEN.search(text)
+            found = None if match is None else _canonical_number(match.group(1) or match.group(2))
         return found is not None and found in wanted
     if not task_correct(response, example):
         return False
-    if rule == "contains_any":
-        candidates = answer_candidates(example)
-        if not candidates:
-            return True
-        values = {normalize(v) for v in expected["values"]}
-        positions = _first_positions(normalize(response), candidates, example.get("task_category"))
+    if rule != "contains_any":
+        return True
+    task = example.get("task_category")
+    candidates = answer_candidates(example)
+    if not candidates:
+        return True
+    values = {normalize(v) for v in expected["values"]}
+    if task == "extract_person":
+        positions = _first_positions(normalize(response), candidates, task)
         if not positions:
             return True  # the expected answer was found in a form the candidates miss
-        first = min(positions, key=positions.__getitem__)
-        if first not in values:
-            return False
-        return not (len(candidates) >= 3 and len(positions) == len(candidates))
-    return True
+        return min(positions, key=positions.__getitem__) in values
+    if task in ITEM_TASKS:
+        # A superlative choice is an explicit statement wherever it appears. Documents
+        # contain superlatives only in questions, never next to an item name.
+        selected = _selected_item(normalize(response), candidates)
+        if selected is not None:
+            return selected in values
+    if task == "lookup_price":
+        stated = _price_for_asked_item(text, example, candidates)
+        if stated is not None and not (
+            echoes_document(response, user_text(example))
+            and len(_first_positions(normalize(response), candidates, task)) == len(candidates)
+        ):
+            return stated in values
+    positions = _first_positions(text, candidates, task)
+    if not positions:
+        return False  # the answer appears only inside a list of options
+    first = min(positions, key=positions.__getitem__)
+    if first not in values:
+        return False
+    return not (len(candidates) >= 3 and len(positions) == len(candidates))
 
 
 def refused(response: str) -> bool:
