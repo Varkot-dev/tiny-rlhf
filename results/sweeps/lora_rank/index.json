@@ -1,0 +1,48 @@
+{
+  "sweep": "lora_rank",
+  "source": "configs/sweeps/lora_rank.yaml",
+  "base_config": "configs/dpo_full.yaml",
+  "field": "lora_r",
+  "runs": [
+    {
+      "label": "2",
+      "value": 2,
+      "series": null,
+      "run_name": "sweep_rank_2",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_rank_2 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set lora_alpha=4 --set lora_r=2",
+      "status": "done",
+      "returncode": 0,
+      "seconds": 994.1
+    },
+    {
+      "label": "8",
+      "value": 8,
+      "series": null,
+      "run_name": "sweep_rank_8",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_rank_8 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set lora_alpha=16 --set lora_r=8",
+      "status": "not_run",
+      "returncode": null,
+      "seconds": null
+    },
+    {
+      "label": "16",
+      "value": 16,
+      "series": null,
+      "run_name": "sweep_rank_16",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_rank_16 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set lora_alpha=32 --set lora_r=16",
+      "status": "not_run",
+      "returncode": null,
+      "seconds": null
+    },
+    {
+      "label": "64",
+      "value": 64,
+      "series": null,
+      "run_name": "sweep_rank_64",
+      "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_rank_64 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set lora_alpha=128 --set lora_r=64",
+      "status": "not_run",
+      "returncode": null,
+      "seconds": null
+    }
+  ]
+}
