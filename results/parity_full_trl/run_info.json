@@ -1,0 +1,67 @@
+{
+  "run_name": "parity_full_trl",
+  "implementation": "trl",
+  "wall_time_s": 1936.78,
+  "optimizer_steps": 100,
+  "steps_per_epoch": 462,
+  "warmup_steps": 10,
+  "first_eval_loss": 0.6931472420692444,
+  "first_eval_total_loss": null,
+  "sft_weight": 0.0,
+  "device": "cuda",
+  "amp_fp16": false,
+  "param_dtype": "torch.float32",
+  "peak_gpu_memory_mb": 7166.7,
+  "trainable_params": 8798208,
+  "total_params": 502830976,
+  "n_train_pairs": 3696,
+  "n_eval_pairs": 456,
+  "truncation_train": {
+    "n_pairs": 3696,
+    "frac_chosen_truncated": 0.32115800865800864,
+    "frac_rejected_truncated": 0.24945887445887446,
+    "mean_chosen_tokens_scored": 220.13419913419912,
+    "mean_rejected_tokens_scored": 197.87256493506493,
+    "mean_prompt_tokens": 134.87040043290042
+  },
+  "truncation_eval": {
+    "n_pairs": 456,
+    "frac_chosen_truncated": 0.29605263157894735,
+    "frac_rejected_truncated": 0.24561403508771928,
+    "mean_chosen_tokens_scored": 221.60087719298247,
+    "mean_rejected_tokens_scored": 194.64912280701753,
+    "mean_prompt_tokens": 138.59649122807016
+  },
+  "seed": 0,
+  "git_sha": "7344f796ba5f0e83b2f8310d30e73f6d132753d6",
+  "versions": {
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "peft": "0.21.2",
+    "datasets": "4.8.5",
+    "trl": "1.18.1"
+  },
+  "tokenization_matches_handwritten": true,
+  "skipped_optimizer_steps": [],
+  "eval_pairs_sha256": "1b799394899312048b2ae845a12fe97e0d4575857978843e01b42caebff15981",
+  "train_order": "sequential",
+  "eval_batches_equal_size": true,
+  "final_eval_by_trl": {
+    "loss": 0.6505292654037476,
+    "reward_margin": 0.26886054778700336,
+    "accuracy": 0.6140350877192983,
+    "chosen_logp": -305.5641979501959,
+    "rejected_logp": -278.46946480608824,
+    "chosen_reward": -0.41298078798705284,
+    "rejected_reward": -0.6818413342463604
+  },
+  "final_eval_recomputed_by_handwritten_evaluate": {
+    "loss": 0.650530067975061,
+    "reward_margin": 0.26885902263191447,
+    "accuracy": 0.6140350877192983,
+    "chosen_logp": -305.5641786090115,
+    "rejected_logp": -278.4694509882676,
+    "chosen_reward": -0.41298201974285276,
+    "rejected_reward": -0.6818410473826685
+  }
+}
