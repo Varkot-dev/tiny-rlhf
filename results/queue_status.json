@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794974747,
+  "updated_unix": 1794975932,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -167,10 +167,13 @@
       "minutes": 0.1
     },
     "data_size_100": {
-      "status": "skipped-budget",
+      "status": "done",
       "stage": "data_size",
-      "minutes": 0.0,
-      "minutes_left": 14.1
+      "minutes": 19.7,
+      "wall_time_s": 1162.49,
+      "peak_gpu_memory_mb": 8763.0,
+      "optimizer_steps": 340,
+      "scaler_retries": 3
     },
     "data_size_300": {
       "status": "skipped-budget",
