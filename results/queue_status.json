@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794974741,
+  "updated_unix": 1794974747,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -162,10 +162,9 @@
       "scaler_retries": 4
     },
     "lora_rank_figure": {
-      "status": "skipped-dependency",
+      "status": "done",
       "stage": "lora_rank",
-      "minutes": 0.0,
-      "blocked_by": "lora_rank_2"
+      "minutes": 0.1
     },
     "data_size_100": {
       "status": "skipped-budget",
