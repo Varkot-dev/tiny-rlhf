@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794973788,
+  "updated_unix": 1794974741,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -138,37 +138,28 @@
       "minutes": 0.1
     },
     "lora_rank_2": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "lora_rank",
-      "minutes": 16.6,
-      "wall_time_s": 967.39,
-      "peak_gpu_memory_mb": 8664.4,
-      "optimizer_steps": 233,
-      "scaler_retries": 4
+      "minutes": 0.0
     },
     "lora_rank_8": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "lora_rank",
-      "minutes": 16.4,
-      "wall_time_s": 956.25,
-      "peak_gpu_memory_mb": 8723.0,
-      "optimizer_steps": 233,
-      "scaler_retries": 4
+      "minutes": 0.0
     },
     "lora_rank_16": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "lora_rank",
-      "minutes": 16.4,
-      "wall_time_s": 956.12,
-      "peak_gpu_memory_mb": 8801.1,
-      "optimizer_steps": 233,
-      "scaler_retries": 4
+      "minutes": 0.0
     },
     "lora_rank_64": {
-      "status": "skipped-budget",
+      "status": "done",
       "stage": "lora_rank",
-      "minutes": 0.0,
-      "minutes_left": 14.1
+      "minutes": 15.9,
+      "wall_time_s": 905.56,
+      "peak_gpu_memory_mb": 9269.7,
+      "optimizer_steps": 233,
+      "scaler_retries": 4
     },
     "lora_rank_figure": {
       "status": "skipped-dependency",
