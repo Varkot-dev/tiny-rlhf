@@ -30,9 +30,9 @@
       "series": null,
       "run_name": "sweep_rank_16",
       "command": "python scripts/train_dpo.py --config configs/dpo_full.yaml --run-name sweep_rank_16 --set n_train=2000 --set n_eval=300 --set eval_every=50 --set lora_alpha=32 --set lora_r=16",
-      "status": "not_run",
-      "returncode": null,
-      "seconds": null
+      "status": "done",
+      "returncode": 0,
+      "seconds": 981.5
     },
     {
       "label": "64",

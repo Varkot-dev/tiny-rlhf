@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794963910,
+  "updated_unix": 1794964896,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -161,10 +161,13 @@
       "scaler_retries": 4
     },
     "lora_rank_16": {
-      "status": "skipped-budget",
+      "status": "done",
       "stage": "lora_rank",
-      "minutes": 0.0,
-      "minutes_left": 14.1
+      "minutes": 16.4,
+      "wall_time_s": 956.12,
+      "peak_gpu_memory_mb": 8801.1,
+      "optimizer_steps": 233,
+      "scaler_retries": 4
     },
     "lora_rank_64": {
       "status": "skipped-budget",
