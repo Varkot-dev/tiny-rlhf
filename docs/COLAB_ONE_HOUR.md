@@ -5,7 +5,7 @@ One cell that runs, in priority order, as much of the remaining GPU work as fits
 1. **M5, Track B:** evaluate the base model, train on the Track B pairs, evaluate the trained adapter, run the general regression check, then write the before/after table, the hero figure and side-by-side examples.
 2. **M3, reward model:** started only if at least `REWARD_NEEDS_MIN` minutes are left in the budget, then compared with the DPO run `results/dpo_full_t4`.
 
-How long each step takes on a T4 has not been measured. The only measured number is the full DPO run: 463 optimizer steps in 1,737 seconds with an 8.8 GB peak.
+How long each step takes on a T4 has not been measured. The only measured number is the full DPO run: 463 optimizer steps in 1,737 seconds with an 8.6 GiB peak.
 
 Rules the cell follows:
 

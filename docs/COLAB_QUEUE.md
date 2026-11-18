@@ -12,7 +12,7 @@ Setup: a T4 runtime (Runtime > Change runtime type > T4 GPU) and the `GH_TOKEN` 
 How it behaves:
 
 - **Resuming.** Rerunning the cell resumes. Every finished job is already in the repo, so a fresh clone skips it. You can rerun after a disconnect, the next day, or on another account's runtime.
-- **Budget.** `BUDGET_MIN` is the time you have. A job is not started if its estimate does not fit in what is left. The estimates are rough guesses; the only measured run is the full DPO run, 463 optimizer steps in 1,737 s with an 8.8 GB peak on a T4. Total time for the whole queue is not measured. Run `python scripts/colab_queue.py --list` to see each job's estimate.
+- **Budget.** `BUDGET_MIN` is the time you have. A job is not started if its estimate does not fit in what is left. The estimates are rough guesses; the only measured run is the full DPO run, 463 optimizer steps in 1,737 s with an 8.6 GiB peak on a T4. Total time for the whole queue is not measured. Run `python scripts/colab_queue.py --list` to see each job's estimate.
 - **Selecting stages.** `STAGES` picks what to run, for example `"m3"` or `"beta,lora_rank"`. Leave it empty for everything.
 - **Failures.** A job that fails is recorded and does not stop the queue, and nothing half-finished is committed. The end of its output is pushed to `results/colab_failures/<job>.log` and `results/queue_status.json`, so you do not need to copy anything. Just say "pushed" or "it stopped".
 - **Out of memory.** A training job that runs out of GPU memory is retried once with a smaller micro-batch; the effective batch stays the same.
