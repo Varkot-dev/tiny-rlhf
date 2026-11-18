@@ -8,17 +8,17 @@ It is a picture of the loss function, not of a trained model.
 
 ## Status
 
-**Work in progress. Full runs exist for M1, M3, M5 and M7 (below), all one seed each. M2's full-size check and the sweeps are still running.**
+**Work in progress. M0 to M5 and M7 are done, all runs one seed each. M6 has the beta sweep; the LoRA rank, dataset size and label noise sweeps are still running.**
 
 | Milestone | Code and tests | Runs |
 |---|---|---|
 | M0 loss functions | done | not applicable |
 | M1 hand-written DPO training | done | tiny runs on CPU and T4; one full run on a Colab T4 |
-| M2 TRL parity | done | tiny pair on CPU; full pair not done |
+| M2 TRL parity | done | tiny pair on CPU; full-size pair on a Colab T4 |
 | M3 reward model | done | tiny run on CPU; one full run on a Colab T4 |
 | M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
 | M5 Track B training and evaluation | done | four full runs on a Colab T4 (below) |
-| M6 ablation sweeps and write-up | sweep tooling done | none yet |
+| M6 ablation sweeps and write-up | sweep tooling done | beta sweep done; LoRA rank 3 of 4; dataset size and label noise pending |
 | M7 KTO against DPO on Track B (extension) | done, checked against TRL's KTOTrainer | two full runs on a Colab T4 (below) |
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
@@ -65,6 +65,20 @@ KTO learns from single answers marked good or bad instead of pairs. Each of the 
 - **At beta 0.5 the two methods tie within noise** on every pooled number and on drift. On this data, knowing which two answers were compared did not help: single good/bad labels were enough.
 - **Both share the same weakness on the held-out "how many items" task** (KTO beta 0.5: 0.06 strict against the base model's 0.15), so neither method taught counting it never trained on.
 
+## The beta sweep: same accuracy, very different drift (M6)
+
+![beta sweep](assets/m6_beta_sweep.png)
+
+Hand-written DPO on 1,862 pairs of the standard dataset (233 optimizer steps each, Colab T4), at three values of beta, scored on the same 277 held-out pairs. Drift is the mean per-token KL(reference || policy) on the held-out preferred responses. Numbers are from `results/sweeps/beta/summary.json`, with 95% bootstrap intervals.
+
+| beta | Preference accuracy | Drift (KL per token) | Preferred response log-probability change |
+|---|---|---|---|
+| 0.01 | 0.625 (0.567 to 0.679) | 0.591 (0.463 to 0.750) | -53.5 nats |
+| 0.1 | 0.664 (0.610 to 0.718) | 0.041 (0.035 to 0.050) | -5.4 nats |
+| 0.5 | 0.621 (0.563 to 0.679) | 0.010 (0.007 to 0.015) | -1.0 nats |
+
+All three learn the preferences about equally well (the accuracy intervals overlap), but drift falls by a factor of 60 from beta 0.01 to 0.5. With the loosest leash the preferred answers became 53 nats less likely; with the tightest, 1 nat. It is the same lesson as Track B, on different data: beta mostly decides how much damage the model takes to learn the same ranking. One seed per value.
+
 ## An explicit reward model and DPO's implicit reward agree on most pairs
 
 ![Reward model margins against DPO implicit reward margins on held-out pairs](assets/m3_reward_vs_dpo_reward_full.png)
@@ -103,17 +117,17 @@ Limits: this is a single run with one seed and untuned hyperparameters, about 30
 
 ## Checks run so far (none of these is a result about DPO)
 
-### The hand-written loop matches TRL step for step
+### The hand-written loop matches TRL step for step (M2)
 
-![Hand-written DPO and TRL DPOTrainer overlaid](assets/m2_parity_parity_tiny.png)
+![Hand-written DPO and TRL DPOTrainer overlaid on the full model](assets/m2_parity_parity_full.png)
 
-`configs/parity_tiny.yaml` trains the same LoRA adapter on `HuggingFaceTB/SmolLM2-135M-Instruct` twice, once with this repo's loop and once with TRL 1.18.0's `DPOTrainer`, from the same initial weights and with the same pairs in the same order (162 training pairs, 42 held-out pairs, 41 optimizer steps, CPU, float32). Numbers are from `results/parity_tiny/parity_summary.json`.
+`configs/parity_full.yaml` trains the same LoRA adapter on `Qwen/Qwen2.5-0.5B-Instruct` twice, once with this repo's loop and once with TRL's `DPOTrainer`, from the same initial weights, on the same pairs in the same order, in float32 on a Colab T4 (100 optimizer steps of 8 pairs; TRL's token ids were checked to equal ours row by row). Numbers are from `results/parity_full/parity_summary.json`.
 
-- Across all 41 training steps the two losses differ by at most 8.2e-06 and the preference accuracy is identical at every step.
-- On the held-out pairs the losses differ by at most 2.4e-06.
-- Both start at 0.693147, which is log 2.
+- Over all 100 training steps the two losses differ by at most 3.3e-05; on the held-out pairs by at most 1.1e-06. Both start at 0.693147 (log 2).
+- Summed log-probabilities of responses around 300 tokens long differ by at most 6.6e-04 nats, the size expected from float32 rounding in a different order of operations.
+- Training-step accuracy differs by at most 0.125, one pair in a step of 8, where a near-tie lands on different sides of zero; the step-0 held-out accuracy (0.092 against 0.000) is ties being broken by rounding. Losses and margins agree throughout.
 
-This is evidence that the hand-written implementation computes what TRL computes, at tiny scale and in float32. It has not been repeated on the full model or under fp16.
+The same check on a 135M model on CPU (`configs/parity_tiny.yaml`, `results/parity_tiny/parity_summary.json`) agreed to 8.2e-06 over 41 steps with identical accuracy at every step.
 
 ### Smoke test of the training loop
 
