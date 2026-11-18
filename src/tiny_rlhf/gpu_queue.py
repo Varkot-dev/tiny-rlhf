@@ -45,6 +45,7 @@ STAGES = (
     "lora_rank",
     "data_size",
     "label_noise",
+    "seeds",
 )
 
 # Follow-up to the first full Track B run (results/trackb_full), which over-optimised:
@@ -58,6 +59,20 @@ TRACKB_BASE_SUMMARY = "results/trackb_full/trackb_eval/summary_base.json"
 # the first DPO run (0.1) and of the best DPO follow-up (0.5). See configs/trackb_kto*.yaml.
 KTO_RUNS = ("trackb_kto", "trackb_kto_beta0.5")
 SWEEP_STAGES = ("beta", "lora_rank", "data_size", "label_noise")
+# Robustness: the four runs the Track B conclusions rest on, repeated with seeds 1 and 2
+# (the originals used seed 0). Configs under configs/seeds/ differ from the originals only
+# in seed and run_name. Order: the beta 0.1 pair first (DPO collapsed there, KTO did not),
+# one more seed of each method before the second, then the beta 0.5 pair (where they tie).
+SEED_RUNS = (
+    ("trackb_full", 1),
+    ("trackb_kto", 1),
+    ("trackb_full", 2),
+    ("trackb_kto", 2),
+    ("trackb_beta0.5", 1),
+    ("trackb_kto_beta0.5", 1),
+    ("trackb_beta0.5", 2),
+    ("trackb_kto_beta0.5", 2),
+)
 
 STATUS_FILE = "results/queue_status.json"
 # Where the queue runs, for commit messages: "Colab" unless the cell says otherwise
@@ -137,6 +152,14 @@ ESTIMATE_MIN = {
     "sweep_run_beta": 19,  # plus the drift measurement
     "sweep_run_data_size": 20,  # 340 steps
     "sweep_figure": 2,
+    # Seeds stage, from measured times on a Colab T4: Track B DPO training took 585 to 593 s,
+    # KTO 1,022 to 1,032 s; trained evaluations 2 to 6 minutes; the comparison and strict
+    # rescoring under a minute plus the general regression check. Loading adds a minute.
+    "seeds_train_dpo": 12,
+    "seeds_train_kto": 19,
+    "seeds_eval": 6,
+    "seeds_compare": 3,
+    "seeds_figure": 2,
 }
 
 
@@ -714,6 +737,120 @@ def _sweep_jobs(root: Path, stage: str) -> list[Job]:
     return jobs
 
 
+def seed_run_name(run: str, seed: int) -> str:
+    return f"{run}_seed{seed}"
+
+
+def _seeds_jobs() -> list[Job]:
+    """Per seed variant: train, evaluate with the m5 settings, compare with trackb_full's base
+    and rescore strictly; then the across-seeds figure. Per-run hero figures, examples and
+    training plots are left out on purpose: the seed runs are read together, not one by one."""
+    jobs: list[Job] = []
+    for run, seed in SEED_RUNS:
+        name = seed_run_name(run, seed)
+        kto = "kto" in run
+        evals = f"results/{name}/trackb_eval"
+        adapter = f"checkpoints/{name}"
+        config = f"configs/seeds/{name}.yaml"
+        if kto:
+            train = ("python", "scripts/train_kto.py", "--config", config)
+        else:
+            train = ("python", "scripts/train_trackb.py", "--config", config)
+            if run == "trackb_full":
+                # The original was run by m5_train with this override; the seeds match it.
+                train = (*train, "--set", "eval_every=125")
+        summaries = ("--base", TRACKB_BASE_SUMMARY, "--trained", f"{evals}/summary_trained.json")
+        jobs += [
+            Job(
+                name=f"{name}_train",
+                stage="seeds",
+                commands=(train,),
+                marker=f"results/{name}/run_info.json",
+                outputs=(f"results/{name}",),
+                estimate_min=ESTIMATE_MIN["seeds_train_kto" if kto else "seeds_train_dpo"],
+                produces_adapter=adapter,
+                oom_retry_args=KTO_SMALL_BATCH if kto else SMALL_BATCH,
+            ),
+            Job(
+                name=f"{name}_eval",
+                stage="seeds",
+                commands=(
+                    (
+                        "python",
+                        "scripts/eval_trackb.py",
+                        "--model",
+                        QWEN,
+                        "--adapter",
+                        adapter,
+                        "--label",
+                        "trained",
+                        "--out",
+                        evals,
+                        *TRACKB_EVAL_ARGS,
+                    ),
+                ),
+                marker=f"{evals}/summary_trained.json",
+                outputs=(evals,),
+                estimate_min=ESTIMATE_MIN["seeds_eval"],
+                depends_on=(f"{name}_train",),
+                needs_adapter=adapter,
+                rerun_if_deps_ran=True,
+            ),
+            Job(
+                name=f"{name}_compare",
+                stage="seeds",
+                commands=(
+                    (
+                        "python",
+                        "scripts/eval_general.py",
+                        "--model",
+                        QWEN,
+                        "--adapter",
+                        adapter,
+                        "--out",
+                        f"results/{name}/general_regression.json",
+                    ),
+                    # Writes next to the TRAINED run, not next to trackb_full.
+                    ("python", "scripts/compare_trackb.py", *summaries),
+                    # Strict rescoring finds every run with a trained evaluation, this one
+                    # included. The all-runs strict figure leaves the seed runs out.
+                    ("python", "scripts/rescore_trackb.py"),
+                    ("python", "scripts/plot_trackb_strict.py"),
+                ),
+                marker=f"results/{name}/trackb_table.md",
+                outputs=(
+                    f"results/{name}/general_regression.json",
+                    f"results/{name}/trackb_table.md",
+                    f"results/{name}/trackb_compare.json",
+                    f"{evals}/rescored_trained.json",
+                    "results/trackb_rescored_compare.json",
+                    "assets/m5_trackb_strict.png",
+                ),
+                estimate_min=ESTIMATE_MIN["seeds_compare"],
+                depends_on=("m5_eval_base", f"{name}_eval"),
+                needs_adapter=adapter,
+                rerun_if_deps_ran=True,
+            ),
+        ]
+    compares = tuple(f"{seed_run_name(run, seed)}_compare" for run, seed in SEED_RUNS)
+    jobs.append(
+        Job(
+            name="seeds_figure",
+            stage="seeds",
+            commands=(("python", "scripts/plot_seeds.py"),),
+            marker="results/seeds_summary.json",
+            outputs=("results/seeds_summary.json", "assets/seeds_trackb.png"),
+            estimate_min=ESTIMATE_MIN["seeds_figure"],
+            # Drawn from whichever seeds finished (the originals are seed 0), and redrawn
+            # each launch as more arrive.
+            depends_on=compares,
+            min_deps_done=1,
+            always_run=True,
+        )
+    )
+    return jobs
+
+
 def build_queue(root: str | Path = ".") -> list[Job]:
     """Every remaining GPU job of the project, in the order it is run."""
     root = Path(root)
@@ -727,6 +864,7 @@ def build_queue(root: str | Path = ".") -> list[Job]:
     )
     for stage in SWEEP_STAGES:
         jobs += _sweep_jobs(root, stage)
+    jobs += _seeds_jobs()
     return jobs
 
 
@@ -1006,6 +1144,11 @@ def run_queue(
     }
     forced = forced_producers(root, selected)
     started = clock()
+    # Every row this launch writes carries this id. Rows kept from earlier launches are
+    # marked as such when the file is written, so a job this launch has not reached yet
+    # cannot be mistaken for one it skipped (an earlier launch's "skipped-budget" used to
+    # be rewritten unmarked and read as if it were current).
+    launch = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started))
 
     def oom_before(name: str) -> bool:
         row = results.get(name) or earlier.get(name) or {}
@@ -1019,12 +1162,28 @@ def run_queue(
     def save_status() -> None:
         path = root / STATUS_FILE
         path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"updated_unix": round(clock()), "gpu": gpu, "branch": branch}
-        payload["jobs"] = {**earlier, **results}
+        payload = {
+            "updated_unix": round(clock()),
+            "gpu": gpu,
+            "branch": branch,
+            "launch": launch,
+        }
+        carried = {
+            name: {**row, "from_earlier_launch": True}
+            for name, row in earlier.items()
+            if name not in results
+        }
+        payload["jobs"] = {**carried, **results}
         path.write_text(json.dumps(payload, indent=2) + "\n")
 
     def record(job: Job, status: str, **extra: Any) -> None:
-        results[job.name] = {"status": status, "stage": job.stage, "minutes": 0.0, **extra}
+        results[job.name] = {
+            "status": status,
+            "stage": job.stage,
+            "minutes": 0.0,
+            "launch": launch,
+            **extra,
+        }
 
     for job in selected:
         has_marker = marker_done(root, job)

@@ -15,6 +15,7 @@ from tiny_rlhf.gpu_queue import (
     FAILURE_DIR,
     KTO_RUNS,
     KTO_SMALL_BATCH,
+    SEED_RUNS,
     STAGES,
     STATUS_FILE,
     TAIL_LINES,
@@ -27,6 +28,7 @@ from tiny_rlhf.gpu_queue import (
     format_table,
     run_queue,
     run_streaming,
+    seed_run_name,
 )
 from tiny_rlhf.kto import KTOConfig
 from tiny_rlhf.reward_model import RewardConfig
@@ -122,9 +124,14 @@ def test_queue_has_every_expected_job_exactly_once_in_priority_order() -> None:
     for run in (*TRACKB_VARIANTS, *KTO_RUNS):
         expected |= {f"{run}_train", f"{run}_eval", f"{run}_compare"}
     expected.add("m7_figure")
+    for run, seed in SEED_RUNS:
+        name = seed_run_name(run, seed)
+        expected |= {f"{name}_train", f"{name}_eval", f"{name}_compare"}
+    expected.add("seeds_figure")
     assert set(names) == expected
     assert [j.stage for j in QUEUE] == sorted((j.stage for j in QUEUE), key=STAGES.index)
     assert STAGES[:5] == ("m5", "m5_followup", "m7_kto", "m3", "m2")
+    assert STAGES[-1] == "seeds"  # robustness repeats come after everything else
 
 
 def test_dependencies_exist_point_backwards_and_are_acyclic() -> None:
@@ -299,8 +306,11 @@ def test_sweep_figures_tolerate_missing_values() -> None:
 def test_jobs_that_read_an_adapter_name_the_job_that_writes_it() -> None:
     produced = {j.produces_adapter: j.name for j in QUEUE if j.produces_adapter}
     readers = [j for j in QUEUE if j.needs_adapter]
+    seed_runs = tuple(seed_run_name(run, seed) for run, seed in SEED_RUNS)
     assert {j.name for j in readers} == {"m5_eval_trained", "m5_compare"} | {
-        f"{run}_{step}" for run in (*TRACKB_VARIANTS, *KTO_RUNS) for step in ("eval", "compare")
+        f"{run}_{step}"
+        for run in (*TRACKB_VARIANTS, *KTO_RUNS, *seed_runs)
+        for step in ("eval", "compare")
     }
     for j in readers:
         producer = produced[j.needs_adapter]
@@ -787,3 +797,89 @@ def test_strict_rescoring_runs_last_in_the_followup_stage_and_commits_every_run(
     assert "assets/m5_trackb_strict.png" in rescore.outputs
     # Nothing it writes may land on an original evaluation file.
     assert not any("summary_" in path or path.endswith(".jsonl") for path in rescore.outputs)
+
+
+def test_seed_runs_are_trained_evaluated_and_compared_exactly_like_their_originals() -> None:
+    m5_eval = BY_NAME["m5_eval_trained"].commands[0]
+    order = [j.name for j in QUEUE]
+    for run, seed in SEED_RUNS:
+        name = seed_run_name(run, seed)
+        train = BY_NAME[f"{name}_train"]
+        assert train.stage == "seeds"
+        assert train.commands[0][3] == f"configs/seeds/{name}.yaml"
+        if "kto" in run:
+            assert train.commands[0][1] == "scripts/train_kto.py"
+            assert train.oom_retry_args == KTO_SMALL_BATCH
+        else:
+            assert train.commands[0][1] == "scripts/train_trackb.py"
+            assert train.oom_retry_args == BY_NAME["m5_train"].oom_retry_args
+        # The original trackb_full was trained by m5_train with eval_every=125; so are its seeds.
+        overrides = train.commands[0][4:]
+        assert overrides == (("--set", "eval_every=125") if run == "trackb_full" else ())
+        evaluation = BY_NAME[f"{name}_eval"].commands[0]
+        assert evaluation[evaluation.index("--with-probes") :] == TRACKB_EVAL_ARGS
+        differ = [i for i, (a, b) in enumerate(zip(evaluation, m5_eval, strict=True)) if a != b]
+        assert [evaluation[i - 1] for i in differ] == ["--adapter", "--out"]
+        compare = BY_NAME[f"{name}_compare"]
+        assert "m5_eval_base" in compare.depends_on
+        table = compare.commands[1]
+        assert table[1] == "scripts/compare_trackb.py"
+        assert table[table.index("--base") + 1] == TRACKB_BASE_SUMMARY
+        assert [c[1] for c in compare.commands][-2:] == [
+            "scripts/rescore_trackb.py",
+            "scripts/plot_trackb_strict.py",
+        ]
+        assert f"results/{name}/trackb_eval/rescored_trained.json" in compare.outputs
+        # Nothing a seed run writes may land in an original run's directory.
+        for path in compare.outputs + train.outputs + BY_NAME[f"{name}_eval"].outputs:
+            assert path.startswith(f"results/{name}") or path in (
+                "results/trackb_rescored_compare.json",
+                "assets/m5_trackb_strict.png",
+            )
+        assert order.index(f"{name}_train") < order.index(f"{name}_eval")
+        assert order.index(f"{name}_eval") < order.index(f"{name}_compare")
+    # beta 0.1 (where DPO collapsed and KTO did not) before beta 0.5.
+    trains = [j.name for j in QUEUE if j.stage == "seeds" and j.name.endswith("_train")]
+    assert trains[:4] == [
+        "trackb_full_seed1_train",
+        "trackb_kto_seed1_train",
+        "trackb_full_seed2_train",
+        "trackb_kto_seed2_train",
+    ]
+    figure = BY_NAME["seeds_figure"]
+    assert [j for j in QUEUE if j.stage == "seeds"][-1] is figure
+    assert figure.always_run and figure.min_deps_done == 1
+    assert set(figure.depends_on) == {
+        f"{seed_run_name(run, seed)}_compare" for run, seed in SEED_RUNS
+    }
+    assert figure.commands == (("python", "scripts/plot_seeds.py"),)
+    assert figure.marker in figure.outputs
+
+
+def test_status_file_marks_rows_kept_from_an_earlier_launch(repo: Path) -> None:
+    # The bug: a job skipped for lack of time in one launch was written back unmarked by
+    # the next launch before that launch reached it, so it read as skipped again.
+    jobs = [
+        job("a", "results/a/x.json", writes("results/a/x.json"), stage="s1"),
+        job("b", "results/b/x.json", writes("results/b/x.json"), stage="s2", estimate_min=100),
+    ]
+    first = run(repo, jobs, budget_min=10, clock=lambda: 1_000_000.0)
+    assert first["b"]["status"] == "skipped-budget"
+    status = json.loads((repo / STATUS_FILE).read_text())
+    assert status["jobs"]["b"]["launch"] == status["launch"]
+    assert "from_earlier_launch" not in status["jobs"]["b"]
+
+    second = run(repo, jobs, stages=["s1"], clock=lambda: 2_000_000.0)
+    assert second["a"]["status"] == "skipped-existing" and "b" not in second
+    status = json.loads((repo / STATUS_FILE).read_text())
+    a_row, b_row = status["jobs"]["a"], status["jobs"]["b"]
+    assert a_row["launch"] == status["launch"] and "from_earlier_launch" not in a_row
+    assert b_row["from_earlier_launch"] is True
+    assert b_row["launch"] != status["launch"]  # it still says which launch skipped it
+    assert b_row["status"] == "skipped-budget"  # kept, not invented
+
+    # A later launch that does reach the job records it as its own again.
+    third = run(repo, jobs, clock=lambda: 3_000_000.0)
+    assert third["b"]["status"] == "done"
+    b_row = json.loads((repo / STATUS_FILE).read_text())["jobs"]["b"]
+    assert "from_earlier_launch" not in b_row and b_row["status"] == "done"
