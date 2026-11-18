@@ -23,9 +23,12 @@ from tiny_rlhf.gpu_queue import (
     TRACKB_EVAL_ARGS,
     TRACKB_VARIANTS,
     Job,
+    all_trackb_runs,
     build_queue,
     describe,
     format_table,
+    merge_status,
+    push,
     run_queue,
     run_streaming,
     seed_run_name,
@@ -261,6 +264,8 @@ def test_kto_runs_are_evaluated_and_compared_exactly_like_the_dpo_runs() -> None
         scripts = [c[1] for c in compare.commands]
         assert scripts[-2:] == ["scripts/rescore_trackb.py", "scripts/plot_trackb_strict.py"]
         assert f"results/{run}/trackb_eval/rescored_trained.json" in compare.outputs
+        # Rescoring rewrites only this run's file, so nothing it touches goes uncommitted.
+        assert ("python", "scripts/rescore_trackb.py", "--write-runs", run) in compare.commands
         assert all("trackb_full" not in path for path in compare.outputs + train.outputs)
     figure = BY_NAME["m7_figure"]
     assert figure.min_deps_done == 1 and figure.always_run
@@ -640,6 +645,11 @@ def test_out_of_memory_retries_once_with_the_small_batch(repo: Path) -> None:
     results = run(repo, jobs)
     assert results["r"]["status"] == "done"
     assert results["r"]["retried_with_small_batch"] is True
+    # A smaller micro-batch is a different configuration from the one in the config file,
+    # and the status row says so and says which values changed.
+    row = json.loads((repo / STATUS_FILE).read_text())["jobs"]["r"]
+    assert row["config_differs_from_file"] is True
+    assert row["config_overrides"] == ["--set", "batch_size=1"]
 
 
 def test_a_failure_that_is_not_out_of_memory_is_not_retried(repo: Path) -> None:
@@ -791,9 +801,17 @@ def test_strict_rescoring_runs_last_in_the_followup_stage_and_commits_every_run(
         "scripts/plot_trackb_strict.py",
     ]
     assert rescore.marker in rescore.outputs
-    for run in ("trackb_full", *TRACKB_VARIANTS):
+    # It rewrites every run's rescored file, so it commits every run the queue can make.
+    for run in all_trackb_runs():
         assert f"results/{run}/trackb_eval/rescored_trained.json" in rescore.outputs
     assert "results/trackb_full/trackb_eval/rescored_base.json" in rescore.outputs
+    evaluated = {
+        path.split("/")[1]
+        for j in QUEUE
+        for path in j.outputs
+        if path.startswith("results/") and "/trackb_eval" in path
+    }
+    assert evaluated <= set(all_trackb_runs())
     assert "assets/m5_trackb_strict.png" in rescore.outputs
     # Nothing it writes may land on an original evaluation file.
     assert not any("summary_" in path or path.endswith(".jsonl") for path in rescore.outputs)
@@ -830,6 +848,7 @@ def test_seed_runs_are_trained_evaluated_and_compared_exactly_like_their_origina
             "scripts/plot_trackb_strict.py",
         ]
         assert f"results/{name}/trackb_eval/rescored_trained.json" in compare.outputs
+        assert ("python", "scripts/rescore_trackb.py", "--write-runs", name) in compare.commands
         # Nothing a seed run writes may land in an original run's directory.
         for path in compare.outputs + train.outputs + BY_NAME[f"{name}_eval"].outputs:
             assert path.startswith(f"results/{name}") or path in (
@@ -883,3 +902,173 @@ def test_status_file_marks_rows_kept_from_an_earlier_launch(repo: Path) -> None:
     assert third["b"]["status"] == "done"
     b_row = json.loads((repo / STATUS_FILE).read_text())["jobs"]["b"]
     assert "from_earlier_launch" not in b_row and b_row["status"] == "done"
+
+
+# --------------------------------------------------------------------------------------
+# Fixes from the third review
+# --------------------------------------------------------------------------------------
+
+
+def test_always_run_job_commits_its_other_outputs_when_the_marker_is_unchanged(
+    repo: Path,
+) -> None:
+    (repo / "results/e").mkdir(parents=True)
+    (repo / "results/e/summary.json").write_text("current")
+    git(repo, "add", "results/e/summary.json")
+    git(repo, "commit", "-q", "-m", "summary")
+    jobs = [
+        job(
+            "e",
+            "results/e/summary.json",
+            writes("assets/fig.png", "redrawn"),
+            outputs=("results/e/summary.json", "assets/fig.png"),
+            always_run=True,
+        )
+    ]
+    results = run(repo, jobs)
+    assert results["e"]["status"] == "skipped-existing"
+    assert "assets/fig.png" in committed(repo)
+    assert git(repo, "status", "--porcelain") == ""
+
+
+def _commit_at(repo: Path, path: str, text: str, when: str) -> None:
+    (repo / path).parent.mkdir(parents=True, exist_ok=True)
+    (repo / path).write_text(text)
+    env = {**os.environ, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}
+    subprocess.run(["git", "add", path], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", path], cwd=repo, check=True, env=env)
+
+
+def test_evaluation_is_redone_in_a_later_launch_after_its_training_was_redone(
+    repo: Path,
+) -> None:
+    # Launch 1: the training reruns because a later job needs its adapter and the adapter
+    # is not on this machine, but the evaluation that should follow does not fit the time
+    # left. Launch 2 must still redo the evaluation, which now scores an older adapter.
+    _commit_at(repo, "results/t/run_info.json", "old", "2026-01-01T00:00:00")
+    _commit_at(repo, "results/e/summary.json", "old", "2026-01-01T00:00:01")
+    train = stub(
+        "import pathlib; pathlib.Path('results/t/run_info.json').write_text('{}'); "
+        "c = pathlib.Path('checkpoints/t'); c.mkdir(parents=True, exist_ok=True); "
+        "(c / 'adapter_config.json').write_text('{}')"
+    )
+    jobs = [
+        job("t", "results/t/run_info.json", train, produces_adapter="checkpoints/t"),
+        job(
+            "e",
+            "results/e/summary.json",
+            writes("results/e/summary.json", "new"),
+            depends_on=("t",),
+            rerun_if_deps_ran=True,
+            estimate_min=100,
+        ),
+        job(
+            "use",
+            "results/u/x.json",
+            writes("results/u/x.json"),
+            depends_on=("t",),
+            needs_adapter="checkpoints/t",
+        ),
+    ]
+    first = run(repo, jobs, budget_min=10)
+    assert first["t"]["status"] == "done" and first["e"]["status"] == "skipped-budget"
+    assert (repo / "results/e/summary.json").read_text() == "old"
+
+    second = run(repo, jobs)
+    assert second["t"]["status"] == "skipped-existing"
+    assert second["e"]["status"] == "done"
+    assert (repo / "results/e/summary.json").read_text() == "new"
+
+    # Once the evaluation is newer than its training, it is not redone again.
+    third = run(repo, jobs)
+    assert {r["status"] for r in third.values()} == {"skipped-existing"}
+
+
+def test_merge_status_keeps_every_row_and_the_newest_launch_wins() -> None:
+    ours = {
+        "launch": "2026-11-18T10:00:00Z",
+        "jobs": {
+            "a": {"status": "done", "launch": "2026-11-18T10:00:00Z"},
+            "b": {"status": "skipped-budget", "launch": "2026-11-18T10:00:00Z"},
+        },
+    }
+    theirs = {
+        "launch": "2026-11-18T11:00:00Z",
+        "jobs": {
+            "b": {"status": "done", "launch": "2026-11-18T11:00:00Z"},
+            "c": {"status": "failed", "launch": "2026-11-17T09:00:00Z"},
+        },
+    }
+    merged = merge_status(ours, theirs)
+    assert set(merged["jobs"]) == {"a", "b", "c"}
+    assert merged["jobs"]["a"]["status"] == "done"
+    assert merged["jobs"]["b"]["status"] == "done"  # their row is from the newer launch
+    assert merged["jobs"]["c"]["status"] == "failed"
+    assert merged["launch"] == ours["launch"]
+
+
+def _two_clones(tmp_path: Path, repo: Path) -> tuple[Path, Path]:
+    remote = tmp_path / "remote.git"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(remote))
+    git(repo, "remote", "add", "origin", str(remote))
+    git(repo, "push", "-q", "origin", "main")
+    other = tmp_path / "other"
+    git(tmp_path, "clone", "-q", str(remote), str(other))
+    git(other, "config", "user.name", "other")
+    git(other, "config", "user.email", "other@example.com")
+    return remote, other
+
+
+def _write_status(path: Path, launch: str, rows: dict[str, str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    jobs = {name: {"status": status, "launch": launch} for name, status in rows.items()}
+    path.write_text(json.dumps({"launch": launch, "jobs": jobs}, indent=2) + "\n")
+
+
+def test_a_status_file_conflict_never_blocks_a_push(repo: Path, tmp_path: Path) -> None:
+    remote, other = _two_clones(tmp_path, repo)
+    # Both sessions start from the same status file and then each rewrites it.
+    _write_status(repo / STATUS_FILE, "2026-11-01T00:00:00Z", {"x": "skipped-budget"})
+    git(repo, "add", STATUS_FILE)
+    git(repo, "commit", "-q", "-m", "status")
+    git(repo, "push", "-q", "origin", "main")
+    git(other, "pull", "-q", "origin", "main")
+
+    # The other session (say Kaggle) finishes job x and pushes first.
+    (other / "results/x").mkdir(parents=True)
+    (other / "results/x/x.json").write_text("x")
+    _write_status(other / STATUS_FILE, "2026-11-02T00:00:00Z", {"x": "done", "y": "failed"})
+    git(other, "add", "-A")
+    git(other, "commit", "-q", "-m", "x done")
+    git(other, "push", "-q", "origin", "main")
+
+    # This session runs job a; its status file still has the old row for x.
+    jobs = [job("a", "results/a/x.json", writes("results/a/x.json"))]
+    results = run(repo, jobs, do_push=True)
+    assert results["a"]["status"] == "done"
+
+    files = set(git(remote, "ls-tree", "-r", "--name-only", "main").split())
+    assert {"results/a/x.json", "results/x/x.json", STATUS_FILE} <= files
+    status = json.loads(git(remote, "show", f"main:{STATUS_FILE}"))
+    assert status["jobs"]["a"]["status"] == "done"
+    assert status["jobs"]["x"]["status"] == "done"  # the newer launch's row, not the old one
+    assert status["jobs"]["y"]["status"] == "failed"
+    assert git(repo, "status", "--porcelain") == ""
+    assert git(repo, "rev-parse", "HEAD").strip() == git(remote, "rev-parse", "main").strip()
+
+
+def test_a_conflict_outside_the_status_file_is_aborted_not_pushed(
+    repo: Path, tmp_path: Path
+) -> None:
+    remote, other = _two_clones(tmp_path, repo)
+    (other / "README.md").write_text("theirs\n")
+    git(other, "commit", "-q", "-am", "theirs")
+    git(other, "push", "-q", "origin", "main")
+    (repo / "README.md").write_text("ours\n")
+    git(repo, "commit", "-q", "-am", "ours")
+    remote_before = git(remote, "rev-parse", "main")
+
+    assert push(repo, "main", retries=2, sleep=lambda seconds: None) is False
+    assert git(remote, "rev-parse", "main") == remote_before
+    assert not (repo / ".git" / "MERGE_HEAD").exists()  # not left half-merged
+    assert (repo / "README.md").read_text() == "ours\n"

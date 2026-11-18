@@ -74,6 +74,13 @@ SEED_RUNS = (
     ("trackb_kto_beta0.5", 2),
 )
 
+
+def all_trackb_runs() -> tuple[str, ...]:
+    """Every Track B run the queue can produce, for the rescoring job's outputs."""
+    seeds = tuple(f"{run}_seed{seed}" for run, seed in SEED_RUNS)
+    return ("trackb_full", *TRACKB_VARIANTS, *KTO_RUNS, *seeds)
+
+
 STATUS_FILE = "results/queue_status.json"
 # Where the queue runs, for commit messages: "Colab" unless the cell says otherwise
 # (the Kaggle cell sets QUEUE_PLATFORM=Kaggle).
@@ -446,8 +453,9 @@ def _m5_followup_jobs() -> list[Job]:
             outputs=(
                 "results/trackb_rescored_compare.json",
                 "results/trackb_full/trackb_eval/rescored_base.json",
-                "results/trackb_full/trackb_eval/rescored_trained.json",
-                *(f"results/{run}/trackb_eval/rescored_trained.json" for run in TRACKB_VARIANTS),
+                # It rescores every run with a trained evaluation, so it commits every
+                # run's file: none is left rewritten but uncommitted.
+                *(f"results/{run}/trackb_eval/rescored_trained.json" for run in all_trackb_runs()),
                 "assets/m5_trackb_strict.png",
             ),
             estimate_min=ESTIMATE_MIN["m5f_rescore"],
@@ -521,9 +529,10 @@ def _m7_kto_jobs() -> list[Job]:
                     ("python", "scripts/compare_trackb.py", *summaries),
                     ("python", "scripts/plot_trackb.py", *summaries),
                     ("python", "scripts/make_examples.py", *summaries),
-                    # Strict rescoring finds every run with a trained evaluation, this one
-                    # included, and redraws the all-runs strict figure.
-                    ("python", "scripts/rescore_trackb.py"),
+                    # Strict rescoring compares every run with a trained evaluation, this
+                    # one included, but rewrites only this run's rescored file (the others
+                    # belong to their own jobs), then redraws the all-runs strict figure.
+                    ("python", "scripts/rescore_trackb.py", "--write-runs", run),
                     ("python", "scripts/plot_trackb_strict.py"),
                 ),
                 marker=f"results/{run}/trackb_table.md",
@@ -812,9 +821,10 @@ def _seeds_jobs() -> list[Job]:
                     ),
                     # Writes next to the TRAINED run, not next to trackb_full.
                     ("python", "scripts/compare_trackb.py", *summaries),
-                    # Strict rescoring finds every run with a trained evaluation, this one
-                    # included. The all-runs strict figure leaves the seed runs out.
-                    ("python", "scripts/rescore_trackb.py"),
+                    # Strict rescoring compares every run with a trained evaluation, this
+                    # one included, but rewrites only this run's rescored file. The all-runs
+                    # strict figure leaves the seed runs out.
+                    ("python", "scripts/rescore_trackb.py", "--write-runs", name),
                     ("python", "scripts/plot_trackb_strict.py"),
                 ),
                 marker=f"results/{name}/trackb_table.md",
@@ -959,17 +969,56 @@ def commit(root: Path, paths: Iterable[str], message: str) -> bool:
     return True
 
 
+def merge_status(ours: dict[str, Any], theirs: dict[str, Any]) -> dict[str, Any]:
+    """Join two versions of the status file: every job row from both, the newest launch's
+    row winning where both have one. The top-level fields are this session's."""
+    jobs = dict(theirs.get("jobs", {}))
+    for name, row in ours.get("jobs", {}).items():
+        other = jobs.get(name)
+        if other is None or str(row.get("launch", "")) >= str(other.get("launch", "")):
+            jobs[name] = row
+    return {**theirs, **ours, "jobs": jobs}
+
+
+def _resolve_status_conflict(root: Path, identity: tuple[str, ...]) -> bool:
+    """Finish a merge whose only conflict is the status file. False if anything else conflicts.
+
+    Two sessions (Colab and Kaggle, or one launch and a manual commit) each rewrite the
+    whole status file, so their versions always conflict. Without this, the merge was
+    aborted and retried unchanged, and every later push of the launch failed.
+    """
+    conflicted = git(root, "diff", "--name-only", "--diff-filter=U", check=False).stdout.split()
+    if conflicted != [STATUS_FILE]:
+        return False
+
+    def version(stage: int) -> dict[str, Any]:
+        out = git(root, "show", f":{stage}:{STATUS_FILE}", check=False)
+        try:
+            return json.loads(out.stdout) if out.returncode == 0 else {"jobs": {}}
+        except json.JSONDecodeError:
+            return {"jobs": {}}
+
+    merged = merge_status(version(2), version(3))
+    (root / STATUS_FILE).write_text(json.dumps(merged, indent=2) + "\n")
+    git(root, "add", "--", STATUS_FILE)
+    return git(root, *identity, "commit", "-q", "--no-edit", check=False).returncode == 0
+
+
 def push(
     root: Path, branch: str, retries: int = 4, sleep: Callable[[float], None] = time.sleep
 ) -> bool:
-    """Merge whatever is new on the branch, then push. Retries with backoff."""
+    """Merge whatever is new on the branch, then push. Retries with backoff.
+
+    A conflict on the status file alone is resolved (merge_status); any other conflict
+    aborts the merge, so nothing is pushed half-merged.
+    """
     identity = ("-c", f"user.name={GIT_NAME}", "-c", f"user.email={GIT_EMAIL}")
     for attempt in range(retries):
         fetched = git(root, "fetch", "-q", "origin", branch, check=False).returncode == 0
         merged = False
         if fetched:
             result = git(root, *identity, "merge", "-q", "--no-edit", "FETCH_HEAD", check=False)
-            merged = result.returncode == 0
+            merged = result.returncode == 0 or _resolve_status_conflict(root, identity)
             if not merged:
                 git(root, "merge", "--abort", check=False)
         if (
@@ -1025,6 +1074,27 @@ def load_status(root: Path) -> dict[str, Any]:
         except json.JSONDecodeError:
             pass
     return {"jobs": {}}
+
+
+def commit_time(root: Path, path: str) -> int | None:
+    """When `path` was last committed (seconds since 1970), or None if it never was."""
+    out = git(root, "log", "-1", "--format=%ct", "--", path, check=False).stdout.strip()
+    return int(out) if out else None
+
+
+def older_than_deps(root: Path, job: Job, by_name: dict[str, Job]) -> bool:
+    """True if a dependency's result was committed after this job's result.
+
+    Commit times, not file times: on a fresh clone every file has the checkout's time.
+    """
+    mine = commit_time(root, job.marker)
+    if mine is None:
+        return False
+    for dep in job.depends_on:
+        theirs = commit_time(root, by_name[dep].marker)
+        if theirs is not None and theirs > mine:
+            return True
+    return False
 
 
 def select(jobs: Sequence[Job], stages: Sequence[str] | None) -> list[Job]:
@@ -1168,9 +1238,12 @@ def run_queue(
             "branch": branch,
             "launch": launch,
         }
+        # Re-read the file: a push may have merged in rows from another session since
+        # this launch started, and those must not be overwritten with stale ones.
+        on_disk = load_status(root).get("jobs", {})
         carried = {
-            name: {**row, "from_earlier_launch": True}
-            for name, row in earlier.items()
+            name: {**row, "from_earlier_launch": row.get("launch") != launch}
+            for name, row in {**earlier, **on_disk}.items()
             if name not in results
         }
         payload["jobs"] = {**carried, **results}
@@ -1209,9 +1282,15 @@ def run_queue(
             blocked = [d for d in job.depends_on if d not in finished]
             record(job, "skipped-dependency", blocked_by=blocked[0])
             continue
-        # 4. Already finished.
+        # 4. Already finished. A job that depends on another's output is redone when that
+        # output was redone in this launch, or, in any later launch, when it was committed
+        # after this job's own result (for example training rerun because its adapter was
+        # missing while the evaluation that should follow did not fit the time left).
         deps_ran = any(results.get(d, {}).get("status") == "done" for d in job.depends_on)
-        rerun = job.always_run or job.name in forced or (job.rerun_if_deps_ran and deps_ran)
+        stale = job.rerun_if_deps_ran and has_marker and older_than_deps(root, job, by_name)
+        rerun = (
+            job.always_run or job.name in forced or (job.rerun_if_deps_ran and deps_ran) or stale
+        )
         if has_marker and not rerun:
             record(job, "skipped-existing")
             continue
@@ -1248,15 +1327,27 @@ def run_queue(
         if ok and job.always_run and digest_before == file_digest(root / job.marker):
             record(job, "skipped-existing", note="checked: already current")
             results[job.name]["minutes"] = minutes
-            paths: list[str] = [STATUS_FILE]
-            message = f"Update queue status after {job.name} ({PLATFORM} {gpu})"
+            # Its other outputs (a redrawn figure, a curves file) may still have changed;
+            # leaving them uncommitted would leave the tree dirty and could block a merge.
+            paths: list[str] = [STATUS_FILE, *job.outputs]
+            message = f"Update results after {job.name} ({PLATFORM} {gpu})"
         elif ok:
-            extra: dict[str, Any] = {"retried_with_small_batch": True} if retried else {}
+            extra: dict[str, Any] = {}
+            if retried:
+                # A different micro-batch is a different experiment (for KTO it also changes
+                # the reference-point estimate and the unpaired order). The run's own
+                # config.yaml records the values actually used.
+                extra = {
+                    "retried_with_small_batch": True,
+                    "config_differs_from_file": True,
+                    "config_overrides": list(job.oom_retry_args),
+                }
             if job.marker.endswith("run_info.json"):
                 try:
                     info = json.loads((root / job.marker).read_text())
                 except ValueError:
                     info = {}
+                # peak_gpu_memory_mb is in MiB (bytes / 2**20) despite its name.
                 keys = ("wall_time_s", "peak_gpu_memory_mb", "optimizer_steps", "scaler_retries")
                 extra.update({k: info[k] for k in keys if info.get(k) is not None})
             record(job, "done", **extra)

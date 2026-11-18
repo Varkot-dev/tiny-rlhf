@@ -753,6 +753,7 @@ def train(
         "device": str(device),
         "amp_fp16": amp,
         "param_dtype": str(next(policy.parameters()).dtype),
+        # MiB (bytes / 2**20), not MB or GB; the field name is kept for existing results.
         "peak_gpu_memory_mb": (
             round(torch.cuda.max_memory_allocated(device) / 2**20, 1)
             if device.type == "cuda"
