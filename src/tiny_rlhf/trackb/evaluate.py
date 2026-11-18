@@ -56,7 +56,7 @@ import numpy as np
 import torch
 
 from tiny_rlhf.stats import DEFAULT_RESAMPLES, bootstrap_interval, paired_bootstrap_difference
-from tiny_rlhf.trackb.checks import normalize, score
+from tiny_rlhf.trackb.checks import echoes_document, normalize, score
 from tiny_rlhf.trackb.generate import LEAD_INS
 from tiny_rlhf.trackb.load import load_trackb_examples
 
@@ -145,23 +145,10 @@ def starts_with_lead_in(response: str) -> bool:
 
 
 def echoed_document(response: str, prompt: str) -> bool:
-    """True if the response copies the document: one whole line of ECHO_MIN_WORDS words
-    or more, or two or more different whole lines of at least two words each.
-
-    Task instructions in the dataset are single short questions and correct answers are
-    a few words, so verbatim lines like these can only come from copying the document.
-    No preferred or rejected response in the training file triggers it.
-    """
-    text = normalize(response)
-    short_lines = 0
-    for line in dict.fromkeys(normalize(x) for x in prompt.splitlines()):
-        n_words = len(line.split())
-        if n_words < 2 or line not in text:
-            continue
-        if n_words >= ECHO_MIN_WORDS:
-            return True
-        short_lines += 1
-    return short_lines >= 2
+    """True if the response copies the document (see checks.echoes_document, which strict
+    scoring also uses): one whole line of ECHO_MIN_WORDS words or more, or two or more
+    different whole lines of at least two words each."""
+    return echoes_document(response, prompt, min_words=ECHO_MIN_WORDS)
 
 
 def score_row(

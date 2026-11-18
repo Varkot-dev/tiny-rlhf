@@ -37,10 +37,16 @@ def main() -> None:
     parser.add_argument("--runs", nargs="*", help="default: every run with summary_trained.json")
     parser.add_argument("--resamples", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--write-runs",
+        nargs="*",
+        help="write rescored_trained.json only for these runs (default: every run); the "
+        "comparison file always covers every run",
+    )
     args = parser.parse_args()
 
     comparison = rescore_all(
-        Path(args.results), args.base_run, args.runs, args.resamples, args.seed
+        Path(args.results), args.base_run, args.runs, args.resamples, args.seed, args.write_runs
     )
     bad = {k: v for k, v in comparison["lenient_mismatches_on_rescoring"].items() if v}
     if bad:

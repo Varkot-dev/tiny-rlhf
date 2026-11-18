@@ -43,6 +43,17 @@ from tiny_rlhf.trackb.evaluate import DEFAULT_SPLITS, read_rows
 from tiny_rlhf.trackb.rescore import rescore_row
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def repo_path(path: Path) -> str:
+    """A path relative to the repository root when it lies inside it, so summaries do not
+    record the machine they were made on (/content/... on Colab)."""
+    try:
+        return str(path.resolve().relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 FIRST_RUN = "trackb_full"
 # Same list and order as tiny_rlhf.gpu_queue.TRACKB_VARIANTS (a test checks it).
 VARIANTS = ("trackb_beta0.5", "trackb_steps60", "trackb_sft1")
@@ -111,7 +122,7 @@ def collect(results: Path, variants: tuple[str, ...]) -> tuple[dict[str, Any], l
         "base": {
             **pooled_stats(split_rows(base_summary_path)),
             "nll_change_per_token": {"difference": 0.0, "ci_low": 0.0, "ci_high": 0.0},
-            "sources": [str(base_summary_path)],
+            "sources": [repo_path(base_summary_path)],
         }
     }
     notes: list[str] = []
@@ -133,7 +144,7 @@ def collect(results: Path, variants: tuple[str, ...]) -> tuple[dict[str, Any], l
         entities[run] = {
             **pooled_stats(split_rows(trained)),
             "nll_change_per_token": change,
-            "sources": [str(trained)] + ([str(general)] if general.is_file() else []),
+            "sources": [repo_path(trained)] + ([repo_path(general)] if general.is_file() else []),
         }
     return entities, notes
 
