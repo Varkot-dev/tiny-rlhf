@@ -124,18 +124,21 @@ def make_figure(summary: dict, runs: list[dict], out_path: Path) -> None:
             label=name,
             zorder=3,
         )
+        # Label the left-most points: there the two series are far apart, so the
+        # labels cannot overlap (at the largest beta both sit near zero).
         ax_logp.annotate(
             name,
-            xy=(positions[-1] + offset, means[-1]),
-            xytext=(10, 0),
+            xy=(positions[0] + offset, means[0]),
+            xytext=(-12, 0),
             textcoords="offset points",
+            ha="right",
             va="center",
             fontsize=9,
             color=TEXT_PRIMARY,
         )
     ax_logp.axhline(0.0, color=TEXT_SECONDARY, linewidth=0.8, linestyle=(0, (4, 3)), zorder=1)
     ax_logp.set_xticks(positions, labels)
-    ax_logp.set_xlim(-0.6, len(positions) - 0.4 + 1.0)
+    ax_logp.set_xlim(-1.9, len(positions) - 0.4)
     ax_logp.set_title("Did the responses get more or less likely?")
     ax_logp.set_xlabel("beta")
     ax_logp.set_ylabel("change in log pi(y|x) vs reference (nats)")
