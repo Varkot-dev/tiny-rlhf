@@ -1,0 +1,124 @@
+{
+  "ours": "results/parity_full",
+  "trl": "results/parity_full_trl",
+  "train": {
+    "rows_compared": 100,
+    "both_runs_have_the_same_steps": true,
+    "metrics": {
+      "loss": {
+        "max_abs_diff": 3.321841359138489e-05,
+        "mean_abs_diff": 4.019284388050437e-06,
+        "at_step": 42
+      },
+      "reward_margin": {
+        "max_abs_diff": 6.82976096868515e-05,
+        "mean_abs_diff": 1.0312719096248202e-05,
+        "at_step": 42
+      },
+      "accuracy": {
+        "max_abs_diff": 0.125,
+        "mean_abs_diff": 0.00125,
+        "at_step": 2
+      },
+      "chosen_logp": {
+        "max_abs_diff": 0.00066375732421875,
+        "mean_abs_diff": 0.00015796363353729248,
+        "at_step": 42
+      },
+      "rejected_logp": {
+        "max_abs_diff": 0.0006449222564697266,
+        "mean_abs_diff": 0.0001592208445072174,
+        "at_step": 20
+      },
+      "chosen_reward": {
+        "max_abs_diff": 7.059445488266647e-05,
+        "mean_abs_diff": 1.4467042812782439e-05,
+        "at_step": 42
+      },
+      "rejected_reward": {
+        "max_abs_diff": 6.709754234179854e-05,
+        "mean_abs_diff": 1.4445339322293194e-05,
+        "at_step": 20
+      }
+    }
+  },
+  "eval": {
+    "rows_compared": 3,
+    "both_runs_have_the_same_steps": true,
+    "metrics": {
+      "loss": {
+        "max_abs_diff": 1.0686354678934862e-06,
+        "mean_abs_diff": 5.189917589391394e-07,
+        "at_step": 100
+      },
+      "reward_margin": {
+        "max_abs_diff": 3.391157901100339e-06,
+        "mean_abs_diff": 1.5724853417554558e-06,
+        "at_step": 100
+      },
+      "accuracy": {
+        "max_abs_diff": 0.09210526315789473,
+        "mean_abs_diff": 0.03070175438596491,
+        "at_step": 0
+      },
+      "chosen_logp": {
+        "max_abs_diff": 0.00013896247793354632,
+        "mean_abs_diff": 9.684360514938817e-05,
+        "at_step": 50
+      },
+      "rejected_logp": {
+        "max_abs_diff": 0.00013491354491179663,
+        "mean_abs_diff": 9.249874024893263e-05,
+        "at_step": 100
+      },
+      "chosen_reward": {
+        "max_abs_diff": 1.0854184725572757e-05,
+        "mean_abs_diff": 6.731154332757986e-06,
+        "at_step": 50
+      },
+      "rejected_reward": {
+        "max_abs_diff": 1.2525798458784543e-05,
+        "mean_abs_diff": 8.304569634328573e-06,
+        "at_step": 100
+      }
+    }
+  },
+  "same_train_order": true,
+  "tokenization_matches": true,
+  "eval_batches_equal_size": true,
+  "device": {
+    "ours": "cuda",
+    "trl": "cuda"
+  },
+  "amp_fp16": {
+    "ours": false,
+    "trl": false
+  },
+  "n_train_pairs": {
+    "ours": 3696,
+    "trl": 3696
+  },
+  "n_eval_pairs": {
+    "ours": 456,
+    "trl": 456
+  },
+  "wall_time_s": {
+    "ours": 1542.96,
+    "trl": 1936.78
+  },
+  "git_sha": {
+    "ours": "77c8c163f85da2a563fc222e2a8d6200065406e3",
+    "trl": "7344f796ba5f0e83b2f8310d30e73f6d132753d6"
+  },
+  "versions": {
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "peft": "0.21.2",
+    "datasets": "4.8.5",
+    "trl": "1.18.1"
+  },
+  "scaler_retries_ours": 0,
+  "skipped_optimizer_steps_trl": [],
+  "exact_parity_expected": true,
+  "exact_parity_note": "float32 on both sides: no gradient scaler, nothing skipped"
+}

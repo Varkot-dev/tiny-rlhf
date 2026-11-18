@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794960857,
+  "updated_unix": 1794960863,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -103,10 +103,9 @@
       "optimizer_steps": 100
     },
     "m2_parity_figure": {
-      "status": "skipped-dependency",
+      "status": "done",
       "stage": "m2",
-      "minutes": 0.0,
-      "blocked_by": "m2_parity_trl"
+      "minutes": 0.1
     },
     "m2_parity_ours_fp16": {
       "status": "not-needed",
