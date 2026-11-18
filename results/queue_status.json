@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794973764,
+  "updated_unix": 1794973773,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -249,47 +249,40 @@
       "note": "checked: already current"
     },
     "trackb_kto_train": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 18.0,
-      "wall_time_s": 1031.79,
-      "peak_gpu_memory_mb": 7321.6,
-      "optimizer_steps": 375,
-      "scaler_retries": 0
+      "minutes": 0.0
     },
     "trackb_kto_eval": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 3.1
+      "minutes": 0.0
     },
     "trackb_kto_compare": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 1.2
+      "minutes": 0.0
     },
     "trackb_kto_beta0.5_train": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 17.4,
-      "wall_time_s": 1021.76,
-      "peak_gpu_memory_mb": 7321.6,
-      "optimizer_steps": 375,
-      "scaler_retries": 2
+      "minutes": 0.0
     },
     "trackb_kto_beta0.5_eval": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 3.0
+      "minutes": 0.0
     },
     "trackb_kto_beta0.5_compare": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 1.0
+      "minutes": 0.0
     },
     "m7_figure": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 0.1
+      "minutes": 0.1,
+      "note": "checked: already current"
     }
   }
 }
