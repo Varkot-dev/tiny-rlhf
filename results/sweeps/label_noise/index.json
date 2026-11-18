@@ -30,9 +30,9 @@
       "series": "ordinary DPO loss",
       "run_name": "sweep_noise_0.3",
       "command": "python scripts/train_dpo_noisy.py --config configs/dpo_full.yaml --run-name sweep_noise_0.3 --noise-fraction 0.3 --set n_train=2000 --set n_eval=300 --set eval_every=50",
-      "status": "not_run",
-      "returncode": null,
-      "seconds": null
+      "status": "done",
+      "returncode": 0,
+      "seconds": 925.6
     },
     {
       "label": "0.3_robust",
