@@ -1,0 +1,148 @@
+{
+  "sweep": "data_size",
+  "field": "n_train",
+  "source": "/content/tiny-rlhf/configs/sweeps/data_size.yaml",
+  "runs": [
+    {
+      "run_dir": "results/sweep_size_100",
+      "n_pairs": 277,
+      "accuracy": {
+        "mean": 0.5740072202166066,
+        "ci_low": 0.516245487364621,
+        "ci_high": 0.631768953068592
+      },
+      "reward_margin": {
+        "mean": 0.6616036300194392,
+        "ci_low": 0.2028725824739098,
+        "ci_high": 1.1557556483316291
+      },
+      "chosen_logp_change": {
+        "mean": -49.28886426312829,
+        "ci_low": -53.461870190468936,
+        "ci_high": -45.30616476114046
+      },
+      "rejected_logp_change": {
+        "mean": -55.90490043034192,
+        "ci_low": -60.5889775577435,
+        "ci_high": -51.71357379458872
+      },
+      "interval": "95% percentile bootstrap over held-out pairs",
+      "n_resamples": 2000,
+      "seed": 0,
+      "optimizer_steps": 340,
+      "n_train_pairs": 94,
+      "wall_time_s": 1162.49,
+      "peak_gpu_memory_mb": 8763.0,
+      "label": "100",
+      "value": 100,
+      "series": null,
+      "run_name": "sweep_size_100"
+    },
+    {
+      "run_dir": "results/sweep_size_300",
+      "n_pairs": 277,
+      "accuracy": {
+        "mean": 0.6353790613718412,
+        "ci_low": 0.5776173285198556,
+        "ci_high": 0.6931407942238267
+      },
+      "reward_margin": {
+        "mean": 0.8416738583292772,
+        "ci_low": 0.38937829336965135,
+        "ci_high": 1.3222754421324503
+      },
+      "chosen_logp_change": {
+        "mean": -50.62155753524725,
+        "ci_low": -54.262807431462015,
+        "ci_high": -46.80654691505088
+      },
+      "rejected_logp_change": {
+        "mean": -59.03829600750755,
+        "ci_low": -63.115689693030895,
+        "ci_high": -55.09307360494179
+      },
+      "interval": "95% percentile bootstrap over held-out pairs",
+      "n_resamples": 2000,
+      "seed": 0,
+      "optimizer_steps": 340,
+      "n_train_pairs": 281,
+      "wall_time_s": 1144.69,
+      "peak_gpu_memory_mb": 8782.5,
+      "label": "300",
+      "value": 300,
+      "series": null,
+      "run_name": "sweep_size_300"
+    },
+    {
+      "run_dir": "results/sweep_size_1000",
+      "n_pairs": 277,
+      "accuracy": {
+        "mean": 0.6642599277978339,
+        "ci_low": 0.6064981949458483,
+        "ci_high": 0.7184115523465704
+      },
+      "reward_margin": {
+        "mean": 0.7972803619902057,
+        "ci_low": 0.5086168177546899,
+        "ci_high": 1.110688140085942
+      },
+      "chosen_logp_change": {
+        "mean": -28.910555495251817,
+        "ci_low": -31.04755340509036,
+        "ci_high": -26.79627429552457
+      },
+      "rejected_logp_change": {
+        "mean": -36.88335912408381,
+        "ci_low": -39.596615434811866,
+        "ci_high": -34.34432253407227
+      },
+      "interval": "95% percentile bootstrap over held-out pairs",
+      "n_resamples": 2000,
+      "seed": 0,
+      "optimizer_steps": 340,
+      "n_train_pairs": 933,
+      "wall_time_s": 1184.95,
+      "peak_gpu_memory_mb": 8801.1,
+      "label": "1000",
+      "value": 1000,
+      "series": null,
+      "run_name": "sweep_size_1000"
+    },
+    {
+      "run_dir": "results/sweep_size_3000",
+      "n_pairs": 277,
+      "accuracy": {
+        "mean": 0.6498194945848376,
+        "ci_low": 0.59557761732852,
+        "ci_high": 0.7003610108303249
+      },
+      "reward_margin": {
+        "mean": 0.469527955156909,
+        "ci_low": 0.33155825075252987,
+        "ci_high": 0.6017357590662094
+      },
+      "chosen_logp_change": {
+        "mean": -6.082423864288881,
+        "ci_low": -7.082746611347267,
+        "ci_high": -5.1269267664919695
+      },
+      "rejected_logp_change": {
+        "mean": -10.777703412603385,
+        "ci_low": -11.864798620891916,
+        "ci_high": -9.77397501701052
+      },
+      "interval": "95% percentile bootstrap over held-out pairs",
+      "n_resamples": 2000,
+      "seed": 0,
+      "optimizer_steps": 340,
+      "n_train_pairs": 2774,
+      "wall_time_s": 1179.03,
+      "peak_gpu_memory_mb": 8803.4,
+      "label": "3000",
+      "value": 3000,
+      "series": null,
+      "run_name": "sweep_size_3000"
+    }
+  ],
+  "missing_runs": []
+}
