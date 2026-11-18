@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +64,10 @@ def load_entities(results: Path) -> dict[str, dict[str, Any]]:
         "base": json.loads((results / FIRST_RUN / "trackb_eval" / "rescored_base.json").read_text())
     }
     for run in compare["runs"]:
+        # Repeats with other seeds (configs/seeds/) are read together in
+        # scripts/plot_seeds.py; here they would only crowd the bars.
+        if re.search(r"_seed\d+$", run):
+            continue
         entities[run] = json.loads(
             (results / run / "trackb_eval" / "rescored_trained.json").read_text()
         )

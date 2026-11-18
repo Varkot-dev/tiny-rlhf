@@ -1,0 +1,55 @@
+# Seed 2 of trackb_kto_beta0.5: identical to configs/trackb_kto_beta0.5.yaml except `seed` and `run_name`
+# (tests/test_seeds.py checks that). Part of the `seeds` queue stage, which repeats the key
+# Track B runs with two more seeds so their conclusions can be checked for seed noise.
+#
+# What the seed changes here, read from the code:
+#   - the LoRA A matrices' random initialisation (torch.manual_seed before get_peft_model;
+#     B starts at zero, so the step-0 loss is unchanged)
+#   - KTO only: the order in which pairs are split into single good and bad answers and
+#     arranged into micro-batches (tiny_rlhf.kto.unpair, random.Random(seed)), and with it
+#     which answer serves as each prompt's mismatched answer for the reference point
+#   - the LoRA dropout masks (global torch generator)
+#   - the order of the training pairs: tiny_rlhf.trackb.train shuffles train.jsonl with
+#     random.Random(seed) before taking n_train, and the training loop reshuffles each epoch
+#     with a seeded torch.Generator. n_train is 3000, the whole file, so the SET of training
+#     pairs is the same for every seed; only the order changes
+#   - the order of the 300 validation pairs (all of val.jsonl, so the same set)
+# What it does not change: the model, data, hyperparameters, and the test evaluation
+# (fixed files, first 150 examples per split, greedy decoding, its own seed of 0).
+#
+# M7: KTO on Track B at beta 0.5, the counterpart of configs/trackb_beta0.5.yaml.
+#
+# Identical to configs/trackb_kto.yaml except the line marked CHANGED. Among the DPO
+# follow-ups, beta 0.5 kept planted instructions from being followed (0.175 -> 0.012 on
+# injected examples, five test splits) while task correctness held (strict, clean
+# documents 0.622 -> 0.644, results/trackb_rescored_compare.json). Running KTO at both
+# betas compares the two methods at the setting where DPO failed (0.1) and where it worked.
+#
+run_name: trackb_kto_beta0.5_seed2
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+dataset_name: data/trackb
+n_train: 3000                      # pairs; each becomes one good and one bad answer
+n_eval: 300                        # held-out pairs from val.jsonl, same as the DPO runs
+max_length: 320
+beta: 0.5                          # CHANGED: the beta of the best DPO follow-up (trackb_beta0.5)
+desirable_weight: 1.0              # the data is balanced (one good, one bad per pair)
+undesirable_weight: 1.0
+lr: 5.0e-5
+weight_decay: 0.0
+warmup_ratio: 0.1
+epochs: 1
+batch_size: 4                      # answers per micro-batch (at least 2, see tiny_rlhf.kto)
+grad_accum: 4
+max_grad_norm: 1.0
+eval_every: 125                    # as the DPO follow-up runs (steps 0, 125, 250, 375)
+eval_batch_size: 4                 # held-out pairs per batch
+seed: 2
+use_lora: true
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+amp: auto
+device: auto
+max_steps: null
+save_adapter: true

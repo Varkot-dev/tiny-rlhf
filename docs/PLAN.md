@@ -323,3 +323,9 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **LoRA rank** (ranks 2, 8 and 16 done): held-out accuracy 0.661, 0.668 and 0.661, so far no sign that rank matters at this data size. Rank 64 and the figure are pending.
 - **The session stopped at 01:21 UTC** after LoRA rank 16, most likely Colab's limit. The remaining jobs (LoRA rank 64, the dataset-size and label-noise sweeps) continue from the same notebook.
 - **The beta figure's right-panel labels overlapped** at the largest beta; they now label the left-most points, where the two series are far apart.
+
+**2026-11-18, extra seeds queued; status-file fix**
+- **Why:** every run so far used one seed, and two conclusions rest on small or single-run differences (DPO and KTO tie at beta 0.5; DPO collapsed at beta 0.1 and KTO did not). The four key Track B runs get seeds 1 and 2 (`configs/seeds/`), added as the last queue stage, beta 0.1 first.
+- **What a seed changes here:** the LoRA A initialisation (B starts at zero, so the step-0 loss is unchanged), LoRA dropout masks, the training order, and for KTO which answer is each prompt's mismatched answer. The pairs themselves do not change: n_train 3000 and n_eval 300 are the whole train and validation files. The test evaluation is fixed.
+- **`scripts/plot_seeds.py`** shows each seed's pooled strict results and the mean, written to `results/seeds_summary.json`.
+- **Status-file bug fixed:** `results/queue_status.json` rewrote rows from earlier launches unmarked, so a job could show an old launch's `skipped-budget` while the current launch later ran it (the `beta_0.1` row with 14.1 minutes left came from an earlier session). Rows now carry a launch id, and rows kept from earlier launches are marked `from_earlier_launch`.
