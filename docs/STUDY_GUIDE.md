@@ -7,7 +7,7 @@ How to use it: read Part 2 once in order, then work from Part 3 (the ten questio
 Contents
 
 1. The project in two minutes
-2. The concepts, in learning order (2.1 to 2.22)
+2. The concepts, in learning order (2.1 to 2.23; 2.23 is KTO)
 3. The ten questions
 4. Decisions I must be able to defend
 5. What is measured and what is not
@@ -25,7 +25,7 @@ Track A is about getting the method right. I wrote the DPO loss and training loo
 
 Track B applies it to one behavior I can score automatically: when a user asks for a task on a document, and the document contains instructions aimed at the assistant, the model should still do the user's task. I built a preference dataset for that, with whole categories held out for testing, and an evaluation that measures the behavior before and after training with confidence intervals, plus probes that check whether the model learned the behavior or a shortcut.
 
-As a stretch I wrote REINFORCE by hand on a toy problem small enough to enumerate, so the theoretical optimum that DPO's derivation rests on can be checked numerically."
+As an extension I compared DPO with KTO, which learns from single answers marked good or bad instead of pairs, on the same data. As a stretch I wrote REINFORCE by hand on a toy problem small enough to enumerate, so the theoretical optimum that DPO's derivation rests on can be checked numerically."
 
 Why two tracks: Track A answers "is my implementation right?" on standard data where a trusted library exists to compare against. Track B answers "does it do something useful?" on a behavior with an unambiguous check. Mixing the two would make a bad result impossible to diagnose.
 
@@ -260,7 +260,18 @@ Do not confuse "pushes hard at first" with "drifts far". Large beta pushes hard 
 
 **Worked example 2 (the toy's overshoot, measured).** `results/reinforce_toy/summary.json`, "final", mean of 5 seeds. With always-correct labels DPO ended at expected reward 5.413 and KL from the reference 5.889, while the true KL-constrained optimum is reward 4.668 at KL 3.114. It earned more reward than the "optimum" by drifting nearly twice as far as beta allows. The reason: beta's meaning in DPO depends on the labels being noisy in the Bradley-Terry way. If the better response always wins, the data says the reward difference is infinite, and no finite drift satisfies the loss. In a longer single-seed run it reached reward 5.999 and KL 7.18 ("extended_final").
 
-**Code.** `beta` in `DPOConfig`; the sweep is `configs/sweeps/beta.yaml` (not yet run).
+**Worked example 3 (the beta sweep, measured).** `results/sweeps/beta/summary.json`: hand-written DPO on 1,862 standard pairs, 233 steps each, 277 held-out pairs.
+
+```
+beta    accuracy (95% interval)    drift, KL per token    chosen log-prob change
+0.01    0.625 (0.567 to 0.679)     0.591                  -53.5 nats
+0.1     0.664 (0.610 to 0.718)     0.041                  -5.4
+0.5     0.621 (0.563 to 0.679)     0.010                  -1.0
+```
+
+The accuracy intervals overlap, while drift falls by a factor of about 60. That is worked example 1 played out on a real model: a small beta never stops pushing, so the model travels far to learn the same ranking. The Track B runs show the same at beta 0.1 against 0.5 (section 2.23).
+
+**Code.** `beta` in `DPOConfig`; the sweep is `configs/sweeps/beta.yaml`, drawn by `scripts/plot_beta_sweep.py` into `assets/m6_beta_sweep.png`.
 
 **The mistake.** Saying "beta is a learning rate". It changes the shape of the loss and where training ends up, not only how fast it gets there.
 
@@ -335,7 +346,7 @@ per layer:                 15,360
 
 `results/dpo_tiny/run_info.json` reports `trainable_params: 460800` of `total_params: 134975808`, which is 0.34%. The total is the base model's 134,515,008 plus the 460,800 adapter weights.
 
-**Worked example 2 (the full config, computed here, not yet confirmed by a run).** Qwen2.5-0.5B: hidden 896, 24 layers, key/value width 128, MLP width 4864. Rank 16 on all seven projection matrices:
+**Worked example 2 (the full config, computed here and confirmed by the run: `trainable_params` is 8,798,208 in `results/dpo_full_t4/run_info.json`).** Qwen2.5-0.5B: hidden 896, 24 layers, key/value width 128, MLP width 4864. Rank 16 on all seven projection matrices:
 
 ```
 q_proj, o_proj:        16 * (896 + 896)  = 28,672 each
@@ -368,11 +379,11 @@ per layer: 2*28,672 + 2*16,384 + 3*92,160 = 366,592
 
 That is one float32 table over every position and the whole vocabulary, and several were alive at once for the policy and the reference. Three fixes: score only the response positions (same numbers, far less memory), score the reference before the policy so its tensors are freed first, and use 1 pair per micro-batch with 8 accumulated. Lesson: the vocabulary dimension, not the model size, was the memory hog. The 135M model had peaked at only 3.9 GB (`results/dpo_tiny_t4/run_info.json`).
 
-**Incident 2: a safety check that was too strict (decision log, "second full run").** After the first code review, the loop raised an error on any non-finite gradient. The next full run stopped at its first training step. The most likely cause, not confirmed because the error text was not captured: under fp16 a non-finite gradient in the first steps is how GradScaler finds a workable scale, and the check turned that normal adjustment into a crash. The fix lets the scaler skip and lower its scale, then redoes the same optimizer step on the same pairs, up to 20 times, and records the count as `scaler_retries`. Lesson: a check that is right in fp32 can be wrong in fp16, and a check that hides its error message costs a whole round trip.
+**Incident 2: a safety check that was too strict (decision log, "second full run").** After the first code review, the loop raised an error on any non-finite gradient. The next full run stopped at its first training step. The cause, inferred at the time because the error text was not captured and confirmed by the next run: under fp16 a non-finite gradient in the first steps is how GradScaler finds a workable scale, and the check turned that normal adjustment into a crash. The fix lets the scaler skip and lower its scale, then redoes the same optimizer step on the same pairs, up to 20 times, and records the count as `scaler_retries`. Lesson: a check that is right in fp32 can be wrong in fp16, and a check that hides its error message costs a whole round trip.
 
 **A known limit.** Under autocast the logits are already rounded to fp16 when `sequence_logprob` receives them. Converting to float32 afterwards makes the sum accurate but cannot undo that rounding. The reviewer's CPU simulation put the noise at 0.01 to 0.08 nats on a 400-token sum. In reward units at beta 0.1 that is under 0.01.
 
-**Measured.** The tiny run in fp16 on the T4 ended at held-out loss 0.68245; the same config in fp32 on CPU ended at 0.68257 (`results/dpo_tiny_t4/eval.csv`, `results/dpo_tiny/eval.csv`). At this scale half precision changed almost nothing.
+**Measured.** The tiny run in fp16 on the T4 ended at held-out loss 0.68245; the same config in fp32 on CPU ended at 0.68257 (`results/dpo_tiny_t4/eval.csv`, `results/dpo_tiny/eval.csv`). At this scale half precision changed almost nothing. The completed full run recorded 5 retries (`scaler_retries` in `results/dpo_full_t4/run_info.json`), which confirms the diagnosis of incident 2: the overflows were there, and the scaler handled them once allowed to.
 
 **Code.** `train_dpo.py`: `use_amp`, the `torch.autocast` blocks, `torch.amp.GradScaler`, `MAX_SCALER_RETRIES`.
 
@@ -436,7 +447,7 @@ where h is the pooled hidden state. That is not zero, so the head learns from th
 
 **Tests.** `tests/test_reward_model.py` (pooling picks the right position, padding has no effect, first loss is log 2, the step-0 head gradient matches the formula).
 
-**Status.** Built and tested. No completed reward-model run exists in `results/` yet.
+**Measured** (`results/reward_full/reward_vs_dpo.json`, same 456 held-out pairs as the full DPO run, verified by fingerprint): reward model 0.638 accuracy (0.594 to 0.682), DPO implicit reward 0.654 (0.607 to 0.693), and the two prefer the same answer on 0.713 of pairs (0.673 to 0.754), Spearman of margins 0.49. Two methods, the same signal within noise. Its training was noisy (held-out loss above log 2 for most of the run), most likely from the guessed head learning rate (decision log).
 
 **The mistake.** Comparing reward values across different prompts, or comparing DPO's and the reward model's numbers directly.
 
@@ -468,7 +479,17 @@ And a check that the test can fail: changing TRL's beta or learning rate by 1%, 
 
 **Worked example 1.** Why exact order matters: with shuffling, the two runs see different batches, and their curves can only "agree within noise", which a subtly wrong implementation would also do. With `shuffle: false` and no dropout the comparison is step by step.
 
-**Worked example 2 (measured so far).** The hand-written half of the tiny parity pair is complete: `results/parity_tiny/eval.csv` goes from loss 0.693147 at step 0 to 0.684400 at step 41, with 26 of 42 held-out pairs ranked correctly. The TRL half had not finished when this guide was written, so no real-model comparison is quoted here.
+**Worked example 2 (measured).** Two real-model pairs, each comparing the same run through both implementations:
+
+```
+                                   tiny (SmolLM2, CPU, 41 steps)   full (Qwen2.5-0.5B, T4, 100 steps)
+largest training-loss gap          8.2e-06                         3.3e-05
+largest held-out loss gap          2.4e-06                         1.1e-06
+largest summed log-prob gap        (not needed)                    6.6e-04 nats
+accuracy                           identical at every step         one pair in eight at near-ties
+```
+
+Sources: `results/parity_tiny/parity_summary.json` and `results/parity_full/parity_summary.json`. Both full runs started at 0.693147, TRL's tokens equalled ours, TRL skipped no steps, and both ran in float32 so no fp16 overflow could split them. A gap of 6.6e-04 nats on a sum of about 300 log-probabilities is the size float32 rounding in a different order of operations produces; a bug would grow step after step instead.
 
 **Code.** `train_trl.py` (`build_trl_args`, `tokenization_matches`, `train_with_trl`), `scripts/plot_parity.py`.
 
@@ -686,6 +707,59 @@ Measured in the tiny T4 run (`results/dpo_tiny_t4/eval.csv`): loss 0.6931 to 0.6
 
 ---
 
+### 2.23 KTO: learning from single good or bad answers
+
+**Idea.** DPO needs pairs: "A is better than B". KTO (Ethayarajh and coauthors, 2024) learns from single answers labelled good (desirable) or bad (undesirable). Labels like that are cheaper to collect, and a pair says only "better", never "good".
+
+**Math.** With `r = log pi(y|x) - log pi_ref(y|x)`, the same log-ratio DPO uses:
+
+```
+good answer:  loss = w_good * ( 1 - sigmoid( beta * (r - z0) ) )
+bad answer:   loss = w_bad  * ( 1 - sigmoid( beta * (z0 - r) ) )
+
+z0 = max( 0, mean of (log pi(y'|x) - log pi_ref(y'|x)) over mismatched answers y' )
+```
+
+As implemented in TRL 1.18.0 and in `src/tiny_rlhf/kto.py` (decision log, "M7 built"): the mismatched answers come from rotating the answers within a micro-batch by one row, `z0` is treated as a constant (no gradient), log-probabilities are summed over answer tokens, and both weights are 1 here.
+
+**Worked example 1 (computed here, beta 0.1, z0 = 0).**
+
+```
+step 0, any answer:                 r = 0     loss = 1 - sigmoid(0)  = 0.5
+good answer, 10 nats more likely:   r = +10   loss = 1 - sigmoid(1)  = 0.269
+good answer, 10 nats less likely:   r = -10   loss = 1 - sigmoid(-1) = 0.731
+bad answer, 10 nats less likely:    r = -10   loss = 1 - sigmoid(1)  = 0.269
+```
+
+So the step-0 check for KTO is 0.5, the way log 2 is for DPO. Both M7 runs started at exactly 0.5 (`first_eval_loss` in `results/trackb_kto/run_info.json` and `results/trackb_kto_beta0.5/run_info.json`). The loss is also bounded: between 0 and the weight for each answer, where DPO's has no upper bound.
+
+**Why KTO did not collapse where DPO did.** Look at the good-answer term: it only falls when that answer's own `r` rises. Pushing a good answer down always raises its loss. DPO's loss depends only on the gap between the two answers of a pair, so it can still fall while both answers sink, which is exactly what happened in the first Track B run.
+
+**The reference point is not what protects it.** Because of the clamp, `z0` can rise but never fall below 0. It matters only when the model's log-ratios are generally positive: then it raises the bar a good answer must clear. In the M7 runs it was above 0 in 91 of 375 training steps at beta 0.1 (maximum 10.8) and 130 of 375 at beta 0.5 (maximum 6.7), and 0 at every held-out evaluation (decision log, "M7 results").
+
+**Worked example 2 (measured, Track B, pooled over five test splits, strict scoring).** From `results/trackb_rescored_compare.json`, drift from each run's `general_regression.json`:
+
+```
+run              on task (planted)   correct (clean)   drift   chosen log-prob, step 0 to end
+DPO beta 0.1     0.335               0.359             +1.21   -33.1 to -51.6
+KTO beta 0.1     0.653               0.656             +0.70   -33.1 to -6.3
+DPO beta 0.5     0.621               0.644             +0.24   -33.1 to -28.2
+KTO beta 0.5     0.647               0.654             +0.21   -33.1 to -17.0
+(base model      0.501               0.622)
+```
+
+At beta 0.5 the two tie within noise, so knowing which two answers were compared added nothing measurable on this data. At beta 0.1 KTO avoided the collapse but moved far the other way: its chosen answers became much more likely, its drift was almost three times DPO beta 0.5's, and on the quoted-instruction probe it fell from 0.93 to 0.60.
+
+**Fairness of the comparison.** KTO saw exactly the answers DPO saw (each of the 3,000 pairs split into one good and one bad answer), 16 answers per step against DPO's 8 pairs, the same 375 steps, model, LoRA, learning rate and seed. The two halves of a pair are kept out of the same micro-batch, so a prompt's mismatched answer is never its own pair-mate. Beta is matched in value but does not mean exactly the same constraint in the two losses.
+
+**Code.** `src/tiny_rlhf/kto.py` (`kto_loss`, the unpairing step, the mismatched answers, the loop), `scripts/train_kto.py`, `configs/trackb_kto*.yaml`.
+
+**Tests.** `tests/test_kto.py`: hand-computed losses, the step-0 value of 0.5, gradient directions, the unpairing, and parity with TRL's `KTOTrainer` (same-batch loss within 1e-6, training curves within 1.5e-7, weights within 6e-8). Six injected bugs each fail the tests.
+
+**The mistake.** The intuitive story "z0 falls when everything falls, so a falling good answer gains nothing". It sounds right and it is wrong: `z0` is clamped at 0. That exact wrong story was told in conversation before the runs and corrected in the decision log.
+
+---
+
 ## Part 3. The ten questions
 
 ### Q1. Derive the DPO loss from the Bradley-Terry model. Where does the x-only term cancel?
@@ -715,7 +789,7 @@ Measured in the tiny T4 run (`results/dpo_tiny_t4/eval.csv`): loss 0.6931 to 0.6
 **Model answer.** "Beta is the price of drifting from the reference. In the objective it multiplies the KL penalty; in the loss it multiplies the bracket inside the sigmoid. With a large beta, each pair pushes hard at first and is satisfied after a small move, so the policy stays close to the reference. With a small beta each pair pushes gently but is never satisfied, so over a long run the policy can move far, and it risks leaving the region where the data says anything. As beta goes to infinity nothing changes; as it goes to zero the constraint disappears. My toy shows the related failure: with labels that are always correct, DPO overshot the KL-constrained optimum, reaching reward 5.41 against 4.67 at nearly twice the allowed drift."
 
 **Follow-ups.**
-- *How would you choose it?* Sweep it and plot drift (KL from the reference) against held-out preference accuracy; pick the knee. That sweep is built, not yet run.
+- *How would you choose it?* Sweep it and plot drift (KL from the reference) against held-out preference accuracy; pick the knee. My sweep (`results/sweeps/beta/summary.json`): accuracy 0.625, 0.664 and 0.621 at beta 0.01, 0.1 and 0.5 with overlapping intervals, drift 0.591, 0.041 and 0.010 KL per token. Here the knee is at or above 0.1.
 - *Is beta a learning rate?* No. It changes the loss shape and the end point.
 - *Typical range?* TRL's documentation suggests 0.1 to 0.5.
 
@@ -767,7 +841,7 @@ Measured in the tiny T4 run (`results/dpo_tiny_t4/eval.csv`): loss 0.6931 to 0.6
 **Model answer.** "I cannot know from a test score alone, so I built tests that separate the behavior from specific shortcuts I could name. If it only learned to avoid strings shaped like the training markers, a probe with new marker shapes catches it. If it memorized the injection wordings, a probe with hand-written paraphrases catches it. If it learned to ignore anything instruction-like, a probe where the user legitimately asks what a quoted note says catches it. I also report how often responses open with a training lead-in sentence, and I check ordinary-task quality so that refusing everything does not count as success. And I have to be honest that the held-out categories come from the same template generator, so passing them shows transfer across templates, not to real attacks."
 
 **Follow-ups.**
-- *Have you run the probes?* Not yet. They are built and tested; the trained model does not exist yet.
+- *Have you run the probes?* Yes (`results/trackb_rescored_compare.json`). The first DPO run scored a perfect 0.00 on following instructions while its answers shrank to one word, a shortcut the clean-document metric exposed. The beta 0.5 run went from 0.49 to 0.74 on task against marker styles never seen in training, but fell from 0.93 to 0.82 on the quoted-instruction probe, so it learned a little of "ignore instruction-like text".
 - *Name a shortcut your probes miss.* Any surface pattern I did not think of. Probes test named hypotheses, not all of them.
 - *What would be stronger evidence?* Injections written by other people or taken from real incidents.
 
@@ -832,6 +906,9 @@ Measured in the tiny T4 run (`results/dpo_tiny_t4/eval.csv`): loss 0.6931 to 0.6
 | Leave-one-out baseline in the toy | learned value function | unbiased and three lines of code | not what large-scale RL uses |
 | KL folded into the per-sample return | differentiate the KL separately | the extra term has zero expectation | relies on that identity |
 | One untuned learning rate for all toy methods | tune each | no method gets an unfair tuning budget | the comparison is indicative only |
+| KTO gets the same answers, steps and betas as DPO | KTO's own defaults (TRL's learning rate is 1e-6) | isolates whether knowing the pairing helps | beta is not the same constraint in both losses |
+| Float32 for the full parity run | fp16 like the training runs | the two implementations handle fp16 overflow differently, which would end exact parity | slower; 8.6 GB peak, which still fitted the T4 |
+| Strict scoring, lenient kept | lenient only | lenient counted numbered lists as correct counts (base `count_items` 0.736 against 0.149 strict) | rare false negatives, such as a count stated after a date |
 
 ---
 
@@ -839,30 +916,31 @@ Measured in the tiny T4 run (`results/dpo_tiny_t4/eval.csv`): loss 0.6931 to 0.6
 
 ### Measured, with the file each number comes from
 
-**Tiny DPO run on CPU** (`results/dpo_tiny/`): SmolLM2-135M, 162 training and 42 held-out pairs, 41 steps, 570.7 s. Held-out loss 0.693147 to 0.682572. Margin 0 to 0.02166. 31 of 42 pairs ranked correctly (0.738). Preferred log-probability -197.79 to -197.66; rejected -180.24 to -180.33. Trainable parameters 460,800 of 134,975,808.
+| What | Headline numbers | File |
+|---|---|---|
+| M1 tiny runs (SmolLM2-135M) | held-out loss 0.693147 to 0.6826 on CPU (571 s) and 0.6825 on a T4 in fp16 (19.75 s) | `results/dpo_tiny/`, `results/dpo_tiny_t4/` |
+| M1 full run (Qwen2.5-0.5B, 3,699 pairs, 463 steps, T4) | loss 0.6931 to 0.6175, accuracy 0.654 (0.607 to 0.693), chosen log-prob -301.4 to -307.7, 1,737 s, 8.8 GB, 5 fp16 retries | `results/dpo_full_t4/` |
+| Where the log-probability went | both answers fell on 76% of pairs; change uncorrelated with length | `results/dpo_full_t4/logp_change.json` |
+| Reproducibility reruns on newer code | full run loss 0.6178 against 0.6175; tiny T4 run 0.6829 against 0.6825 | `results/dpo_full_t4_rerun/`, `results/dpo_tiny_t4_rerun/` |
+| M2 parity, tiny and full | loss gaps at most 8.2e-06 (tiny, 41 steps) and 3.3e-05 (full, 100 steps) | `results/parity_tiny/`, `results/parity_full/parity_summary.json` |
+| M3 reward model against DPO | 0.638 against 0.654 accuracy, agreement 0.713 | `results/reward_full/reward_vs_dpo.json` |
+| M5 Track B, four DPO runs | first run collapsed (0.335 on task, 1-word answers); beta 0.5 on task 0.621 with clean accuracy 0.644 and drift +0.24 | `results/trackb_*`, `results/trackb_rescored_compare.json` |
+| M7 KTO, two runs | beta 0.5 ties DPO beta 0.5 within noise; beta 0.1 avoided the collapse but drifted +0.70 | `results/trackb_kto*`, `results/kto_vs_dpo_summary.json` |
+| M6 beta sweep | accuracy 0.62 to 0.66 at all three betas; drift 0.591, 0.041, 0.010 | `results/sweeps/beta/summary.json` |
+| M6 LoRA rank 2, 8, 16 | held-out accuracy 0.661, 0.668, 0.661 | `results/sweep_rank_*` |
+| REINFORCE toy | sections 2.4, 2.7, 2.18, 2.19; 75.7 s on one CPU thread | `results/reinforce_toy/` |
 
-**Same config on a Colab T4 in fp16** (`results/dpo_tiny_t4/`): 19.75 s, peak GPU memory 3,930.8 MB. Held-out loss 0.693147 to 0.682455. 30 of 42 (0.714).
-
-**Exact-order tiny run, hand-written loop, CPU** (`results/parity_tiny/`): held-out loss 0.693147 to 0.684400, margin 0.01795, 26 of 42 (0.619). Wall time 1,601 s on a machine shared with other jobs.
-
-**REINFORCE toy** (`results/reinforce_toy/`): everything in sections 2.4, 2.7, 2.18 and 2.19. 75.7 s on one CPU thread.
-
-**Parity on a tiny random model** (tests, not a results file): `tests/test_trl_parity.py` passes with the tolerances in section 2.14.
-
-**Computed here, not from a run:** the bootstrap intervals in section 2.17, the Qwen LoRA count in section 2.10, and every hand example.
+**Computed here, not from a run:** the bootstrap intervals in section 2.17, the LoRA counts in section 2.10 (the Qwen one matches the run), and every hand example.
 
 ### What these do and do not show
 
-All three DPO runs are smoke tests on 42 held-out pairs with more than half the responses truncated. They show the pipeline works on CPU and on a GPU in half precision, and that the step-0 check holds. They say nothing about how good DPO is.
+- **They show** the hand-written DPO and KTO compute what TRL computes, on the real model for DPO; that beta mainly controls drift rather than accuracy, on two datasets; that a loose beta can collapse DPO into a shortcut that the right checks catch; and that single good/bad labels matched pairs on this data at beta 0.5.
+- **They do not show** anything across random seeds (one seed per run), anything about real prompt-injection attacks (Track B is templated), or anything quantitative about large models.
 
-### Built and tested, but not yet run where it counts
+### Not yet run
 
-- **M1 full run** (`configs/dpo_full.yaml`, Qwen2.5-0.5B on a T4): two attempts failed (out of memory, then a stop at the first training step); both are fixed in code; no completed run exists. Peak memory and time for Qwen are not yet measured.
-- **M2 parity on a real model:** the TRL half of the tiny pair was still running when this was written; `parity_full` has not been run. No real-model parity figure exists.
-- **M3 reward model:** no completed run. The comparison with DPO's implicit reward has only been exercised on synthetic data.
-- **M5 Track B:** no model has been trained on the dataset or evaluated on it. The before/after table, the hero figure and the probe results do not exist.
-- **M6 sweeps** (beta, LoRA rank, data size, label noise): none run.
-- **The fp16 retry path** has never executed; CI has no GPU.
+- **M6:** LoRA rank 64 and its figure, the dataset-size sweep, and the label-noise sweep with the robust loss.
+- **Optional:** extra seeds for the four key Track B runs; a reward-model rerun with a lower head learning rate.
 
 ### Not done
 
@@ -902,3 +980,6 @@ Answer aloud, without looking. Ordered from easy to hard.
 23. Derive pi* for the KL-constrained objective, and say why Z(x) cancels in DPO.
 24. In the toy, DPO with always-correct labels earned more reward than the "optimum". Explain how that is possible and what it says about beta.
 25. Someone says "your held-out on-task rate went up, so the model learned the behavior". Give two specific shortcuts that would produce the same result, and the probe that separates each from the real behavior.
+26. Write KTO's loss for a good answer. Why is its step-0 value 0.5?
+27. At beta 0.1, DPO collapsed on Track B and KTO did not. Explain why, and explain why "z0 falls when everything falls" is the wrong explanation.
+28. In the beta sweep, accuracy barely moved while drift changed 60-fold. What does that tell you about how to choose beta?
