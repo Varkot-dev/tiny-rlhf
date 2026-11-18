@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794979527,
+  "updated_unix": 1794980461,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -208,10 +208,13 @@
       "minutes": 0.1
     },
     "label_noise_0.0": {
-      "status": "skipped-budget",
+      "status": "done",
       "stage": "label_noise",
-      "minutes": 0.0,
-      "minutes_left": 14.1
+      "minutes": 15.6,
+      "wall_time_s": 905.11,
+      "peak_gpu_memory_mb": 8801.1,
+      "optimizer_steps": 233,
+      "scaler_retries": 4
     },
     "label_noise_0.1": {
       "status": "skipped-budget",
