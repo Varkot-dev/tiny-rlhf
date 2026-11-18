@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794973778,
+  "updated_unix": 1794973782,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -87,26 +87,20 @@
       "note": "checked: already current"
     },
     "m2_parity_ours": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m2",
-      "minutes": 26.4,
-      "wall_time_s": 1542.96,
-      "peak_gpu_memory_mb": 8632.1,
-      "optimizer_steps": 100,
-      "scaler_retries": 0
+      "minutes": 0.0
     },
     "m2_parity_trl": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m2",
-      "minutes": 39.3,
-      "wall_time_s": 1936.78,
-      "peak_gpu_memory_mb": 7166.7,
-      "optimizer_steps": 100
+      "minutes": 0.0
     },
     "m2_parity_figure": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "m2",
-      "minutes": 0.1
+      "minutes": 0.1,
+      "note": "checked: already current"
     },
     "m2_parity_ours_fp16": {
       "status": "not-needed",
