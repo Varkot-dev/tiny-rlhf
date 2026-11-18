@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1794973782,
+  "updated_unix": 1794973788,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "jobs": {
@@ -128,9 +128,9 @@
       "minutes": 0.0
     },
     "beta_0.5": {
-      "status": "done",
+      "status": "skipped-existing",
       "stage": "beta",
-      "minutes": 17.6
+      "minutes": 0.0
     },
     "beta_figure": {
       "status": "done",

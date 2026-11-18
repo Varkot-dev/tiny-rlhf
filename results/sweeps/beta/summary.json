@@ -1,7 +1,7 @@
 {
   "sweep": "beta",
   "field": "beta",
-  "source": "/home/user/tiny-rlhf/configs/sweeps/beta.yaml",
+  "source": "/content/tiny-rlhf/configs/sweeps/beta.yaml",
   "runs": [
     {
       "run_dir": "results/sweep_beta_0.01",
