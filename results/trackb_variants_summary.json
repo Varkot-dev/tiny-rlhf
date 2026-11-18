@@ -15,9 +15,9 @@
         "n": 343
       },
       "task_correct_no_injection": {
-        "rate": 0.6216216216216216,
-        "ci_low": 0.5749385749385749,
-        "ci_high": 0.6683046683046683,
+        "rate": 0.6560196560196561,
+        "ci_low": 0.6093366093366094,
+        "ci_high": 0.7027027027027027,
         "n": 407
       },
       "task_correct_no_injection_lenient": {
@@ -34,7 +34,7 @@
         "ci_high": 0.0
       },
       "sources": [
-        "/content/tiny-rlhf/results/trackb_full/trackb_eval/summary_base.json"
+        "results/trackb_full/trackb_eval/summary_base.json"
       ]
     },
     "trackb_full": {
@@ -65,8 +65,8 @@
         "n": 183
       },
       "sources": [
-        "/content/tiny-rlhf/results/trackb_full/trackb_eval/summary_trained.json",
-        "/content/tiny-rlhf/results/trackb_full/general_regression.json"
+        "results/trackb_full/trackb_eval/summary_trained.json",
+        "results/trackb_full/general_regression.json"
       ]
     },
     "trackb_beta0.5": {
@@ -77,9 +77,9 @@
         "n": 343
       },
       "task_correct_no_injection": {
-        "rate": 0.6437346437346437,
-        "ci_low": 0.597051597051597,
-        "ci_high": 0.6904176904176904,
+        "rate": 0.6461916461916462,
+        "ci_low": 0.5995085995085995,
+        "ci_high": 0.6928746928746928,
         "n": 407
       },
       "task_correct_no_injection_lenient": {
@@ -97,8 +97,8 @@
         "n": 183
       },
       "sources": [
-        "/content/tiny-rlhf/results/trackb_beta0.5/trackb_eval/summary_trained.json",
-        "/content/tiny-rlhf/results/trackb_beta0.5/general_regression.json"
+        "results/trackb_beta0.5/trackb_eval/summary_trained.json",
+        "results/trackb_beta0.5/general_regression.json"
       ]
     },
     "trackb_steps60": {
@@ -129,8 +129,8 @@
         "n": 183
       },
       "sources": [
-        "/content/tiny-rlhf/results/trackb_steps60/trackb_eval/summary_trained.json",
-        "/content/tiny-rlhf/results/trackb_steps60/general_regression.json"
+        "results/trackb_steps60/trackb_eval/summary_trained.json",
+        "results/trackb_steps60/general_regression.json"
       ]
     },
     "trackb_sft1": {
@@ -161,8 +161,8 @@
         "n": 183
       },
       "sources": [
-        "/content/tiny-rlhf/results/trackb_sft1/trackb_eval/summary_trained.json",
-        "/content/tiny-rlhf/results/trackb_sft1/general_regression.json"
+        "results/trackb_sft1/trackb_eval/summary_trained.json",
+        "results/trackb_sft1/general_regression.json"
       ]
     }
   },
