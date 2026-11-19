@@ -8,7 +8,7 @@ It is a picture of the loss function, not of a trained model.
 
 ## Status
 
-**Work in progress. M0 to M5 and M7 are done, all runs one seed each. M6 has three of its four sweeps; the last label-noise run, extra seeds and the final write-up remain.**
+**Work in progress. M0 to M5 and M7 are done, all runs one seed each, and all four M6 sweeps have run. Extra seeds, M8 (GRPO) and M9 (real prompt injections) are built and waiting for GPU time; the final write-up remains.**
 
 | Milestone | Code and tests | Runs |
 |---|---|---|
@@ -18,8 +18,10 @@ It is a picture of the loss function, not of a trained model.
 | M3 reward model | done | tiny run on CPU; one full run on a Colab T4 |
 | M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
 | M5 Track B training and evaluation | done | four full runs on a Colab T4 (below) |
-| M6 ablation sweeps and write-up | sweep tooling done | beta, LoRA rank and dataset size sweeps done; label noise 3 of 4; final write-up pending |
+| M6 ablation sweeps and write-up | sweep tooling done | beta, LoRA rank, dataset size and label noise sweeps done; extra seeds queued; final write-up pending |
 | M7 KTO against DPO on Track B (extension) | done, checked against TRL's KTOTrainer | two full runs on a Colab T4 (below) |
+| M8 GRPO with the Track B checker as the reward (extension) | done, loss checked against TRL's GRPOTrainer; a two-step training run on a tiny model in the tests | not run on a GPU yet (queued) |
+| M9 transfer to real prompt injections, BIPIA (extension) | done, see [docs/EXTERNAL_EVAL.md](docs/EXTERNAL_EVAL.md); checked end to end on the CPU on 12 examples | not run on a GPU yet (queued) |
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
 **New here? Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md)**: the whole project explained from zero, the story of every experiment, what went wrong, and interview questions with answers. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
@@ -96,7 +98,9 @@ Same setup as the beta sweep (hand-written DPO, beta 0.1, the standard dataset, 
 
 With little data the model memorises: held-out loss ends far above the 0.693 it started at, and the preferred answers fall about 50 nats. Accuracy levels off around 1,000 pairs, but more data keeps reducing the damage. Held-out losses are from each run's `eval.csv`.
 
-**Label noise** (a share of training pairs has chosen and rejected swapped; held-out pairs are never flipped): held-out accuracy 0.664, 0.650 and 0.603 with 0%, 10% and 30% flipped (`results/sweep_noise_*/eval.csv`). DPO degrades gracefully. The 0% run reproduces the beta 0.1 sweep run exactly (same settings, accuracy 0.664 and preferred log-probability -328.2 in both). The robust-loss run at 30% and this sweep's figure are not done yet.
+**Label noise** (`results/sweeps/label_noise/summary.json`, [figure](assets/m6_sweep_label_noise.png); a share of training pairs has chosen and rejected swapped, held-out pairs are never flipped): held-out accuracy 0.664, 0.650 and 0.603 with 0%, 10% and 30% flipped. DPO degrades gracefully. The 0% run reproduces the beta 0.1 sweep run exactly (same settings, accuracy 0.664 and preferred log-probability -328.2 in both). With 30% flipped, the ordinary loss also moves the model less (preferred answers -2.0 nats against -5.4 on clean data), because the flipped pairs push the other way.
+
+The robust DPO loss (TRL's `loss_type="robust"`, written by hand in `src/tiny_rlhf/noise.py`), told the true 30% flip rate, reaches 0.628. Compared pair by pair on the same 277 held-out pairs (`results/sweeps/label_noise/robust_vs_ordinary.json`, from `scripts/compare_pairs.py`), that is +0.025 in accuracy with a paired interval of -0.011 to +0.061: not distinguishable from no effect at this sample size. Its held-out reward margin is clearly larger (+0.12, interval +0.07 to +0.17), and it moves the preferred answers as far as clean training does (-5.2 nats). Against the clean run it is -0.036 (-0.094 to +0.018; `robust_vs_clean.json`). One seed per run; the robust loss was given the exact flip rate, which a real dataset would not reveal.
 
 ## An explicit reward model and DPO's implicit reward agree on most pairs
 

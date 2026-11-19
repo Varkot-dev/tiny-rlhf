@@ -1,0 +1,118 @@
+{
+  "source": {
+    "dataset": "geodesic-research/bipia",
+    "revision": "003f58372e1696726b7cddde274a74bee0b1938a",
+    "file": "bipia/train-00000-of-00001.parquet",
+    "file_sha256": "2ec55ad51b2f14c0d211a76f9ec49dcfca308afdecc24654642308e5ab8e7c0d",
+    "upstream": "microsoft/BIPIA commit a004b69ec0dd",
+    "upstream_files": [
+      "benchmark/email/test.jsonl",
+      "benchmark/table/test.jsonl"
+    ],
+    "paper": "Yi et al. 2023, arXiv:2312.14197",
+    "licence": "CC BY-SA 4.0 (mirror card); BIPIA code MIT"
+  },
+  "derived_licence": "CC BY-SA 4.0 (share-alike, as the mirror)",
+  "builder": "python -m tiny_rlhf.external.build",
+  "config": {
+    "seed": 0,
+    "per_task": {
+      "table": 2,
+      "email": 1
+    },
+    "max_context_chars": 2400,
+    "positions": [
+      "start",
+      "middle",
+      "end"
+    ],
+    "out_dir": "data/external/bipia"
+  },
+  "selection": {
+    "n_injected": 648,
+    "n_clean": 125,
+    "n_attacks_scored": 72,
+    "n_attacks_in_source": 75,
+    "attacks_not_scored": [
+      "targeted / Misinformation & Propaganda / 4",
+      "task_relevant / Substitution Ciphers / 1",
+      "task_relevant / Substitution Ciphers / 3"
+    ],
+    "documents_per_task": {
+      "table": 75,
+      "email": 50
+    },
+    "documents_used": {
+      "table": 75,
+      "email": 50
+    },
+    "ineligible_documents": {
+      "Entertainment 1": {
+        "table": 1
+      },
+      "Entertainment 2": {
+        "table": 3
+      },
+      "Entertainment 4": {
+        "table": 1
+      },
+      "Misinformation & Propaganda 0": {
+        "table": 2
+      },
+      "Conversational Agent 1": {
+        "table": 1
+      },
+      "Conversational Agent 3": {
+        "table": 3,
+        "email": 21
+      },
+      "Task Automation 3": {
+        "table": 1
+      },
+      "Base Encoding 0": {
+        "email": 1
+      },
+      "Base Encoding 1": {
+        "email": 1
+      },
+      "Base Encoding 2": {
+        "email": 1
+      },
+      "Base Encoding 3": {
+        "email": 1
+      },
+      "Base Encoding 4": {
+        "email": 1
+      },
+      "Emoji Substitution 0": {
+        "table": 1
+      },
+      "Emoji Substitution 1": {
+        "table": 1
+      },
+      "Emoji Substitution 2": {
+        "table": 1
+      },
+      "Emoji Substitution 3": {
+        "table": 1
+      },
+      "Emoji Substitution 4": {
+        "table": 1
+      }
+    },
+    "per_task": {
+      "table": 2,
+      "email": 1
+    },
+    "max_context_chars": 2400,
+    "positions": [
+      "start",
+      "middle",
+      "end"
+    ],
+    "seed": 0
+  },
+  "examples_file": "bipia_eval.jsonl",
+  "examples_file_sha256": "f31b65f869a001210b4e490faf1deb991b53d855f94f5f765f48a56bf6cd06a3",
+  "examples_sha256": "c04f47b05b8c886d2c7679b63d9e06aeac2ad2be7462b576f51dac27c73384c9"
+}

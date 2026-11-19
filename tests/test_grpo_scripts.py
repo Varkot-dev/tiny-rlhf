@@ -60,7 +60,19 @@ def write_run(directory: Path, steps: int) -> None:
     (directory / "run_info.json").write_text(json.dumps(info))
 
 
+def test_training_summary_without_drawing(tmp_path: Path) -> None:
+    # The numbers in the summary, checked without matplotlib (CI does not install it).
+    run = tmp_path / "trackb_grpo"
+    write_run(run, steps=12)
+    columns = training.read_train_csv(run / "train.csv")
+    summary = training.window_summary(columns, 4)
+    assert summary["reward_mean"]["first"] == pytest.approx((1 + 2 + 3 + 4) / 4 / 12)
+    assert summary["reward_mean"]["last"] == pytest.approx((9 + 10 + 11 + 12) / 4 / 12)
+    assert summary["rate_refused"] == {"first": None, "last": None}
+
+
 def test_training_figure_and_summary(tmp_path: Path) -> None:
+    pytest.importorskip("matplotlib")  # the script draws; CI does not install matplotlib
     run = tmp_path / "trackb_grpo"
     write_run(run, steps=12)
     out, summary = tmp_path / "fig.png", tmp_path / "summary.json"
@@ -119,7 +131,19 @@ def copy_document(example: dict[str, Any]) -> str:
     return example["chosen"][0]["content"]
 
 
+def test_hacking_stats_count_copies_without_drawing(tmp_path: Path) -> None:
+    # The measures, checked without matplotlib (CI does not install it).
+    write_eval(tmp_path / "trackb_full" / "trackb_eval", "base", preferred)
+    write_eval(tmp_path / "trackb_grpo" / "trackb_eval", "trained", copy_document)
+    base = hacking.hacking_stats(hacking.load_rows(hacking.summary_path(tmp_path, "base")))
+    grpo = hacking.hacking_stats(hacking.load_rows(hacking.summary_path(tmp_path, "trackb_grpo")))
+    assert base["n_answers"] == grpo["n_answers"] == 20
+    assert base["paid"]["rate"] == 1.0 and base["echoed_document"]["rate"] == 0.0
+    assert grpo["echoed_document"]["rate"] == 1.0 and grpo["paid"]["rate"] == 0.0
+
+
 def test_hacking_check_counts_copies_and_writes_a_sample(tmp_path: Path) -> None:
+    pytest.importorskip("matplotlib")  # the script draws; CI does not install matplotlib
     write_eval(tmp_path / "trackb_full" / "trackb_eval", "base", preferred)
     write_eval(tmp_path / "trackb_grpo" / "trackb_eval", "trained", copy_document)
     out = tmp_path / "hacking.png"

@@ -13,11 +13,16 @@ import pytest
 
 from tiny_rlhf.gpu_queue import (
     ESTIMATE_MIN,
+    EXTERNAL_BASE_SUMMARY,
+    EXTERNAL_EVAL_ARGS,
     FAILURE_DIR,
     GRPO_RUNS,
     GRPO_SMALL_BATCH,
     KTO_RUNS,
     KTO_SMALL_BATCH,
+    M9_FIGURE_RUNS,
+    M9_RERUN_SUFFIX,
+    M9_RERUNS,
     SEED_RUNS,
     STAGES,
     STATUS_FILE,
@@ -30,6 +35,7 @@ from tiny_rlhf.gpu_queue import (
     build_queue,
     describe,
     format_table,
+    m9_rerun_name,
     merge_status,
     push,
     run_queue,
@@ -135,12 +141,21 @@ def test_queue_has_every_expected_job_exactly_once_in_priority_order() -> None:
         name = seed_run_name(run, seed)
         expected |= {f"{name}_train", f"{name}_eval", f"{name}_compare"}
     expected.add("seeds_figure")
-    expected |= {f"m8_grpo_{step}" for step in ("train", "eval", "compare", "figure", "hacking")}
+    expected |= {
+        f"m8_grpo_{step}" for step in ("train", "eval", "external", "compare", "figure", "hacking")
+    }
+    expected |= {"m9_eval_base", "m9_grpo_compare", "m9_figure"}
+    for run in M9_RERUNS:
+        name = m9_rerun_name(run)
+        expected |= {
+            f"{name}_{step}" for step in ("train", "eval", "external", "reproduce", "compare")
+        }
     assert set(names) == expected
     assert [j.stage for j in QUEUE] == sorted((j.stage for j in QUEUE), key=STAGES.index)
     assert STAGES[:5] == ("m5", "m5_followup", "m7_kto", "m3", "m2")
-    # Robustness repeats come after every earlier stage; M8 (GRPO) was appended after them.
-    assert STAGES[-2:] == ("seeds", "m8_grpo")
+    # Robustness repeats come after every earlier stage; M8 (GRPO) and M9 (the external
+    # evaluation) were appended after them.
+    assert STAGES[-3:] == ("seeds", "m8_grpo", "m9_external")
 
 
 def test_dependencies_exist_point_backwards_and_are_acyclic() -> None:
@@ -387,12 +402,13 @@ def test_jobs_that_read_an_adapter_name_the_job_that_writes_it() -> None:
         "m5_eval_trained",
         "m5_compare",
         "m8_grpo_eval",
+        "m8_grpo_external",
         "m8_grpo_compare",
     } | {
         f"{run}_{step}"
         for run in (*TRACKB_VARIANTS, *KTO_RUNS, *seed_runs)
         for step in ("eval", "compare")
-    }
+    } | {f"{m9_rerun_name(run)}_{step}" for run in M9_RERUNS for step in ("eval", "external")}
     for j in readers:
         producer = produced[j.needs_adapter]
         position = [q.name for q in QUEUE]
@@ -890,7 +906,10 @@ def test_strict_rescoring_runs_last_in_the_followup_stage_and_commits_every_run(
     # The GRPO run (M8, appended later) is the exception: adding it to all_trackb_runs would
     # change this existing job's outputs. Its rescored file is written and committed by its
     # own compare job, and rescoring is deterministic, so this job rewrites it unchanged.
-    assert evaluated <= set(all_trackb_runs()) | set(GRPO_RUNS)
+    # The M9 reruns (<run>_m9) are not rescored at all: discover_runs leaves them out, and
+    # they are compared with their saved runs by tiny_rlhf.external.reproduce instead.
+    m9_reruns = {m9_rerun_name(run) for run in M9_RERUNS}
+    assert evaluated <= set(all_trackb_runs()) | set(GRPO_RUNS) | m9_reruns
     assert "assets/m5_trackb_strict.png" in rescore.outputs
     # Nothing it writes may land on an original evaluation file.
     assert not any("summary_" in path or path.endswith(".jsonl") for path in rescore.outputs)
@@ -952,6 +971,106 @@ def test_seed_runs_are_trained_evaluated_and_compared_exactly_like_their_origina
     }
     assert figure.commands == (("python", "scripts/plot_seeds.py"),)
     assert figure.marker in figure.outputs
+
+
+def test_m9_reruns_train_exactly_like_the_saved_runs_and_are_checked_against_them() -> None:
+    from tiny_rlhf.trackb.rescore import RERUN_SUFFIX
+
+    # The strict rescoring leaves these reruns out by the same suffix.
+    assert M9_RERUN_SUFFIX == RERUN_SUFFIX
+    m5_eval = BY_NAME["m5_eval_trained"].commands[0]
+    original_train = {
+        "trackb_full": BY_NAME["m5_train"],
+        **{run: BY_NAME[f"{run}_train"] for run in (*TRACKB_VARIANTS, *KTO_RUNS)},
+    }
+    for run in M9_RERUNS:
+        name = m9_rerun_name(run)
+        train = BY_NAME[f"{name}_train"]
+        assert train.stage == "m9_external"
+        # The saved run's own training command, with only the run name changed.
+        command = list(train.commands[0])
+        at = command.index("--run-name")
+        assert command[at + 1] == name
+        del command[at : at + 2]
+        original = original_train[run]
+        assert tuple(command) == original.commands[0]
+        assert train.oom_retry_args == original.oom_retry_args
+        assert train.produces_adapter == f"checkpoints/{name}"
+        # Track B evaluation with m5's settings, for the reproduction check.
+        evaluation = BY_NAME[f"{name}_eval"].commands[0]
+        differ = [i for i, (a, b) in enumerate(zip(evaluation, m5_eval, strict=True)) if a != b]
+        assert [evaluation[i - 1] for i in differ] == ["--adapter", "--out"]
+        assert evaluation[evaluation.index("--out") + 1] == f"results/{name}/trackb_eval"
+        reproduce = BY_NAME[f"{name}_reproduce"]
+        assert reproduce.commands == (
+            (
+                "python",
+                "-m",
+                "tiny_rlhf.external.reproduce",
+                "--saved",
+                f"results/{run}",
+                "--rerun",
+                f"results/{name}",
+            ),
+        )
+        assert reproduce.depends_on == (f"{name}_eval",)
+        assert reproduce.rerun_if_deps_ran
+        # Nothing a rerun job writes may land in the saved run's directory.
+        for step in ("train", "eval", "external", "reproduce", "compare"):
+            for path in BY_NAME[f"{name}_{step}"].outputs:
+                assert path.startswith(f"results/{name}/") or path == f"results/{name}"
+
+
+def test_external_evaluations_use_the_same_settings_and_the_shared_base() -> None:
+    base = BY_NAME["m9_eval_base"]
+    assert base.always_run and "--reuse-if-current" in base.commands[0]
+    assert base.marker == EXTERNAL_BASE_SUMMARY
+    base_cmd = base.commands[0]
+    externals = [j for j in QUEUE if j.name.endswith("_external")]
+    assert {j.name for j in externals} == {"m8_grpo_external"} | {
+        f"{m9_rerun_name(run)}_external" for run in M9_RERUNS
+    }
+    for j in externals:
+        cmd = j.commands[0]
+        assert cmd[1] == "scripts/eval_external.py"
+        assert cmd[cmd.index("--batch-size") :] == EXTERNAL_EVAL_ARGS
+        assert base_cmd[base_cmd.index("--batch-size") :][: len(EXTERNAL_EVAL_ARGS)] == (
+            EXTERNAL_EVAL_ARGS
+        )
+        assert cmd[cmd.index("--model") + 1] == base_cmd[base_cmd.index("--model") + 1]
+        assert cmd[cmd.index("--label") + 1] == "trained"
+        run = cmd[cmd.index("--adapter") + 1].removeprefix("checkpoints/")
+        assert j.marker == f"results/{run}/external_eval/summary_trained.json"
+        assert j.needs_adapter == f"checkpoints/{run}" and j.rerun_if_deps_ran
+    # GRPO's adapter is evaluated inside the m8 stage, after its training and before any
+    # later stage, so it is never trained again just for this.
+    order = [j.name for j in QUEUE]
+    grpo = BY_NAME["m8_grpo_external"]
+    assert grpo.stage == "m8_grpo" and grpo.depends_on == ("m8_grpo_train",)
+    assert order.index("m8_grpo_train") < order.index("m8_grpo_external")
+    assert order.index("m8_grpo_external") < order.index("m8_grpo_compare")
+    # Every comparison is against the one base evaluation.
+    compares = [j for j in QUEUE if j.stage == "m9_external" and j.name.endswith("_compare")]
+    assert len(compares) == len(M9_RERUNS) + 1
+    for j in compares:
+        cmd = j.commands[0]
+        assert cmd[:3] == ("python", "scripts/eval_external.py", "--compare")
+        assert cmd[cmd.index("--base") + 1] == EXTERNAL_BASE_SUMMARY
+        assert "m9_eval_base" in j.depends_on
+        assert j.marker in j.outputs
+    figure = BY_NAME["m9_figure"]
+    assert [j for j in QUEUE if j.stage == "m9_external"][-1] is figure
+    assert figure.always_run and figure.min_deps_done == 1
+    assert set(figure.depends_on) == {j.name for j in compares}
+    cmd = figure.commands[0]
+    assert "--skip-missing" in cmd and figure.marker in figure.outputs
+    plotted = [cmd[i + 1] for i, a in enumerate(cmd) if a == "--trained"]
+    assert plotted == [
+        f"{label}=results/{run}/external_eval/summary_trained.json" for label, run in M9_FIGURE_RUNS
+    ]
+    # Every model compared is plotted.
+    compared = {j.commands[0][-1] for j in compares}
+    assert compared == {p.split("=", 1)[1] for p in plotted}
 
 
 def test_status_file_marks_rows_kept_from_an_earlier_launch(repo: Path) -> None:

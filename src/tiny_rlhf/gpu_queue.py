@@ -47,6 +47,7 @@ STAGES = (
     "label_noise",
     "seeds",
     "m8_grpo",
+    "m9_external",
 )
 
 # Follow-up to the first full Track B run (results/trackb_full), which over-optimised:
@@ -877,6 +878,7 @@ def build_queue(root: str | Path = ".") -> list[Job]:
         jobs += _sweep_jobs(root, stage)
     jobs += _seeds_jobs()
     jobs += _m8_grpo_jobs()
+    jobs += _m9_external_jobs()
     return jobs
 
 
@@ -1479,6 +1481,15 @@ def _m8_grpo_jobs() -> list[Job]:
             needs_adapter=adapter,
             rerun_if_deps_ran=True,
         ),
+        # M9's external evaluation of the GRPO adapter runs here, while the adapter exists:
+        # adapters are not in git, and getting this one back would mean 90 minutes of
+        # training again. The comparison with the base model is in the m9_external stage.
+        _external_eval_job(
+            name="m8_grpo_external",
+            stage="m8_grpo",
+            run=run,
+            depends_on="m8_grpo_train",
+        ),
         Job(
             name="m8_grpo_compare",
             stage="m8_grpo",
@@ -1571,3 +1582,243 @@ def _m8_grpo_jobs() -> list[Job]:
             always_run=True,
         ),
     ]
+
+
+# --------------------------------------------------------------------------------------
+# M9: the trained models on real prompt injections (BIPIA), appended after M8
+# --------------------------------------------------------------------------------------
+
+# One base-model evaluation, shared by every comparison (docs/EXTERNAL_EVAL.md).
+EXTERNAL_BASE_DIR = "results/m9_external/base_eval"
+EXTERNAL_BASE_SUMMARY = f"{EXTERNAL_BASE_DIR}/summary_base.json"
+# The same batch size for the base and every trained evaluation: with fp16 and left
+# padding, greedy answers can depend on which examples share a batch.
+EXTERNAL_EVAL_ARGS = ("--batch-size", "16")
+# Adapters are not in git, so a saved Track B run is trained again from its own config and
+# seed under the name <run>_m9, and tiny_rlhf.external.reproduce checks that the rerun's
+# Track B evaluation matches the saved run's before its external numbers are reported.
+# Must equal tiny_rlhf.trackb.rescore.RERUN_SUFFIX (tested), which keeps these reruns out
+# of the strict rescoring of every run.
+M9_RERUN_SUFFIX = "_m9"
+# Order: the best DPO run, KTO at the same beta, then the over-optimised first DPO run.
+M9_RERUNS = ("trackb_beta0.5", "trackb_kto_beta0.5", "trackb_full")
+# Figure labels, in the order the bars are drawn; GRPO's adapter comes from the m8 stage.
+M9_FIGURE_RUNS = (
+    ("DPO, beta 0.1", f"trackb_full{M9_RERUN_SUFFIX}"),
+    ("DPO, beta 0.5", f"trackb_beta0.5{M9_RERUN_SUFFIX}"),
+    ("KTO, beta 0.5", f"trackb_kto_beta0.5{M9_RERUN_SUFFIX}"),
+    ("GRPO", GRPO_RUN),
+)
+# GUESSES for the external evaluation: 773 greedy generations of at most 96 tokens from
+# prompts up to about 700 tokens. The Track B base evaluation (1,050 generations, shorter
+# documents) took 221 s on a T4. Training times are the measured seeds-stage estimates.
+ESTIMATE_MIN.update(
+    {
+        "m9_eval_base": 8,
+        "m9_train_dpo": ESTIMATE_MIN["seeds_train_dpo"],
+        "m9_train_kto": ESTIMATE_MIN["seeds_train_kto"],
+        "m9_eval_trackb": ESTIMATE_MIN["seeds_eval"],
+        "m9_eval_external": 7,
+        "m9_reproduce": 1,
+        "m9_compare": 1,
+        "m9_figure": 2,
+    }
+)
+
+
+def m9_rerun_name(run: str) -> str:
+    return f"{run}{M9_RERUN_SUFFIX}"
+
+
+def _external_eval_job(name: str, stage: str, run: str, depends_on: str) -> Job:
+    """Evaluate the adapter checkpoints/<run> on the BIPIA set, into results/<run>/external_eval."""
+    adapter = f"checkpoints/{run}"
+    out = f"results/{run}/external_eval"
+    return Job(
+        name=name,
+        stage=stage,
+        commands=(
+            (
+                "python",
+                "scripts/eval_external.py",
+                "--model",
+                QWEN,
+                "--adapter",
+                adapter,
+                "--label",
+                "trained",
+                "--out",
+                out,
+                *EXTERNAL_EVAL_ARGS,
+            ),
+        ),
+        marker=f"{out}/summary_trained.json",
+        outputs=(out,),
+        estimate_min=ESTIMATE_MIN["m9_eval_external"],
+        depends_on=(depends_on,),
+        needs_adapter=adapter,
+        rerun_if_deps_ran=True,
+    )
+
+
+def _external_compare_job(name: str, run: str, external_job: str) -> Job:
+    """Before/after table of results/<run>/external_eval against the shared base evaluation."""
+    out = f"results/{run}/external_eval"
+    return Job(
+        name=name,
+        stage="m9_external",
+        commands=(
+            (
+                "python",
+                "scripts/eval_external.py",
+                "--compare",
+                "--base",
+                EXTERNAL_BASE_SUMMARY,
+                "--trained",
+                f"{out}/summary_trained.json",
+            ),
+        ),
+        marker=f"{out}/external_table.md",
+        outputs=(f"{out}/external_table.md", f"{out}/external_compare.json"),
+        estimate_min=ESTIMATE_MIN["m9_compare"],
+        depends_on=("m9_eval_base", external_job),
+        rerun_if_deps_ran=True,
+    )
+
+
+def _m9_external_jobs() -> list[Job]:
+    """M9: the base model on BIPIA once; per saved run, retrain it for its adapter, evaluate
+    on Track B (for the reproduction check) and on BIPIA, check the rerun reproduces the
+    saved run, compare with the base; GRPO's comparison; then the figure."""
+    jobs = [
+        Job(
+            name="m9_eval_base",
+            stage="m9_external",
+            commands=(
+                (
+                    "python",
+                    "scripts/eval_external.py",
+                    "--model",
+                    QWEN,
+                    "--label",
+                    "base",
+                    "--out",
+                    EXTERNAL_BASE_DIR,
+                    *EXTERNAL_EVAL_ARGS,
+                    "--reuse-if-current",
+                ),
+            ),
+            marker=EXTERNAL_BASE_SUMMARY,
+            outputs=(EXTERNAL_BASE_DIR,),
+            estimate_min=ESTIMATE_MIN["m9_eval_base"],
+            # The command itself skips the work when a current evaluation is in the repo.
+            always_run=True,
+        )
+    ]
+    for run in M9_RERUNS:
+        name = m9_rerun_name(run)
+        kto = "kto" in run
+        adapter = f"checkpoints/{name}"
+        config = f"configs/{run}.yaml"
+        if kto:
+            train = ("python", "scripts/train_kto.py", "--config", config, "--run-name", name)
+        else:
+            train = ("python", "scripts/train_trackb.py", "--config", config, "--run-name", name)
+            if run == "trackb_full":
+                # The saved run was trained by m5_train with this override.
+                train = (*train, "--set", "eval_every=125")
+        evals = f"results/{name}/trackb_eval"
+        jobs += [
+            Job(
+                name=f"{name}_train",
+                stage="m9_external",
+                commands=(train,),
+                marker=f"results/{name}/run_info.json",
+                outputs=(f"results/{name}",),
+                estimate_min=ESTIMATE_MIN["m9_train_kto" if kto else "m9_train_dpo"],
+                produces_adapter=adapter,
+                oom_retry_args=KTO_SMALL_BATCH if kto else SMALL_BATCH,
+            ),
+            Job(
+                name=f"{name}_eval",
+                stage="m9_external",
+                commands=(
+                    (
+                        "python",
+                        "scripts/eval_trackb.py",
+                        "--model",
+                        QWEN,
+                        "--adapter",
+                        adapter,
+                        "--label",
+                        "trained",
+                        "--out",
+                        evals,
+                        *TRACKB_EVAL_ARGS,
+                    ),
+                ),
+                marker=f"{evals}/summary_trained.json",
+                outputs=(evals,),
+                estimate_min=ESTIMATE_MIN["m9_eval_trackb"],
+                depends_on=(f"{name}_train",),
+                needs_adapter=adapter,
+                rerun_if_deps_ran=True,
+            ),
+            _external_eval_job(
+                name=f"{name}_external", stage="m9_external", run=name, depends_on=f"{name}_train"
+            ),
+            Job(
+                name=f"{name}_reproduce",
+                stage="m9_external",
+                commands=(
+                    (
+                        "python",
+                        "-m",
+                        "tiny_rlhf.external.reproduce",
+                        "--saved",
+                        f"results/{run}",
+                        "--rerun",
+                        f"results/{name}",
+                    ),
+                ),
+                marker=f"results/{name}/reproduction.json",
+                outputs=(f"results/{name}/reproduction.json",),
+                estimate_min=ESTIMATE_MIN["m9_reproduce"],
+                depends_on=(f"{name}_eval",),
+                rerun_if_deps_ran=True,
+            ),
+            _external_compare_job(f"{name}_compare", name, f"{name}_external"),
+        ]
+    jobs.append(_external_compare_job("m9_grpo_compare", GRPO_RUN, "m8_grpo_external"))
+    compares = tuple(f"{m9_rerun_name(run)}_compare" for run in M9_RERUNS) + ("m9_grpo_compare",)
+    figure_args: list[str] = []
+    for label, run in M9_FIGURE_RUNS:
+        figure_args += ["--trained", f"{label}=results/{run}/external_eval/summary_trained.json"]
+    jobs.append(
+        Job(
+            name="m9_figure",
+            stage="m9_external",
+            commands=(
+                (
+                    "python",
+                    "scripts/plot_external.py",
+                    "--base",
+                    EXTERNAL_BASE_SUMMARY,
+                    *figure_args,
+                    "--skip-missing",
+                    "--out",
+                    "assets/m9_external_bipia.png",
+                    "--summary-out",
+                    "results/m9_external/figure_values.json",
+                ),
+            ),
+            marker="results/m9_external/figure_values.json",
+            outputs=("results/m9_external/figure_values.json", "assets/m9_external_bipia.png"),
+            estimate_min=ESTIMATE_MIN["m9_figure"],
+            # Drawn from whichever models finished, and redrawn each launch as more arrive.
+            depends_on=compares,
+            min_deps_done=1,
+            always_run=True,
+        )
+    )
+    return jobs

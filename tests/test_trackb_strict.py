@@ -340,6 +340,19 @@ def test_rescore_all_writes_only_the_runs_it_is_told_to(tmp_path: Path) -> None:
     assert (results / "trackb_rescored_compare.json").exists()
 
 
+def test_discover_runs_leaves_out_reruns_made_for_their_adapter(tmp_path: Path) -> None:
+    # A <run>_m9 rerun exists only to get an adapter back for the external evaluation. No
+    # job writes its rescored file, so listing it would break the all-runs strict figure.
+    from tiny_rlhf.trackb.rescore import RERUN_SUFFIX, discover_runs
+
+    results = tmp_path / "results"
+    for run in ("trackb_beta0.5", "trackb_full", f"trackb_full{RERUN_SUFFIX}", "trackb_kto"):
+        path = results / run / "trackb_eval" / "summary_trained.json"
+        path.parent.mkdir(parents=True)
+        path.write_text("{}")
+    assert discover_runs(results) == ["trackb_full", "trackb_beta0.5", "trackb_kto"]
+
+
 # --------------------------------------------------------------------------------------
 # Real responses from saved evaluations (results/*/trackb_eval/*.jsonl), each a case the
 # first strict rule got wrong or a pattern the fixed rule must keep handling.
