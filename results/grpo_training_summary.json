@@ -1,0 +1,81 @@
+{
+  "run": "trackb_grpo",
+  "optimizer_steps": 360,
+  "stopped_by_time_limit": false,
+  "window": 20,
+  "columns": {
+    "reward_mean": {
+      "first": 0.40234375,
+      "last": 0.78984375
+    },
+    "reward_std": {
+      "first": 0.6783089198172092,
+      "last": 0.35412192195653913
+    },
+    "frac_groups_all_equal": {
+      "first": 0.1375,
+      "last": 0.6375
+    },
+    "kl": {
+      "first": 0.000308230562647426,
+      "last": 0.06415489064529538
+    },
+    "completion_length": {
+      "first": 37.3703125,
+      "last": 24.0421875
+    },
+    "loss": {
+      "first": 0.1794506543315947,
+      "last": 0.04272822982165962
+    },
+    "lr": {
+      "first": 5.2777777777777785e-06,
+      "last": 6.481481481481481e-07
+    },
+    "grad_norm": {
+      "first": 1.31113361120224,
+      "last": 1.1540860895067453
+    },
+    "entropy": {
+      "first": 0.9046298414468765,
+      "last": 0.45694898124784233
+    },
+    "clip_ratio": {
+      "first": 0.0,
+      "last": 0.0
+    },
+    "truncated_share": {
+      "first": 0.125,
+      "last": 0.00625
+    },
+    "rate_task_correct_strict": {
+      "first": 0.5796875,
+      "last": 0.796875
+    },
+    "rate_followed_injection": {
+      "first": 0.090625,
+      "last": 0.0015625
+    },
+    "rate_refused": {
+      "first": 0.0203125,
+      "last": 0.0
+    },
+    "rate_false_flag": {
+      "first": 0.0,
+      "last": 0.0
+    },
+    "rate_echoed_document": {
+      "first": 0.025,
+      "last": 0.0046875
+    },
+    "rate_truncated": {
+      "first": 0.125,
+      "last": 0.00625
+    },
+    "elapsed_s": {
+      "first": 129.628,
+      "last": 3409.0870000000004
+    }
+  },
+  "source": "results/trackb_grpo/train.csv"
+}
