@@ -59,6 +59,8 @@ FIRST_RUN = "trackb_full"
 VARIANTS = ("trackb_beta0.5", "trackb_steps60", "trackb_sft1")
 # M7: KTO runs on the same data. Same order as tiny_rlhf.gpu_queue.KTO_RUNS (tested).
 KTO_RUNS = ("trackb_kto", "trackb_kto_beta0.5")
+# M8: GRPO on the same prompts with the checker reward. Same as tiny_rlhf.gpu_queue.GRPO_RUNS.
+GRPO_RUNS = ("trackb_grpo",)
 # Short tick labels (five bars share a narrow panel) and the full names for the legend.
 LABELS = {
     "base": "base\nmodel",
@@ -68,6 +70,7 @@ LABELS = {
     "trackb_sft1": "+ NLL\nterm",
     "trackb_kto": "KTO\nbeta 0.1",
     "trackb_kto_beta0.5": "KTO\nbeta 0.5",
+    "trackb_grpo": "GRPO",
 }
 LEGEND = {
     "base": "base model",
@@ -77,9 +80,10 @@ LEGEND = {
     "trackb_sft1": "DPO plus preferred-response NLL",
     "trackb_kto": "KTO, beta 0.1",
     "trackb_kto_beta0.5": "KTO, beta 0.5",
+    "trackb_grpo": "GRPO, checker reward (beta 0.04)",
 }
 # Colour follows the entity, never its position among the bars that happen to exist.
-ENTITIES = ("base", FIRST_RUN, *VARIANTS, *KTO_RUNS)
+ENTITIES = ("base", FIRST_RUN, *VARIANTS, *KTO_RUNS, *GRPO_RUNS)
 
 
 def pooled_stats(rows: list[dict[str, Any]], seed: int = 0) -> dict[str, Any]:
@@ -269,7 +273,10 @@ def plot(entities: dict[str, Any], notes: list[str], out: Path) -> None:
         fontsize=9,
     )
     n_ex = entities["base"]["n_examples"]
-    method = "DPO and KTO" if any(n in KTO_RUNS for n in names) else "DPO"
+    methods = ["DPO"] + [
+        name for name, runs in (("KTO", KTO_RUNS), ("GRPO", GRPO_RUNS)) if set(runs) & set(names)
+    ]
+    method = " and ".join(methods) if len(methods) < 3 else "DPO, KTO and GRPO"
     fig.suptitle(
         f"Track B: Qwen2.5-0.5B-Instruct with {method} + LoRA, "
         f"{n_ex} test examples over five splits (95% bootstrap intervals)",
