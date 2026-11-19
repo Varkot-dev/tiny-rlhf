@@ -40,9 +40,9 @@
       "series": "robust loss (label_smoothing 0.3)",
       "run_name": "sweep_noise_0.3_robust",
       "command": "python scripts/train_dpo_noisy.py --config configs/dpo_full.yaml --run-name sweep_noise_0.3_robust --noise-fraction 0.3 --set n_train=2000 --set n_eval=300 --set eval_every=50 --label-smoothing 0.3",
-      "status": "not_run",
-      "returncode": null,
-      "seconds": null
+      "status": "done",
+      "returncode": 0,
+      "seconds": 955.5
     }
   ]
 }
