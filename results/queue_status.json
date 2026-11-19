@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1795059640,
+  "updated_unix": 1795060014,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T03:08:35Z",
@@ -393,6 +393,12 @@
       "peak_gpu_memory_mb": 7321.1,
       "optimizer_steps": 375,
       "scaler_retries": 4
+    },
+    "trackb_beta0.5_seed1_eval": {
+      "status": "done",
+      "stage": "seeds",
+      "minutes": 6.2,
+      "launch": "2026-11-19T03:08:35Z"
     }
   }
 }
