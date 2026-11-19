@@ -8,7 +8,7 @@ It is a picture of the loss function, not of a trained model.
 
 ## Status
 
-**Work in progress. M0 to M5 and M7 are done, all runs one seed each. M6 has the beta sweep; the LoRA rank, dataset size and label noise sweeps are still running.**
+**Work in progress. M0 to M5 and M7 are done, all runs one seed each. M6 has three of its four sweeps; the last label-noise run, extra seeds and the final write-up remain.**
 
 | Milestone | Code and tests | Runs |
 |---|---|---|
@@ -18,7 +18,7 @@ It is a picture of the loss function, not of a trained model.
 | M3 reward model | done | tiny run on CPU; one full run on a Colab T4 |
 | M4 on-task dataset (Track B) | done, with [datasheet](docs/DATASHEET.md) | not applicable |
 | M5 Track B training and evaluation | done | four full runs on a Colab T4 (below) |
-| M6 ablation sweeps and write-up | sweep tooling done | beta sweep done; LoRA rank 3 of 4; dataset size and label noise pending |
+| M6 ablation sweeps and write-up | sweep tooling done | beta, LoRA rank and dataset size sweeps done; label noise 3 of 4; final write-up pending |
 | M7 KTO against DPO on Track B (extension) | done, checked against TRL's KTOTrainer | two full runs on a Colab T4 (below) |
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
@@ -78,6 +78,25 @@ Hand-written DPO on 1,862 pairs of the standard dataset (233 optimizer steps eac
 | 0.5 | 0.621 (0.563 to 0.679) | 0.010 (0.007 to 0.015) | -1.0 nats |
 
 All three learn the preferences about equally well (the accuracy intervals overlap), but drift falls by a factor of 60 from beta 0.01 to 0.5. With the loosest leash the preferred answers became 53 nats less likely; with the tightest, 1 nat. It is the same lesson as Track B, on different data: beta mostly decides how much damage the model takes to learn the same ranking. One seed per value.
+
+## The other sweeps: LoRA rank, dataset size, label noise (M6)
+
+Same setup as the beta sweep (hand-written DPO, beta 0.1, the standard dataset, the same 277 held-out pairs, one seed each, Colab T4); one setting changes per sweep.
+
+**LoRA rank** (`results/sweeps/lora_rank/summary.json`, [figure](assets/m6_sweep_lora_rank.png)): held-out accuracy 0.661, 0.668, 0.661 and 0.682 at rank 2, 8, 16 and 64, all within each other's intervals. Capacity is not the limit here; the largest adapter mainly moved further, with the preferred answers' log-probability falling 10.6 nats against about 5 for the others.
+
+**Dataset size at a fixed 340 steps** (`results/sweeps/data_size/summary.json`, [figure](assets/m6_sweep_data_size.png)):
+
+| Training pairs | Each pair seen about | Held-out accuracy | Held-out loss | Preferred log-probability change |
+|---|---|---|---|---|
+| 100 | 27 times | 0.574 (0.516 to 0.632) | 1.360 | -49.3 nats |
+| 300 | 9 times | 0.635 (0.578 to 0.693) | 1.274 | -50.6 nats |
+| 1,000 | 3 times | 0.664 (0.606 to 0.718) | 0.845 | -28.9 nats |
+| 3,000 | once | 0.650 (0.596 to 0.700) | 0.624 | -6.1 nats |
+
+With little data the model memorises: held-out loss ends far above the 0.693 it started at, and the preferred answers fall about 50 nats. Accuracy levels off around 1,000 pairs, but more data keeps reducing the damage. Held-out losses are from each run's `eval.csv`.
+
+**Label noise** (a share of training pairs has chosen and rejected swapped; held-out pairs are never flipped): held-out accuracy 0.664, 0.650 and 0.603 with 0%, 10% and 30% flipped (`results/sweep_noise_*/eval.csv`). DPO degrades gracefully. The 0% run reproduces the beta 0.1 sweep run exactly (same settings, accuracy 0.664 and preferred log-probability -328.2 in both). The robust-loss run at 30% and this sweep's figure are not done yet.
 
 ## An explicit reward model and DPO's implicit reward agree on most pairs
 
