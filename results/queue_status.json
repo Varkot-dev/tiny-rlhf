@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1795069196,
+  "updated_unix": 1795069201,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T03:08:35Z",
@@ -542,6 +542,12 @@
       "status": "done",
       "stage": "m9_external",
       "minutes": 6.6,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_beta0.5_m9_reproduce": {
+      "status": "done",
+      "stage": "m9_external",
+      "minutes": 0.0,
       "launch": "2026-11-19T03:08:35Z"
     }
   }
