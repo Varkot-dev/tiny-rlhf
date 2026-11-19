@@ -162,9 +162,22 @@ def compare_runs(
     return out
 
 
+# Suffix of a run retrained only to get its adapter back for the external evaluation (M9).
+# Such a rerun is compared with the saved run it repeats, by tiny_rlhf.external.reproduce,
+# not listed here as a run of its own: no job writes its rescored file.
+RERUN_SUFFIX = "_m9"
+
+
 def discover_runs(results: Path) -> list[str]:
-    """Every run under results/ with a saved trained evaluation, first run first."""
-    found = sorted(p.parent.parent.name for p in results.glob("*/trackb_eval/summary_trained.json"))
+    """Every run under results/ with a saved trained evaluation, first run first.
+
+    Reruns named <run>_m9 are left out (see RERUN_SUFFIX).
+    """
+    found = sorted(
+        p.parent.parent.name
+        for p in results.glob("*/trackb_eval/summary_trained.json")
+        if not p.parent.parent.name.endswith(RERUN_SUFFIX)
+    )
     return sorted(found, key=lambda run: (run != "trackb_full", run))
 
 
