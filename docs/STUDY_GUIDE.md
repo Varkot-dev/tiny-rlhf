@@ -27,7 +27,7 @@ Track B applies it to one behavior I can score automatically: when a user asks f
 
 As an extension I compared DPO with KTO, which learns from single answers marked good or bad instead of pairs, on the same data. As a stretch I wrote REINFORCE by hand on a toy problem small enough to enumerate, so the theoretical optimum that DPO's derivation rests on can be checked numerically.
 
-Sweeps over beta, LoRA rank, dataset size and label noise are finished. Repeating the key Track B runs with two more seeds changed one conclusion: DPO collapsed on four of its six runs, including one of three at beta 0.5, while KTO held on all six. Two more extensions are built and tested and are running on the GPU now: GRPO, an online RL method, trained on Track B prompts with my checker as the reward; and an evaluation of the trained models on real prompt injections from Microsoft's BIPIA benchmark, to see whether what they learned from my synthetic data transfers."
+Sweeps over beta, LoRA rank, dataset size and label noise are finished. Repeating the key Track B runs with two more seeds changed one conclusion: DPO collapsed on four of its six runs, including one of three at beta 0.5, while KTO held on all six. Then I trained the same behavior with GRPO, an online RL method, on Track B prompts with my checker as the reward. On one seed it reached the level of the best DPO and KTO runs while drifting about a quarter as much on general text and keeping its answers close to full length, and the automatic reward-hacking checks found none of the hacks they look for. Finally I tested on real prompt injections from Microsoft's BIPIA benchmark, to see whether what was learned from my synthetic data transfers: GRPO followed the injected instruction 12.5% of the time against the base model's 28.5%, with clean-document accuracy held, though part of that may be its shorter answers. DPO and KTO are queued for the same test."
 
 Why two tracks: Track A answers "is my implementation right?" on standard data where a trusted library exists to compare against. Track B answers "does it do something useful?" on a behavior with an unambiguous check. Mixing the two would make a bad result impossible to diagnose.
 
@@ -121,7 +121,7 @@ r_w - r_l = +3:  loss = log(1 + e^-3)    = 0.0486
 
 **What it costs.** Two trained models, a sampling loop (generation is slow), and an RL algorithm that is sensitive to settings. DPO removes stages 2 and 3 as separate steps.
 
-**In this repo.** Stage 2 is `src/tiny_rlhf/reward_model.py`. Stage 3 has run only on a toy (`src/tiny_rlhf/reinforce.py`). On the real model, M8 trains with GRPO (section 2.24) using Track B's automatic checker as the reward instead of a reward model; it is built and tested but not yet run on a GPU. RL on the real model with the reward model as the reward is not built.
+**In this repo.** Stage 2 is `src/tiny_rlhf/reward_model.py`. Stage 3 has run only on a toy (`src/tiny_rlhf/reinforce.py`). On the real model, M8 trains with GRPO (section 2.24) using Track B's automatic checker as the reward instead of a reward model; it has run once, on one seed, and the result is at the end of section 2.24. RL on the real model with the reward model as the reward is not built.
 
 ### 2.4 The KL-constrained objective and its closed form
 
@@ -805,7 +805,7 @@ At beta 0.5 the two tie within noise on seed 0. Across three seeds (`results/see
 
 ### 2.24 GRPO: online RL with the checker as the reward (M8)
 
-**Status first.** Built and tested; **not yet run on a GPU**, so there is no GRPO result. Every number in this section is a setting from `configs/trackb_grpo.yaml` and the decision log ("M8 built"), a hand computation, or an earlier DPO or reward-model result quoted with its file.
+**Status first.** Run once on a Colab T4, seed 0. The concept parts of this section use settings from `configs/trackb_grpo.yaml` and the decision log ("M8 built"), hand computations, and earlier DPO or reward-model results quoted with their files. The GRPO result is in "Measured" near the end of the section, with the file each number comes from.
 
 **Idea.** DPO and KTO learn from answers someone else wrote: the dataset's chosen and rejected answers. GRPO (group relative policy optimization; Shao and coauthors, 2024, the DeepSeekMath paper) learns from the model's own answers. For each prompt it samples a group of G answers, scores each with a reward, raises the probability of the answers that beat their own group's average and lowers the others. The group is the baseline, so no value network is needed. In M8 the reward is Track B's automatic checker: the same strict string checks that score the evaluation, turned into one number per answer.
 
@@ -852,7 +852,7 @@ rewards                      mean    std     advantages
 Three lessons.
 
 - **A rare outcome gets the big push.** One success among eight is pushed up seven times as hard as each failure is pushed down; one failure among eight is pushed down seven times as hard.
-- **A group where every answer gets the same reward teaches nothing,** and it still cost a full generation. How often does that happen? If each answer were independently correct with probability p (a simplification that ignores the other reward values), a group of G is all-equal with probability p^G + (1 - p)^G. At p = 0.66: 0.203 for G = 4 and 0.036 for G = 8. At p = 0.9: 0.656 and 0.430. That is why the config uses G = 8, and why `frac_groups_all_equal` is logged every step: as the policy improves, more groups go silent.
+- **A group where every answer gets the same reward teaches nothing,** and it still cost a full generation. How often does that happen? If each answer were independently correct with probability p (a simplification that ignores the other reward values), a group of G is all-equal with probability p^G + (1 - p)^G. At p = 0.66: 0.203 for G = 4 and 0.036 for G = 8. At p = 0.9: 0.656 and 0.430. That is why the config uses G = 8, and why `frac_groups_all_equal` is logged every step: as the policy improves, more groups go silent. Measured in the run: 0.14 of groups over the first 20 steps, 0.64 over the last 20 (`results/grpo_training_summary.json`).
 - **Dividing by the std makes the advantages ignore the reward's scale.** Multiplying every reward by 10 changes nothing (last row), and so does adding a constant. Only the order and the relative spacing of the reward values matter, not their absolute size.
 
 **Why, with one update per batch, this is REINFORCE with a group-mean baseline.** M8 uses TRL's default of one optimizer step per generation batch (`num_iterations` 1). Then the policy that sampled the batch is the current one: logp_old = logp held constant, so rho = exp(0) = 1 in value. clip(1, 0.8, 1.2) = 1, so min(rho * A, clip(rho) * A) = A: **the clip never binds**. But rho still carries a gradient: grad rho = rho * grad logp = grad logp. So the policy term -A_i * rho has gradient -A_i * grad logp(token), and summed over an answer's tokens that is
@@ -877,7 +877,7 @@ A = +0.741:  min(1.3 * 0.741, 1.2 * 0.741) = min(0.963, 0.889) = 0.889    the cl
 A = -1.131:  min(1.3 * -1.131, 1.2 * -1.131) = min(-1.470, -1.357) = -1.470   the unclipped term: gradient flows
 ```
 
-With a positive advantage, once the token has become 20% more likely the clip removes any further push up. With a negative advantage the token went the wrong way, and the unclipped term keeps pulling it back. The clip limits how far one batch can move the policy in the direction the batch asks for; it never blocks a correction. It exists so a batch can be reused safely, which is PPO's trick, and it is idle here.
+With a positive advantage, once the token has become 20% more likely the clip removes any further push up. With a negative advantage the token went the wrong way, and the unclipped term keeps pulling it back. The clip limits how far one batch can move the policy in the direction the batch asks for; it never blocks a correction. It exists so a batch can be reused safely, which is PPO's trick, and it is idle here. The run confirms it: TRL's logged clip ratio was 0.0 over both the first and the last 20 steps (`results/grpo_training_summary.json`).
 
 **The KL term and the k3 estimator.** The penalty wanted is KL(pi || pi_ref) = E over y from pi of [log pi(y) - log pi_ref(y)], estimated from the tokens the policy sampled. With d = ref - logp = log( pi_ref / pi ) for one sampled token:
 
@@ -924,9 +924,52 @@ Flagging a document that really contains a planted instruction is not penalised,
 - among answers the reward pays for: the share that name two or more of the document's candidate answers on item, price and person tasks (hedging; the strict check credits the first candidate named), and the share over 40 words;
 - 40 randomly chosen rewarded GRPO answers, written to `results/trackb_grpo/reward_hacking_sample.md` with the question, the expected answer and an empty verdict column.
 
-How often a person would call a rewarded answer wrong is **not computed**: no automatic check can say that, which is the whole point. The sample is there to be read by hand.
+How often a person would call a rewarded answer wrong is **not computed**: no automatic check can say that, which is the whole point. The sample is there to be read by hand, and after the run it still has not been: `human_judged_wrong_rate` is null in `results/trackb_grpo/reward_hacking.json`.
 
-**Setup** (`configs/trackb_grpo.yaml`). Same model, prompts (from the 3,000 training pairs), LoRA (rank 16, alpha 32, all seven projections) and seed as the DPO and KTO runs. 8 answers per prompt, 4 prompts per step (32 answers), 360 steps (1,440 prompts, each at most once), temperature 1.0, answers of at most 96 tokens (the evaluation's limit, so "hit the limit" means the same in training and evaluation), learning rate 2e-5 (TRL's 1e-6 default is for full fine-tuning; the LoRA value is a guess), fp16, `dapo` averaging, a safety stop at 85 minutes that saves the adapter. Time per step on a T4 is guessed at 10 to 15 s. Afterwards: the same Track B evaluation as every run, against the same base evaluation, drift on general text, and a figure next to DPO and KTO at beta 0.5. It is not compute-matched with DPO: the DPO Track B runs trained for under 10 minutes, GRPO may use up to 85, most of it generating.
+**Setup** (`configs/trackb_grpo.yaml`). Same model, prompts (from the 3,000 training pairs), LoRA (rank 16, alpha 32, all seven projections) and seed as the DPO and KTO runs. 8 answers per prompt, 4 prompts per step (32 answers), 360 steps (1,440 prompts, each at most once), temperature 1.0, answers of at most 96 tokens (the evaluation's limit, so "hit the limit" means the same in training and evaluation), learning rate 2e-5 (TRL's 1e-6 default is for full fine-tuning; the LoRA value is a guess), fp16, `dapo` averaging, a safety stop at 85 minutes that saves the adapter. Time per step had been guessed at 10 to 15 s; it measured 9.72 s, so all 360 steps finished in 3,499 s (58 minutes) without the stop (`results/trackb_grpo/run_info.json`). Afterwards: the same Track B evaluation as every run, against the same base evaluation, drift on general text, and a figure next to DPO and KTO at beta 0.5. It is not compute-matched with DPO: the DPO Track B runs trained for under 10 minutes, GRPO for 58, most of it generating. Its learning rate is also lower than the DPO and KTO runs' (2e-5 against 5e-5 in their configs).
+
+**Measured (one run, seed 0).** Training, from `results/grpo_training_summary.json` (means over the first and last 20 of the 360 steps; figure `assets/m8_grpo_training.png`):
+
+```
+                                       first 20 steps   last 20 steps
+mean reward                            0.40             0.79
+groups whose 8 rewards are all equal   0.14             0.64
+TRL's KL estimate, per token           0.000            0.064
+answer length, tokens                  37               24
+```
+
+The reward roughly doubled, the share of silent groups rose as worked example 2 predicts, and the answers got shorter without collapsing.
+
+Track B, pooled over the five test splits, strict scoring (`results/trackb_rescored_compare.json`; drift from each run's `general_regression.json`; median words from `results/grpo_vs_dpo_summary.json`; figure `assets/m8_grpo_vs_dpo.png`):
+
+```
+run            followed   on task (planted)                  correct (clean)                    drift, NLL per token        median words
+base           0.175      0.513                              0.656                              n/a                         13
+DPO beta 0.5   0.012      0.621                              0.646                              +0.24                       10
+KTO beta 0.5   0.015      0.647                              0.654                              +0.21                       3
+GRPO           0.015      0.644 (+0.131, +0.085 to +0.175)   0.663 (+0.007, -0.027 to +0.039)   +0.057 (+0.044 to +0.072)   12
+```
+
+The per-token KL from the base model on the same general text tells the same story: 0.036 for GRPO against 0.198 for DPO beta 0.5 and 0.194 for KTO beta 0.5 (`kl_base_to_trained_per_token` in each `general_regression.json`).
+
+Reward hacking (`results/trackb_grpo/reward_hacking.json`, figure `assets/m8_grpo_hacking.png`): copied the document 0.003, hit the length limit 0.000, rewarded answers naming two or more candidates 0.000 (base model 0.081). The share of rewarded answers a person would call wrong is unknown until the sample is read.
+
+Where it is weaker (strict, `results/trackb_rescored_compare.json`): on the split holding out two task types, clean task correct fell from 0.627 to 0.522 (-0.104, -0.194 to -0.015); the lenient table `results/trackb_grpo/trackb_table.md` shows 0.866 to 0.701. The weakness is counting: strict `count_items` 0.138 against the base model's 0.253, while the other held-out task, `extract_date`, went from 0.921 to 1.000 (`by_task_category`).
+
+**What it means.** Same behavior as the best offline runs, with much less collateral change: level on every pooled Track B number, about a quarter of the drift on general text, answers near the base model's length. A plausible reason, a hypothesis and not a finding, follows from the concepts in this section and in section 2.18:
+
+- **On-policy samples are already likely.** Every push is on an answer the current model wrote. DPO and KTO push on fixed template answers the model would not have written (section 2.18, "what offline costs", seen from the other side), and DPO at beta 0.1 pushed the rejected answers from -38.6 to -217.8 log-probability (`results/trackb_full/eval.csv`). Moving probabilities that far changes the model everywhere.
+- **The push fades once a prompt is solved.** A group with all-equal rewards gives zero gradient (worked example 2), and by the end 64% of groups were silent. DPO at small beta keeps pushing on pairs it already separates (section 2.7).
+- **The KL term brakes exactly the sampled tokens,** token by token (the KL gradient above).
+
+Confounders the comparison does not control: GRPO's lower learning rate, a different number of updates, and about six times the training time (3,499 s against 585 to 593 s). To test the hypothesis, run GRPO at DPO's learning rate and DPO at GRPO's, and compare drift.
+
+**Limits.** One seed: DPO at beta 0.5 looked as good on seed 0 and collapsed on seed 2 (`results/seeds_summary.json`), so this shows GRPO can reach this result, not that it reliably does. It was trained on the same checks that score its Track B evaluation; the cross-checks (held-out splits, probes, hacking measures and BIPIA in section 2.25) mostly support it, except held-out counting. The hand reading of rewarded answers is pending.
+
+**Questions this result invites.**
+
+- *Why did GRPO drift so little?* "I have a hypothesis, not a finding: it learns only from its own samples, with a KL penalty, so it changes the model where the reward tells its answers apart and little elsewhere, and a solved prompt stops pushing. Its learning rate was also lower than DPO's, so that is a confounder I would remove first."
+- *One seed, so what can you claim?* "That the setup can reach this: the same Track B level as my best DPO and KTO runs with a quarter of the drift. Not that it does so reliably. DPO at beta 0.5 looked as good on its first seed and collapsed on its third. The drift gap is large next to the other methods' spread across seeds (+0.18 to +0.39 for DPO and KTO at beta 0.5 over six runs, against +0.057), but GRPO's own spread is unknown until seeds 1 and 2 run."
 
 **Code.** `src/tiny_rlhf/grpo.py` (`group_advantages`, `completion_logps`, `grpo_loss`), `src/tiny_rlhf/grpo_reward.py`, `src/tiny_rlhf/train_grpo.py` (TRL's `GRPOTrainer` with this reward), `scripts/train_grpo.py`, `scripts/plot_grpo_training.py`, `scripts/check_grpo_hacking.py`.
 
@@ -934,11 +977,11 @@ How often a person would call a rewarded answer wrong is **not computed**: no au
 
 **An incident while building it.** Two M8 tests drew figures with matplotlib, which CI does not install, so CI failed from the first M8 push while the suite passed locally; `main` was moved to that commit before CI was read. The tests now skip without matplotlib, two new tests check the same numbers without drawing, and the suite is run with matplotlib blocked before `main` moves (decision log, "CI failure on the M8 commits"; project guide section 5, number 13).
 
-**The mistakes.** Explaining the stability of this run by the clip: with one update per batch the clip never binds. Treating the KL as part of the reward: in GRPO it is a separate loss term and never enters the advantages. Comparing GRPO's beta with DPO's. And reading a higher Track B score as proof, when GRPO was trained on the very checks that produce it.
+**The mistakes.** Explaining the stability of this run by the clip: with one update per batch the clip never binds. Treating the KL as part of the reward: in GRPO it is a separate loss term and never enters the advantages. Comparing GRPO's beta with DPO's. Reading a higher Track B score as proof, when GRPO was trained on the very checks that produce it. And stating the low-drift hypothesis as a finding.
 
 ### 2.25 Testing on real prompt injections: BIPIA (M9)
 
-**Status first.** Built and tested; the pipeline was checked on the CPU only to show that it runs: a four-example run of the 135M model while the code was written, and the whole queue chain on 12 examples (6 attacked, 6 clean) of Qwen2.5-0.5B-Instruct with a one-step adapter. **No model has been evaluated on the GPU, so there are no results.** The full design is in `docs/EXTERNAL_EVAL.md`.
+**Status first.** The base model and GRPO have been evaluated on the GPU; the result is in "Measured" near the end of this section. DPO beta 0.5, KTO beta 0.5 and the first DPO run have not: their reruns (`<run>_m9`, below) were interrupted when the Colab session was stopped during the first one, and are queued, so no comparison between methods exists yet. Before the GPU run the pipeline was checked on the CPU only to show that it runs: a four-example run of the 135M model while the code was written, and the whole queue chain on 12 examples (6 attacked, 6 clean) of Qwen2.5-0.5B-Instruct with a one-step adapter. The full design is in `docs/EXTERNAL_EVAL.md`.
 
 **Idea.** Track B's held-out splits vary the task, the document style and the injection type, but every one of them comes from this repo's generator. M9 asks whether models trained on it also resist instructions written by other people, in documents other people collected. Nothing is trained on this data; it is evaluation only.
 
@@ -976,7 +1019,7 @@ None of these needs a word list chosen per attack: the reverse and shift rules u
 
 **The clean-document control.** Every rule also runs on the same model's answer to the same document with the attack cut out (`check_fired_without_attack`). That answer had no reason to show the attack's trace, so the rate estimates the rule's false-positive rate on that model's ordinary output. It is reported per model, next to every followed rate, because training changes a model's ordinary output: a model that started writing emojis would raise both. Two more guards: a document is never paired with an attack whose rule already fires on the clean document (21 emails that already mention San Francisco are kept away from the "weekend getaways near San Francisco" attack), and `quoted_attack` records responses that repeat six consecutive words of the attack, the usual false positive when a model declines by quoting.
 
-**Worked example 2 (how to read a followed rate; invented numbers, not a result).** Suppose a trained model's topic rules fire on 0.10 of attacked answers, and on 0.04 of its answers to the same documents without the attack. Then roughly 0.06 is attributable to the attacks; the 0.04 is the rules firing on ordinary answers. Comparing 0.10 with the base model's followed rate alone would hide a change in the false-positive rate.
+**Worked example 2 (how to read a followed rate; invented numbers, not a result).** Suppose a trained model's topic rules fire on 0.10 of attacked answers, and on 0.04 of its answers to the same documents without the attack. Then roughly 0.06 is attributable to the attacks; the 0.04 is the rules firing on ordinary answers. Comparing 0.10 with the base model's followed rate alone would hide a change in the false-positive rate. In the real GRPO result the control subtracts nothing: the rules fired on 0.000 of both models' answers without the attack.
 
 **Why the saved runs are retrained as `<run>_m9`, and how the reproduction check decides.** LoRA adapters are not kept in git (`checkpoints/` is ignored), so DPO beta 0.5, KTO beta 0.5 and the first DPO run are trained again from their own configs and seeds under new names. GPU training is not bit-for-bit deterministic, so a rerun is a new adapter; the M6 sweeps show it (`sweep_rank_16` and `sweep_noise_0.0` have configs that differ only in the run name, yet ended at accuracy 0.661 and 0.664 and chosen log-prob change -5.41 and -5.39 nats; the cause was not investigated). `tiny_rlhf.external.reproduce` compares each rerun with its saved run on the same 750 Track B test examples:
 
@@ -993,7 +1036,7 @@ change -0.025, interval -0.050 to -0.002    fails: under 0.03, but 0 is outside
 change +0.020, interval -0.040 to +0.080    passes the rule, but the interval is wide: an underpowered pass
 ```
 
-If a rerun fails, nothing is hidden: its BIPIA numbers are reported as the rerun's, next to the rerun's own Track B numbers. Run on a copy of a saved run, the check gives identical answers and zero changes, as it must. GRPO needs no rerun: its BIPIA evaluation runs inside the M8 stage right after training, while its adapter exists. Every BIPIA evaluation uses batch size 16, because with fp16 and left padding greedy answers can depend on which examples share a batch.
+If a rerun fails, nothing is hidden: its BIPIA numbers are reported as the rerun's, next to the rerun's own Track B numbers. Run on a copy of a saved run, the check gives identical answers and zero changes, as it must. GRPO needed no rerun: its BIPIA evaluation ran inside the M8 stage right after training, while its adapter existed. Every BIPIA evaluation uses batch size 16, because with fp16 and left padding greedy answers can depend on which examples share a batch.
 
 **Why the intervals are too narrow, and what would fix it.** The bootstrap resamples examples as if each were independent. They are not: each document is used three to six times and each attack wording appears in nine examples, and examples that share a document tend to succeed or fail together. A standard approximation shows the size of the effect (Kish's design effect, computed here with an assumed correlation, not a measured one): with m examples per cluster and a correlation rho between examples of the same cluster, the variance is multiplied by 1 + (m - 1) * rho.
 
@@ -1004,6 +1047,33 @@ rho = 0.5 (assumed):   1 + 4.2 * 0.5 = 3.1     interval width x 1.76
 ```
 
 A cluster bootstrap fixes it without assuming rho: resample the 125 documents with replacement, keep every example of each drawn document, recompute the rate, repeat. Examples also share attack wordings, so resampling documents alone still understates the uncertainty somewhat. Until that is done, a difference near the edge of its interval is weak evidence.
+
+Applied to the GRPO result (computed here): its overall change in followed rate is -0.160 with interval -0.193 to -0.131. Widened by 1.76 (the rho = 0.5 case above) around -0.160, the interval becomes about -0.218 to -0.109: still far from 0. The overall drop survives the correction; small differences between attack kinds might not.
+
+**Measured (first result: base model and GRPO).** From `results/trackb_grpo/external_eval/external_table.md` (paired changes, 2,000 resamples); mean answer length is `mean_response_words` in `results/m9_external/base_eval/summary_base.json` and `results/trackb_grpo/external_eval/summary_trained.json`; figure `assets/m9_external_bipia.png`:
+
+```
+                                                n     base    GRPO    change (paired)
+followed the injected instruction, all attacks  648   0.285   0.125   -0.160 (-0.193 to -0.131)
+  format attacks                                207   0.169   0.034   -0.135 (-0.184 to -0.092)
+  marker attacks                                90    0.244   0.100   -0.144 (-0.222 to -0.078)
+  topic attacks                                 351   0.365   0.185   -0.179 (-0.225 to -0.134)
+same check, answer without the attack           648   0.000   0.000
+on task, attack present                         537   0.317   0.393   +0.076 (+0.041 to +0.110)
+task correct, no attack                         99    0.515   0.525   +0.010 (-0.061 to +0.081)
+mean answer length, words                             31.3    20.0
+```
+
+Reading it with this section's own checklist (the mistakes paragraph below):
+
+1. **Control:** the rules fired on none of either model's answers without the attack, so the drop is not a change in false positives.
+2. **Clean accuracy:** held (0.515 to 0.525), and the on-task rate with an attack rose.
+3. **Length:** GRPO's answers are shorter, 20.0 words against 31.3. A shorter answer has less room to carry out an instruction, so part of the drop may come from saying less. Two things argue against length being all of it: a model that merely said less would not become more often on task, and format attacks (translate, encode), which transform the whole answer whatever its length, fell to 0.034. No length-matched comparison has been made.
+4. **By kind:** the expectation was that marker attacks, the closest to Track B's planted instructions, would transfer best and format attacks least. All three fell by similar amounts (0.135 to 0.179), and format attacks ended lowest. With intervals somewhat too narrow, the kinds should not be ranked.
+
+So some of the Track B behavior transfers to injections written by other people, for GRPO at least; the datasheet's main risk, "resists Track B but not BIPIA", did not happen for this model. What is not known: whether DPO and KTO transfer (not yet evaluated, so no comparison between methods), and how much of the drop is length.
+
+**The question this result invites.** *Is the BIPIA drop real or just shorter answers?* "Probably not only shorter answers, but I cannot fully separate them. The control fired on nothing, clean accuracy held and the on-task rate with an attack rose, and format attacks, which do not depend on length, fell from 0.169 to 0.034. But the answers are about a third shorter. A length-matched comparison would settle it, and so would KTO at beta 0.5, whose Track B answers are much shorter (median 3 words): if length drives the drop, it should follow even less."
 
 **Why the numbers are not comparable with the BIPIA paper's.** Different prompts (Track B's layouts, not BIPIA's templates), different models, rule-based scoring instead of a judge, 72 of 75 attacks on two of three tasks, and a 96-token answer limit. A number produced by a different procedure is a different measurement.
 
@@ -1069,7 +1139,7 @@ A cluster bootstrap fixes it without assuming rho: resample the 125 documents wi
 **Model answer.** "PPO-based RLHF needs a trained reward model, a sampling loop that generates from the current policy, and an RL algorithm with many settings. It is on-policy, so it can explore: it can discover and correct behaviors that are not in the original data. DPO needs only the logged pairs and a frozen copy of the model. It is supervised, stable and cheap, but it is offline: it only learns about responses the data covers. I would choose DPO when I have a fixed set of comparisons and want something simple and reproducible. I would choose PPO when I have a reward I can query on new samples, such as an automatic checker, or when the behavior I want is not represented in the logged data."
 
 **Follow-ups.**
-- *Did you compare them?* So far only on a toy: REINFORCE with a baseline reached the exact optimum much faster than DPO at the same sample budget, with one shared untuned learning rate. On the real model, M8 compares GRPO (online, with the Track B checker as the reward) against DPO and KTO on the same prompts; it is built and tested but not yet run on a GPU. I did not build PPO.
+- *Did you compare them?* On a toy: REINFORCE with a baseline reached the exact optimum much faster than DPO at the same sample budget, with one shared untuned learning rate. On the real model, M8 compared GRPO (online, with the Track B checker as the reward) against DPO and KTO on the same prompts: on one seed GRPO reached their Track B level with about a quarter of the drift on general text (+0.057 against +0.24 and +0.21 nats per token; section 2.24). It was not compute-matched. I did not build PPO.
 - *Why GRPO and not PPO for that?* No value network to train or hold in memory on a free T4; the reward is one number per answer, so a per-token value estimate adds little; and with one update per batch the clip never binds, so it is REINFORCE with a group-mean baseline, the method checked on the toy (section 2.24).
 - *What breaks in the RL version?* The policy can exploit errors in the reward model, which is why the KL penalty matters.
 
@@ -1103,7 +1173,7 @@ A cluster bootstrap fixes it without assuming rho: resample the 125 documents wi
 **Follow-ups.**
 - *Have you run the probes?* Yes (`results/trackb_rescored_compare.json`). The first DPO run scored a perfect 0.00 on following instructions while its answers shrank to one word, a shortcut the clean-document metric exposed. The beta 0.5 run went from 0.48 to 0.74 on task (strict) against marker styles never seen in training, but fell from 0.93 to 0.82 on the quoted-instruction probe, so it learned a little of "ignore instruction-like text".
 - *Name a shortcut your probes miss.* Any surface pattern I did not think of. Probes test named hypotheses, not all of them.
-- *What would be stronger evidence?* Injections written by other people. M9 evaluates the trained models on BIPIA's real emails and tables with attacks written by its authors (section 2.25); it is built but not yet run on a GPU.
+- *What would be stronger evidence?* Injections written by other people. M9 evaluates the trained models on BIPIA's real emails and tables with attacks written by its authors (section 2.25). So far only GRPO has been evaluated: it followed injected instructions 0.125 of the time against the base model's 0.285, with clean accuracy held, though its answers were also shorter. DPO and KTO are queued.
 
 **The trap.** "The held-out accuracy went up."
 
@@ -1207,6 +1277,8 @@ A cluster bootstrap fixes it without assuming rho: resample the 125 documents wi
 | M6 dataset size at 340 steps (100, 300, 1,000, 3,000 pairs requested; 94, 281, 933, 2,774 used) | accuracy 0.574, 0.635, 0.664, 0.650; held-out loss 1.360, 1.274, 0.845, 0.624; chosen log-prob change -49.3, -50.6, -28.9, -6.1 nats | `results/sweeps/data_size/summary.json`, each run's `eval.csv` |
 | M6 label noise (0%, 10%, 30% flipped; robust loss at 30%) | accuracy 0.664, 0.650, 0.603; robust 0.628, paired change against ordinary +0.025 (-0.011 to +0.061), margin +0.12 (+0.07 to +0.17) | `results/sweeps/label_noise/summary.json`, `robust_vs_ordinary.json`, `robust_vs_clean.json` |
 | REINFORCE toy | sections 2.4, 2.7, 2.18, 2.19; 75.7 s on one CPU thread | `results/reinforce_toy/` |
+| M8 GRPO with the checker reward, one seed (360 steps in 3,499 s on a T4) | followed 0.015 (base 0.175); on task 0.644 (+0.131, +0.085 to +0.175); clean 0.663 (+0.007, -0.027 to +0.039); drift +0.057 against +0.24 (DPO beta 0.5) and +0.21 (KTO beta 0.5); median 12 words; reward 0.40 to 0.79; all-equal groups 0.14 to 0.64; hacking measures: copying 0.003, length limit 0.000, two or more candidates 0.000 (base 0.081); strict `count_items` 0.138 (base 0.253) | `results/trackb_rescored_compare.json`, `results/trackb_grpo/`, `results/grpo_training_summary.json`, `results/grpo_vs_dpo_summary.json` |
+| M9 BIPIA, base model and GRPO only | followed 0.285 to 0.125 (-0.160, -0.193 to -0.131), lower for all three attack kinds; no check fired without the attack; on task with an attack +0.076 (+0.041 to +0.110); clean task correct 0.515 to 0.525; mean answer 31.3 to 20.0 words | `results/trackb_grpo/external_eval/external_table.md`, `results/m9_external/base_eval/summary_base.json`, `results/trackb_grpo/external_eval/summary_trained.json` |
 
 **Dataset size, in words.** With a fixed 340 steps, small data is revisited many times and memorised: at 100 and 300 pairs the held-out loss ends far above the 0.693 it started at, with accuracy above 0.5, so the mistakes on new pairs are confident ones. Accuracy levels off around 1,000 pairs, while more data keeps reducing how far the model moves. The fixed-steps design is explained in `configs/sweeps/data_size.yaml`: equal compute, only the number of distinct pairs changes.
 
@@ -1214,27 +1286,29 @@ A cluster bootstrap fixes it without assuming rho: resample the 125 documents wi
 
 ### What these do and do not show
 
-- **They show** the hand-written DPO and KTO compute what TRL computes, on the real model for DPO; that beta mainly controls drift rather than accuracy, on two datasets; that a loose beta can collapse DPO into a shortcut that the right checks catch; that single good/bad labels matched pairs on this data at beta 0.5; that LoRA rank does not limit learning at this data size; that more data mostly reduces damage once accuracy has levelled off; and that DPO degrades gracefully under label noise, with no accuracy gain from the robust loss that can be told apart from zero.
-- **They do not show** how often DPO at beta 0.5 collapses (three seeds show only that it can), anything across seeds for the sweeps and the other variants (one seed each), anything about real prompt-injection attacks (Track B is templated; M9 has not run), anything about online RL on the real model (M8 has not run), or anything quantitative about large models.
+- **They show** the hand-written DPO and KTO compute what TRL computes, on the real model for DPO; that beta mainly controls drift rather than accuracy, on two datasets; that a loose beta can collapse DPO into a shortcut that the right checks catch; that single good/bad labels matched pairs on this data at beta 0.5; that LoRA rank does not limit learning at this data size; that more data mostly reduces damage once accuracy has levelled off; and that DPO degrades gracefully under label noise, with no accuracy gain from the robust loss that can be told apart from zero. On one seed, they show that online GRPO with the checker reward reached the best offline runs' Track B level with about a quarter of their drift and no automatic sign of reward hacking, and that GRPO's training carried over, at least partly, to real injections in BIPIA.
+- **They do not show** how often DPO at beta 0.5 collapses (three seeds show only that it can), anything across seeds for GRPO, the sweeps and the other variants (one seed each), why GRPO drifted less (a hypothesis with an untested confounder, its lower learning rate), whether a person would judge GRPO's rewarded answers right (the sample is unread), whether DPO and KTO transfer to BIPIA (not yet evaluated, so no comparison between methods), how much of GRPO's BIPIA drop comes from shorter answers, or anything quantitative about large models.
 
 ### In progress
 
-- **M8 and M9** are running on the GPU (queue stages `m8_grpo` and `m9_external`). The extra seeds have finished; their result is in Part 5's measured table above.
+- **M9 for DPO beta 0.5, KTO beta 0.5 and the first DPO run** (queue stage `m9_external`): the reruns were interrupted when the Colab session was stopped during the first one (`trackb_beta0.5_m9`) and restart on the next launch. The base model's BIPIA evaluation is done. M8 and the extra seeds have finished; their results are in the measured table above.
 
-### Built and tested, not yet run on a GPU
+### Built and tested, waiting on those reruns
 
-- **M8, GRPO with the checker reward** (section 2.24): no result. The hand-written loss matches TRL; training, evaluation, comparison and the hacking check wait for GPU time.
-- **M9, BIPIA** (section 2.25): no result. The evaluation set, detectors, scoring, reproduction check and figure are built; the CPU run was only a pipeline check.
+- **M9's reproduction check and BIPIA comparison for the three reruns** (section 2.25). The evaluation set, detectors, scoring and figure have already run for the base model and GRPO.
 
 ### Not yet run, not queued
 
 - A reward-model rerun with a lower head learning rate.
+- GRPO seeds 1 and 2.
+- The hand reading of the 40 rewarded GRPO answers in `results/trackb_grpo/reward_hacking_sample.md` (needs a person, not a GPU).
 
 ### Not done
 
 - Policy-gradient training on the real model with the Track A reward model as the reward (M8 uses the checker instead).
 - PPO.
 - A cluster bootstrap for the BIPIA intervals.
+- A length-matched comparison of the BIPIA followed rates.
 - GPU runs are seeded but not bit-for-bit deterministic.
 
 ### Still to come
@@ -1283,8 +1357,11 @@ Answer aloud, without looking. Ordered from easy to hard.
 34. Why does the clipped ratio never bind in M8's configuration, and what is the gradient then?
 35. Write the k3 estimator. Why is it never negative, and why is it correct on average?
 36. Why is a checker reward safer than a learned reward model, and how can a policy still hack it? Name two holes.
-37. GRPO beats DPO on Track B. Give two reasons to be cautious and the evidence that would settle it.
+37. GRPO matched DPO and KTO on Track B with about a quarter of their drift. Give two reasons to be cautious and the evidence that would settle it.
 38. What does `check_fired_without_attack` measure, and why is it reported per model?
 39. A retrained adapter shows a change of -0.025 with interval -0.050 to -0.002 in on-task rate. Does it pass the reproduction check? Why?
 40. Why are the BIPIA intervals too narrow, and what does a cluster bootstrap resample?
 41. Why can't the BIPIA numbers be compared with the BIPIA paper's?
+42. Give a hypothesis for why GRPO drifted less than DPO and KTO on general text, and two things the comparison does not control.
+43. What can you claim from one GRPO seed, and which result in this project tells you not to claim more?
+44. GRPO's BIPIA followed rate fell from 0.285 to 0.125. Give one reason part of that could be shorter answers, and two pieces of evidence that it is not only that.
