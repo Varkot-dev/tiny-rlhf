@@ -581,6 +581,7 @@ def trackb_row(i: int, injected: bool, followed: bool, on_task: bool, response: 
         "prompt": f"prompt {i}",
         "response": response,
         "scores": {"followed_injection": followed, "on_task": on_task, "task_correct": on_task},
+        "strict": on_task,
     }
 
 
@@ -597,7 +598,12 @@ def write_run(root: Path, rows: list[dict], config: dict) -> None:
     )
 
 
-def test_reproduction_report(tmp_path: Path) -> None:
+def test_reproduction_report(tmp_path: Path, monkeypatch) -> None:
+    # The synthetic rows carry no Track B example fields, so the strict rule (recomputed
+    # from the response in real use) reads a stand-in value here.
+    monkeypatch.setitem(
+        reproduce.RECOMPUTED, "task_correct_strict", lambda response, row: row["strict"]
+    )
     rows = [trackb_row(i, i % 2 == 0, i % 5 == 0, i % 3 == 0, f"r{i}") for i in range(200)]
     config = {"run_name": "trackb_full", "beta": 0.1, "seed": 0}
     write_run(tmp_path / "saved", rows, config)
@@ -622,6 +628,30 @@ def test_reproduction_report(tmp_path: Path) -> None:
     assert not report["reproduced"]
     assert report["config_differences"] == ["beta: saved=0.1 rerun=0.5"]
     assert not report["track_b"]["rates"]["injected/followed_injection"]["within_noise"]
+
+    # A change only the strict rule sees also fails the check.
+    stricter = [dict(r, strict=False) for r in rows]
+    write_run(tmp_path / "rerun3", stricter, config)
+    report = reproduce.reproduction_report(
+        tmp_path / "saved", tmp_path / "rerun3", splits=("test_in_dist",), n_resamples=200
+    )
+    rates = report["track_b"]["rates"]
+    assert rates["no_injection/task_correct"]["within_noise"]
+    assert not rates["no_injection/task_correct_strict"]["within_noise"]
+    assert not report["reproduced"]
+
+
+def test_strict_rate_is_recomputed_from_saved_responses() -> None:
+    # On a real saved evaluation the recomputed strict rate equals the rescored file's.
+    saved = REPO / "results" / "trackb_beta0.5" / "trackb_eval"
+    if not (saved / "rescored_trained.json").exists():
+        pytest.skip("no saved evaluation")
+    rows = reproduce.pooled_rows(saved / "summary_trained.json", reproduce.DEFAULT_SPLITS)
+    clean = [r for r in rows if not r["has_injection"]]
+    rate = sum(reproduce.metric_value(r, "task_correct_strict") for r in clean) / len(clean)
+    rescored = json.loads((saved / "rescored_trained.json").read_text())
+    pooled = rescored["pooled_test_splits"]["groups"]["no_injection"]["metrics"]
+    assert rate == pytest.approx(pooled["task_correct_strict"]["rate"])
 
 
 # --------------------------------------------------------------------------------------
@@ -672,3 +702,58 @@ def test_plot_external_draws_from_synthetic_summaries(
     )
     module.main()
     assert out.stat().st_size > 10_000
+
+    # As the queue calls it: a model not evaluated yet is left out, and every plotted
+    # value is written to a JSON file.
+    values = tmp_path / "values.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "plot_external.py",
+            "--base",
+            str(paths[0]),
+            "--trained",
+            f"first={paths[1]}",
+            "--trained",
+            f"not yet={tmp_path / 'missing' / 'summary_trained.json'}",
+            "--skip-missing",
+            "--out",
+            str(out),
+            "--summary-out",
+            str(values),
+        ],
+    )
+    module.main()
+    saved = json.loads(values.read_text())
+    assert list(saved["models"]) == ["base model", "first"]
+    first = saved["models"]["first"]
+    trained = json.loads(paths[1].read_text())
+    assert (
+        first["followed_injection"]["all attacks"]
+        == (trained["groups"]["injected"]["metrics"]["followed_injection"])
+    )
+    assert set(first["behaviour"]) == {
+        "task correct, attack present",
+        "task correct, no attack",
+        "refused, no attack",
+    }
+
+    # Without --skip-missing a missing summary still stops the script, and with it at
+    # least one trained model must exist.
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "plot_external.py",
+            "--base",
+            str(paths[0]),
+            "--trained",
+            str(tmp_path / "missing" / "summary_trained.json"),
+            "--skip-missing",
+            "--out",
+            str(out),
+        ],
+    )
+    with pytest.raises(SystemExit):
+        module.main()

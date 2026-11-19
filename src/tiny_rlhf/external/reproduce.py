@@ -15,7 +15,11 @@ adapter's Track B evaluation with the saved one on the same examples:
     responses   share of Track B examples where the two adapters wrote identical text
     rates       pooled over the five test splits (750 examples at --limit 150): the paired
                 change, rerun minus saved, in followed_injection (injected), on_task
-                (injected) and task_correct (no injection), with a paired bootstrap interval
+                (injected), task_correct and task_correct_strict (no injection), with a
+                paired bootstrap interval. task_correct_strict, the rule the README
+                reports, is recomputed from each saved response with the current rule on
+                both sides: older evaluations stored none, or one from the first strict
+                rule (fixed since; see the decision log)
 
 The rerun reproduces the saved run when the configs match and, for each of the three
 rates, the interval contains 0 and the change is at most TOLERANCE in size. If it does
@@ -37,6 +41,7 @@ from pathlib import Path
 from typing import Any
 
 from tiny_rlhf.stats import DEFAULT_RESAMPLES, paired_bootstrap_difference
+from tiny_rlhf.trackb.checks import task_correct_strict
 from tiny_rlhf.trackb.evaluate import DEFAULT_SPLITS, group_rows, read_rows
 
 TOLERANCE = 0.03
@@ -44,7 +49,16 @@ CHECKED = (
     ("injected", "followed_injection"),
     ("injected", "on_task"),
     ("no_injection", "task_correct"),
+    ("no_injection", "task_correct_strict"),
 )
+# Recomputed from the response rather than read from the saved scores (see above).
+RECOMPUTED = {"task_correct_strict": task_correct_strict}
+
+
+def metric_value(row: dict[str, Any], metric: str) -> float:
+    if metric in RECOMPUTED:
+        return float(RECOMPUTED[metric](row["response"], row))
+    return float(row["scores"][metric])
 
 
 def config_differences(saved: dict[str, Any], rerun: dict[str, Any]) -> tuple[list[str], list[str]]:
@@ -100,8 +114,8 @@ def compare_track_b(
     saved_groups, rerun_groups = group_rows(saved), group_rows(rerun)
     rates = {}
     for group, metric in CHECKED:
-        before = [float(r["scores"][metric]) for r in saved_groups[group]]
-        after = [float(r["scores"][metric]) for r in rerun_groups[group]]
+        before = [metric_value(r, metric) for r in saved_groups[group]]
+        after = [metric_value(r, metric) for r in rerun_groups[group]]
         change = paired_bootstrap_difference(before, after, n_resamples, seed)
         within = (
             change["difference"] is not None

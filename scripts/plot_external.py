@@ -15,7 +15,10 @@ label). Two panels, one bar per model:
     right  task correct with the attack present, task correct without it, and refusals
            without it (did training cost the model its ordinary behaviour?)
 Error bars are the 95% bootstrap intervals stored in the summaries. Writes
-assets/m9_external_bipia.png unless --out is given.
+assets/m9_external_bipia.png unless --out is given, and with --summary-out a JSON file
+holding every plotted value, so numbers quoted from the figure come from a saved file.
+With --skip-missing a trained summary that does not exist yet is left out (with a note)
+instead of stopping the script: the GPU queue redraws the figure as runs finish.
 """
 
 from __future__ import annotations
@@ -53,6 +56,12 @@ def parse_args() -> argparse.Namespace:
         "--trained", action="append", required=True, help="LABEL=PATH or PATH (repeatable)"
     )
     parser.add_argument("--out", help="default: assets/m9_external_bipia.png")
+    parser.add_argument("--summary-out", help="also write every plotted value to this JSON file")
+    parser.add_argument(
+        "--skip-missing",
+        action="store_true",
+        help="leave out trained summaries that do not exist (at least one must)",
+    )
     return parser.parse_args()
 
 
@@ -124,7 +133,15 @@ def draw_bars(ax, stats_per_model: list[list[dict]], ticks: list[list[dict]] | N
 def main() -> None:
     args = parse_args()
     base_path = Path(args.base)
-    models = [("base model", base_path)] + [label_and_path(t) for t in args.trained]
+    trained = [label_and_path(t) for t in args.trained]
+    if args.skip_missing:
+        for label, path in trained:
+            if not path.exists():
+                print(f"left out (not evaluated yet): {label} ({path})")
+        trained = [(label, path) for label, path in trained if path.exists()]
+        if not trained:
+            raise SystemExit("none of the trained summaries exist yet")
+    models = [("base model", base_path)] + trained
     if len(models) > len(SERIES):
         raise SystemExit(f"at most {len(SERIES) - 1} trained models fit the colour list")
     summaries = [(label, json.loads(path.read_text())) for label, path in models]
@@ -200,6 +217,32 @@ def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out)
     print(f"wrote {shown(out)}")
+    if args.summary_out:
+        values = {
+            label: {
+                "summary": shown(path),
+                "adapter": summary.get("adapter"),
+                "followed_injection": {
+                    name.split("\n")[0]: followed_stats(summary, kind, "followed_injection")
+                    for kind, name in FOLLOWED
+                },
+                "check_fired_without_attack": {
+                    name.split("\n")[0]: followed_stats(summary, kind, "check_fired_without_attack")
+                    for kind, name in FOLLOWED
+                },
+                "behaviour": {
+                    name.replace("\n", " "): summary["groups"][group]["metrics"][metric]
+                    for group, metric, name in BEHAVIOUR
+                },
+            }
+            for (label, path), (_, summary) in zip(models, summaries, strict=True)
+        }
+        summary_out = Path(args.summary_out)
+        summary_out.parent.mkdir(parents=True, exist_ok=True)
+        summary_out.write_text(
+            json.dumps({"figure": shown(out), "models": values}, indent=2) + "\n"
+        )
+        print(f"wrote {shown(summary_out)}")
 
 
 if __name__ == "__main__":
