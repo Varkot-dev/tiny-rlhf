@@ -1,53 +1,9 @@
 {
-  "updated_unix": 1795050734,
+  "updated_unix": 1795051701,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T01:08:53Z",
   "jobs": {
-    "label_noise_0.0": {
-      "status": "done",
-      "stage": "label_noise",
-      "minutes": 15.6,
-      "wall_time_s": 905.11,
-      "peak_gpu_memory_mb": 8801.1,
-      "optimizer_steps": 233,
-      "scaler_retries": 4,
-      "from_earlier_launch": true
-    },
-    "label_noise_0.1": {
-      "status": "done",
-      "stage": "label_noise",
-      "minutes": 15.6,
-      "wall_time_s": 905.38,
-      "peak_gpu_memory_mb": 8801.1,
-      "optimizer_steps": 233,
-      "scaler_retries": 4,
-      "from_earlier_launch": true
-    },
-    "label_noise_0.3": {
-      "status": "done",
-      "stage": "label_noise",
-      "minutes": 15.5,
-      "wall_time_s": 899.74,
-      "peak_gpu_memory_mb": 8801.1,
-      "optimizer_steps": 233,
-      "scaler_retries": 3,
-      "from_earlier_launch": true
-    },
-    "label_noise_0.3_robust": {
-      "status": "skipped-budget",
-      "stage": "label_noise",
-      "minutes": 0.0,
-      "minutes_left": 14.1,
-      "from_earlier_launch": true
-    },
-    "label_noise_figure": {
-      "status": "skipped-dependency",
-      "stage": "label_noise",
-      "minutes": 0.0,
-      "blocked_by": "label_noise_0.0",
-      "from_earlier_launch": true
-    },
     "m5_eval_base": {
       "status": "skipped-existing",
       "stage": "m5",
@@ -316,6 +272,40 @@
     "data_size_figure": {
       "status": "done",
       "stage": "data_size",
+      "minutes": 0.1,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "label_noise_0.0": {
+      "status": "skipped-existing",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "label_noise_0.1": {
+      "status": "skipped-existing",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "label_noise_0.3": {
+      "status": "skipped-existing",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "label_noise_0.3_robust": {
+      "status": "done",
+      "stage": "label_noise",
+      "minutes": 16.0,
+      "launch": "2026-11-19T01:08:53Z",
+      "wall_time_s": 904.04,
+      "peak_gpu_memory_mb": 8801.1,
+      "optimizer_steps": 233,
+      "scaler_retries": 6
+    },
+    "label_noise_figure": {
+      "status": "done",
+      "stage": "label_noise",
       "minutes": 0.1,
       "launch": "2026-11-19T01:08:53Z"
     }
