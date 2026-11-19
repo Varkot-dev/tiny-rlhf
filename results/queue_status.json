@@ -1,22 +1,9 @@
 {
-  "updated_unix": 1795050568,
+  "updated_unix": 1795050574,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T01:08:53Z",
   "jobs": {
-    "m3_reward": {
-      "status": "skipped-existing",
-      "stage": "m3",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "m3_reward_vs_dpo": {
-      "status": "skipped-existing",
-      "stage": "m3",
-      "minutes": 0.1,
-      "note": "checked: already current",
-      "from_earlier_launch": true
-    },
     "m2_parity_ours": {
       "status": "skipped-existing",
       "stage": "m2",
@@ -334,6 +321,19 @@
     "m7_figure": {
       "status": "skipped-existing",
       "stage": "m7_kto",
+      "minutes": 0.1,
+      "launch": "2026-11-19T01:08:53Z",
+      "note": "checked: already current"
+    },
+    "m3_reward": {
+      "status": "skipped-existing",
+      "stage": "m3",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "m3_reward_vs_dpo": {
+      "status": "skipped-existing",
+      "stage": "m3",
       "minutes": 0.1,
       "launch": "2026-11-19T01:08:53Z",
       "note": "checked: already current"
