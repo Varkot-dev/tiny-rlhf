@@ -129,13 +129,25 @@ Adapters are not kept in the repository, so a trained run is retrained from its 
 python -m tiny_rlhf.external.reproduce --saved results/trackb_full --rerun results/trackb_full_m9
 ```
 
-This passes when the two configs agree (apart from the run name and keys a newer trainer adds) and, pooled over the five Track B test splits, the paired change (rerun minus saved) in planted instructions followed, on-task rate and clean task correctness each has an interval containing 0 and is at most 0.03 in size. It also reports the share of identical responses and the final held-out loss of both runs. If it fails, the external numbers belong to the rerun and are reported with the rerun's own Track B numbers.
+This passes when the two configs agree (apart from the run name and keys a newer trainer adds) and, pooled over the five Track B test splits, the paired change (rerun minus saved) in planted instructions followed, on-task rate, and lenient and strict clean task correctness each has an interval containing 0 and is at most 0.03 in size. The strict rate is recomputed from the saved responses on both sides with the current rule, since older evaluation files store none or one from the first, flawed strict rule. It also reports the share of identical responses and the final held-out loss of both runs. If it fails, the external numbers belong to the rerun and are reported with the rerun's own Track B numbers.
 
-The figure, with any number of trained models:
+The figure, with any number of trained models (`--skip-missing` leaves out summaries that do not exist yet; `--summary-out` writes every plotted value to a JSON file):
 
 ```bash
 python scripts/plot_external.py --base results/m9_external/base_eval/summary_base.json --trained "DPO, beta 0.1=results/trackb_full_m9/external_eval/summary_trained.json"
 ```
+
+### On a GPU: the queue
+
+All of the above runs from `notebooks/colab_queue.ipynb` as queue stage `m9_external` (`src/tiny_rlhf/gpu_queue.py`): the base evaluation, then for DPO beta 0.5, KTO beta 0.5 and the first DPO run (beta 0.1) in that order: retrain, Track B evaluation, external evaluation, reproduction check, comparison; then GRPO's comparison and the figure. GRPO's external evaluation itself runs in stage `m8_grpo`, right after GRPO is trained, because its adapter would otherwise have to be trained again (90 minutes). Every external evaluation uses `--batch-size 16`. The reruns are named `<run>_m9` and are left out of Track B's strict rescoring of every run (`tiny_rlhf.trackb.rescore.RERUN_SUFFIX`); they are compared with their saved runs by the reproduction check instead. Outputs:
+
+| Path | What |
+|---|---|
+| `results/m9_external/base_eval/` | the base model's answers and summary |
+| `results/<run>_m9/reproduction.json` | does the rerun stand in for the saved run |
+| `results/<run>_m9/external_eval/external_table.md` | before/after table for that model (`external_compare.json` beside it) |
+| `results/trackb_grpo/external_eval/` | the same for GRPO |
+| `results/m9_external/figure_values.json`, `assets/m9_external_bipia.png` | the figure and every value on it |
 
 ## Files
 
