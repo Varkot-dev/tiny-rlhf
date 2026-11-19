@@ -27,7 +27,7 @@ Track B applies it to one behavior I can score automatically: when a user asks f
 
 As an extension I compared DPO with KTO, which learns from single answers marked good or bad instead of pairs, on the same data. As a stretch I wrote REINFORCE by hand on a toy problem small enough to enumerate, so the theoretical optimum that DPO's derivation rests on can be checked numerically.
 
-Sweeps over beta, LoRA rank, dataset size and label noise are finished, and the key Track B runs are being repeated with more seeds now. Two more extensions are built and tested but not yet run on a GPU: GRPO, an online RL method, trained on Track B prompts with my checker as the reward; and an evaluation of the trained models on real prompt injections from Microsoft's BIPIA benchmark, to see whether what they learned from my synthetic data transfers."
+Sweeps over beta, LoRA rank, dataset size and label noise are finished. Repeating the key Track B runs with two more seeds changed one conclusion: DPO collapsed on four of its six runs, including one of three at beta 0.5, while KTO held on all six. Two more extensions are built and tested and are running on the GPU now: GRPO, an online RL method, trained on Track B prompts with my checker as the reward; and an evaluation of the trained models on real prompt injections from Microsoft's BIPIA benchmark, to see whether what they learned from my synthetic data transfers."
 
 Why two tracks: Track A answers "is my implementation right?" on standard data where a trusted library exists to compare against. Track B answers "does it do something useful?" on a behavior with an unambiguous check. Mixing the two would make a bad result impossible to diagnose.
 
@@ -791,7 +791,7 @@ KTO beta 0.5     0.647               0.654             +0.21   -33.1 to -17.0
 (base model      0.513               0.656)
 ```
 
-At beta 0.5 the two tie within noise, so knowing which two answers were compared added nothing measurable on this data. At beta 0.1 KTO avoided the collapse but moved far the other way: its chosen answers became much more likely, its drift was almost three times DPO beta 0.5's, and on the quoted-instruction probe it fell from 0.93 to 0.60.
+At beta 0.5 the two tie within noise on seed 0. Across three seeds (`results/seeds_summary.json`) they do not: DPO at beta 0.5 collapsed into one-word answers on seed 2 (clean accuracy 0.533 against the base model's 0.656), and DPO at beta 0.1 collapsed on all three seeds, while KTO held on all six of its runs. The per-answer loss terms are the likely reason: DPO can satisfy its loss by pushing both answers down, KTO cannot. At beta 0.1 KTO avoided the collapse but moved far the other way: its chosen answers became much more likely, its drift was almost three times DPO beta 0.5's, and on the quoted-instruction probe it fell from 0.93 to 0.60.
 
 **Fairness of the comparison.** KTO saw exactly the answers DPO saw (each of the 3,000 pairs split into one good and one bad answer), 16 answers per step against DPO's 8 pairs, the same 375 steps, model, LoRA, learning rate and seed. The two halves of a pair are kept out of the same micro-batch, so a prompt's mismatched answer is never its own pair-mate. Beta is matched in value but does not mean exactly the same constraint in the two losses.
 
@@ -1200,7 +1200,8 @@ A cluster bootstrap fixes it without assuming rho: resample the 125 documents wi
 | M2 parity, tiny and full | loss gaps at most 8.2e-06 (tiny, 41 steps) and 3.3e-05 (full, 100 steps) | `results/parity_tiny/`, `results/parity_full/parity_summary.json` |
 | M3 reward model against DPO | 0.638 against 0.654 accuracy, agreement 0.713 | `results/reward_full/reward_vs_dpo.json` |
 | M5 Track B, four DPO runs | first run collapsed (0.335 on task, 1-word answers); beta 0.5 on task 0.621 (base 0.513) with clean accuracy 0.646 (base 0.656, so held, not improved) and drift +0.24 | `results/trackb_*`, `results/trackb_rescored_compare.json` |
-| M7 KTO, two runs | beta 0.5 ties DPO beta 0.5 within noise; beta 0.1 avoided the collapse but drifted +0.70 | `results/trackb_kto*`, `results/kto_vs_dpo_summary.json` |
+| M7 KTO, two runs | beta 0.5 ties DPO beta 0.5 within noise on seed 0; beta 0.1 avoided the collapse but drifted +0.70 | `results/trackb_kto*`, `results/kto_vs_dpo_summary.json` |
+| Seeds 1 and 2 of the four key Track B runs | DPO collapsed on 4 of 6 runs (all 3 at beta 0.1, seed 2 at beta 0.5: clean accuracy 0.533), KTO on 0 of 6; KTO beta 0.5 seeds agree within 0.015 on task | `results/seeds_summary.json`, `assets/seeds_trackb.png` |
 | M6 beta sweep | accuracy 0.62 to 0.66 at all three betas; drift 0.591, 0.041, 0.010 | `results/sweeps/beta/summary.json` |
 | M6 LoRA rank 2, 8, 16, 64 | held-out accuracy 0.661, 0.668, 0.661, 0.682, intervals overlapping; rank 64 moved furthest (chosen log-prob -10.6 nats against about -5) | `results/sweeps/lora_rank/summary.json` |
 | M6 dataset size at 340 steps (100, 300, 1,000, 3,000 pairs requested; 94, 281, 933, 2,774 used) | accuracy 0.574, 0.635, 0.664, 0.650; held-out loss 1.360, 1.274, 0.845, 0.624; chosen log-prob change -49.3, -50.6, -28.9, -6.1 nats | `results/sweeps/data_size/summary.json`, each run's `eval.csv` |
@@ -1214,11 +1215,11 @@ A cluster bootstrap fixes it without assuming rho: resample the 125 documents wi
 ### What these do and do not show
 
 - **They show** the hand-written DPO and KTO compute what TRL computes, on the real model for DPO; that beta mainly controls drift rather than accuracy, on two datasets; that a loose beta can collapse DPO into a shortcut that the right checks catch; that single good/bad labels matched pairs on this data at beta 0.5; that LoRA rank does not limit learning at this data size; that more data mostly reduces damage once accuracy has levelled off; and that DPO degrades gracefully under label noise, with no accuracy gain from the robust loss that can be told apart from zero.
-- **They do not show** anything across random seeds yet (one seed per run until the seeds stage finishes), anything about real prompt-injection attacks (Track B is templated; M9 has not run), anything about online RL on the real model (M8 has not run), or anything quantitative about large models.
+- **They do not show** how often DPO at beta 0.5 collapses (three seeds show only that it can), anything across seeds for the sweeps and the other variants (one seed each), anything about real prompt-injection attacks (Track B is templated; M9 has not run), anything about online RL on the real model (M8 has not run), or anything quantitative about large models.
 
 ### In progress
 
-- **Extra seeds** (seeds 1 and 2) for the four key Track B runs: running on Colab now; `results/trackb_full_seed1/` has finished and is not interpreted on its own. `scripts/plot_seeds.py` will put the three seeds of each run side by side (`results/seeds_summary.json`, `assets/seeds_trackb.png`): pooled strict rates, median length and drift with intervals, plus the mean, minimum and maximum across seeds. If the spread across seeds is smaller than the gap between two methods, that comparison holds.
+- **M8 and M9** are running on the GPU (queue stages `m8_grpo` and `m9_external`). The extra seeds have finished; their result is in Part 5's measured table above.
 
 ### Built and tested, not yet run on a GPU
 

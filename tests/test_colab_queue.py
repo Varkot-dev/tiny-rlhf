@@ -495,6 +495,17 @@ def test_successful_job_commits_only_its_outputs_and_the_status(repo: Path) -> N
     assert status["jobs"]["a"]["status"] == "done" and status["gpu"] == "Test GPU"
 
 
+def test_a_moving_clock_alone_never_adds_a_status_commit(repo: Path) -> None:
+    # The status file records the time of each save. A clock that moves on between the last
+    # job and the end of the launch must not add an "Update queue status" commit: whether
+    # it did used to depend on timing, which made the test above fail now and then.
+    ticks = iter(range(10_000))
+    jobs = [job("a", "results/a/done.json", writes("results/a/done.json"))]
+    run(repo, jobs, clock=lambda: float(next(ticks)) * 37.0)
+    assert git(repo, "log", "-1", "--format=%s").strip() == "Add results for a (Colab Test GPU)"
+    assert git(repo, "status", "--porcelain") == ""
+
+
 def test_job_whose_marker_is_already_in_the_tree_is_skipped(repo: Path) -> None:
     (repo / "results/a").mkdir(parents=True)
     (repo / "results/a/done.json").write_text("old")

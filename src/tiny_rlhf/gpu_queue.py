@@ -1251,6 +1251,14 @@ def run_queue(
             if name not in results
         }
         payload["jobs"] = {**carried, **results}
+        # A save that would change nothing but the time is skipped. Otherwise the file
+        # differs whenever the clock has moved on, and the final save of a launch makes an
+        # extra commit, or not, depending on the timing (this once made a test flaky).
+        previous = load_status(root)
+        if {k: v for k, v in previous.items() if k != "updated_unix"} == {
+            k: v for k, v in payload.items() if k != "updated_unix"
+        }:
+            return
         path.write_text(json.dumps(payload, indent=2) + "\n")
 
     def record(job: Job, status: str, **extra: Any) -> None:
