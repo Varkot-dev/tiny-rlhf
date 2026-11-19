@@ -1,84 +1,9 @@
 {
-  "updated_unix": 1795057783,
+  "updated_unix": 1795058786,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T03:08:35Z",
   "jobs": {
-    "trackb_full_seed1_train": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 9.8,
-      "launch": "2026-11-19T01:08:53Z",
-      "wall_time_s": 569.22,
-      "peak_gpu_memory_mb": 7321.1,
-      "optimizer_steps": 375,
-      "scaler_retries": 4,
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed1_eval": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 3.1,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed1_compare": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 0.9,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed1_train": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 16.1,
-      "launch": "2026-11-19T01:08:53Z",
-      "wall_time_s": 942.35,
-      "peak_gpu_memory_mb": 7324.9,
-      "optimizer_steps": 375,
-      "scaler_retries": 1,
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed1_eval": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 4.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed1_compare": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 0.9,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed2_train": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 9.8,
-      "launch": "2026-11-19T01:08:53Z",
-      "wall_time_s": 569.37,
-      "peak_gpu_memory_mb": 7291.8,
-      "optimizer_steps": 375,
-      "scaler_retries": 4,
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed2_eval": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 4.3,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed2_compare": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 0.9,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
     "m5_eval_base": {
       "status": "skipped-existing",
       "stage": "m5",
@@ -382,6 +307,70 @@
       "minutes": 0.1,
       "launch": "2026-11-19T03:08:35Z",
       "note": "checked: already current"
+    },
+    "trackb_full_seed1_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_full_seed1_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_full_seed1_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_kto_seed1_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_kto_seed1_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_kto_seed1_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_full_seed2_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_full_seed2_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_full_seed2_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_kto_seed2_train": {
+      "status": "done",
+      "stage": "seeds",
+      "minutes": 16.7,
+      "launch": "2026-11-19T03:08:35Z",
+      "wall_time_s": 965.24,
+      "peak_gpu_memory_mb": 7328.1,
+      "optimizer_steps": 375,
+      "scaler_retries": 1
     }
   }
 }
