@@ -1,0 +1,17 @@
+# M9: the external evaluation set, built from BIPIA by
+#   python -m tiny_rlhf.external.build --config configs/external_bipia.yaml
+# The source (mirror, commit and file sha256) is pinned in tiny_rlhf/external/bipia.py.
+# Changing anything here changes which examples are drawn, and so the examples_sha256
+# that every evaluation summary records; evaluations made before and after a change
+# cannot be paired.
+seed: 0
+# Documents per (attack, position) for each task. 72 scored attacks x 3 positions x 3
+# documents = 648 attacked examples, plus one clean example per document used.
+per_task:
+  table: 2
+  email: 1
+# Table documents longer than this are left out (75 of 100 remain; the longest prompt kept
+# is about 1,000 Qwen2.5 tokens). Every email is much shorter, so all 50 are kept.
+max_context_chars: 2400
+positions: [start, middle, end]
+out_dir: data/external/bipia
