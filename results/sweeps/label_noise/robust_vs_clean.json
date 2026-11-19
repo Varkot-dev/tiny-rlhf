@@ -1,0 +1,27 @@
+{
+  "a": "results/sweep_noise_0.0",
+  "b": "results/sweep_noise_0.3_robust",
+  "eval_pairs_sha256": "218b442d7f2bc3de21ef34ccdfb147180e73bb9664ad07aa086e08222bd3a5d1",
+  "n_pairs": 277,
+  "accuracy_a": 0.6642599277978339,
+  "accuracy_b": 0.628158844765343,
+  "accuracy_change_b_minus_a": {
+    "difference": -0.036101083032490974,
+    "ci_low": -0.09386281588447654,
+    "ci_high": 0.018050541516245487,
+    "n": 277
+  },
+  "margin_change_b_minus_a": {
+    "difference": -0.16795364670482354,
+    "ci_low": -0.24594956609094348,
+    "ci_high": -0.0903517191194079,
+    "n": 277
+  },
+  "both_right": 147,
+  "only_a_right": 37,
+  "only_b_right": 27,
+  "both_wrong": 66,
+  "interval": "paired 95% percentile bootstrap over held-out pairs",
+  "n_resamples": 2000,
+  "seed": 0
+}
