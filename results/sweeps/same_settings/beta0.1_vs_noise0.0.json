@@ -1,0 +1,27 @@
+{
+  "a": "results/sweep_beta_0.1",
+  "b": "results/sweep_noise_0.0",
+  "eval_pairs_sha256": "218b442d7f2bc3de21ef34ccdfb147180e73bb9664ad07aa086e08222bd3a5d1",
+  "n_pairs": 277,
+  "accuracy_a": 0.6642599277978339,
+  "accuracy_b": 0.6642599277978339,
+  "accuracy_change_b_minus_a": {
+    "difference": 0.0,
+    "ci_low": -0.010830324909747292,
+    "ci_high": 0.010830324909747292,
+    "n": 277
+  },
+  "margin_change_b_minus_a": {
+    "difference": 0.0008866476157296866,
+    "ci_low": -0.0005517313626699066,
+    "ci_high": 0.0022373796844121986,
+    "n": 277
+  },
+  "both_right": 183,
+  "only_a_right": 1,
+  "only_b_right": 1,
+  "both_wrong": 92,
+  "interval": "paired 95% percentile bootstrap over held-out pairs",
+  "n_resamples": 2000,
+  "seed": 0
+}
