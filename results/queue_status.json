@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1795052537,
+  "updated_unix": 1795054716,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T01:08:53Z",
@@ -326,6 +326,50 @@
       "launch": "2026-11-19T01:08:53Z"
     },
     "trackb_full_seed1_compare": {
+      "status": "done",
+      "stage": "seeds",
+      "minutes": 0.9,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "trackb_kto_seed1_train": {
+      "status": "done",
+      "stage": "seeds",
+      "minutes": 16.1,
+      "launch": "2026-11-19T01:08:53Z",
+      "wall_time_s": 942.35,
+      "peak_gpu_memory_mb": 7324.9,
+      "optimizer_steps": 375,
+      "scaler_retries": 1
+    },
+    "trackb_kto_seed1_eval": {
+      "status": "done",
+      "stage": "seeds",
+      "minutes": 4.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "trackb_kto_seed1_compare": {
+      "status": "done",
+      "stage": "seeds",
+      "minutes": 0.9,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "trackb_full_seed2_train": {
+      "status": "done",
+      "stage": "seeds",
+      "minutes": 9.8,
+      "launch": "2026-11-19T01:08:53Z",
+      "wall_time_s": 569.37,
+      "peak_gpu_memory_mb": 7291.8,
+      "optimizer_steps": 375,
+      "scaler_retries": 4
+    },
+    "trackb_full_seed2_eval": {
+      "status": "done",
+      "stage": "seeds",
+      "minutes": 4.3,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "trackb_full_seed2_compare": {
       "status": "done",
       "stage": "seeds",
       "minutes": 0.9,
