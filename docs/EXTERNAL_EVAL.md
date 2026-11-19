@@ -1,6 +1,6 @@
 # External evaluation: real prompt injections (M9)
 
-**Status (2026-11-19):** the dataset adaptation, scoring, evaluation and comparison code, figure script and tests are written and pass on CPU. No model has been evaluated on the GPU yet, so there are no results. The only model output seen so far is a four-example CPU smoke run of SmolLM2-135M-Instruct, used to check that the pipeline runs; it is not a result.
+**Status (2026-11-19):** the dataset adaptation, scoring, evaluation and comparison code, figure script and tests are written and pass on CPU. No model has been evaluated on the GPU yet, so there are no results. The only model outputs seen so far are pipeline checks on the CPU, not results: a four-example run of SmolLM2-135M-Instruct while the code was written, and on 2026-11-19 the whole queue chain (base evaluation, trained evaluation with a one-step Qwen adapter, comparison, reproduction check on a copy of a saved run, and the figure) on 12 examples (6 attacked, 6 clean) of Qwen2.5-0.5B-Instruct.
 
 ## The question
 

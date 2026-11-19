@@ -21,7 +21,7 @@ It is a picture of the loss function, not of a trained model.
 | M6 ablation sweeps and write-up | sweep tooling done | beta, LoRA rank, dataset size and label noise sweeps done; extra seeds queued; final write-up pending |
 | M7 KTO against DPO on Track B (extension) | done, checked against TRL's KTOTrainer | two full runs on a Colab T4 (below) |
 | M8 GRPO with the Track B checker as the reward (extension) | done, loss checked against TRL's GRPOTrainer; a two-step training run on a tiny model in the tests | not run on a GPU yet (queued) |
-| M9 transfer to real prompt injections, BIPIA (extension) | done, see [docs/EXTERNAL_EVAL.md](docs/EXTERNAL_EVAL.md); checked end to end on the CPU on 12 examples | not run on a GPU yet (queued) |
+| M9 transfer to real prompt injections, BIPIA (extension) | done, see [docs/EXTERNAL_EVAL.md](docs/EXTERNAL_EVAL.md); checked end to end on the CPU with the real model and a one-step adapter on 12 examples (6 attacked, 6 clean) | not run on a GPU yet (queued) |
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
 **New here? Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md)**: the whole project explained from zero, the story of every experiment, what went wrong, and interview questions with answers. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
@@ -87,18 +87,20 @@ Same setup as the beta sweep (hand-written DPO, beta 0.1, the standard dataset, 
 
 **LoRA rank** (`results/sweeps/lora_rank/summary.json`, [figure](assets/m6_sweep_lora_rank.png)): held-out accuracy 0.661, 0.668, 0.661 and 0.682 at rank 2, 8, 16 and 64, all within each other's intervals. Capacity is not the limit here; the largest adapter mainly moved further, with the preferred answers' log-probability falling 10.6 nats against about 5 for the others.
 
+**How much of a difference is noise from the hardware:** three runs share exactly the same settings (the beta 0.1 sweep run, the 0% label-noise run and the rank 16 run). They rank at most 2 of the 277 held-out pairs differently (accuracy 0.664, 0.664 and 0.661) and their per-pair margins differ by at most 0.05 (`results/sweeps/same_settings/`, from `scripts/compare_pairs.py`). GPU training is not bit-for-bit deterministic, so in these sweeps a difference of a pair or two (about 0.007 in accuracy) says nothing about the setting.
+
 **Dataset size at a fixed 340 steps** (`results/sweeps/data_size/summary.json`, [figure](assets/m6_sweep_data_size.png)):
 
-| Training pairs | Each pair seen about | Held-out accuracy | Held-out loss | Preferred log-probability change |
+| Training pairs (used) | Each pair seen about | Held-out accuracy | Held-out loss | Preferred log-probability change |
 |---|---|---|---|---|
-| 100 | 27 times | 0.574 (0.516 to 0.632) | 1.360 | -49.3 nats |
-| 300 | 9 times | 0.635 (0.578 to 0.693) | 1.274 | -50.6 nats |
-| 1,000 | 3 times | 0.664 (0.606 to 0.718) | 0.845 | -28.9 nats |
-| 3,000 | once | 0.650 (0.596 to 0.700) | 0.624 | -6.1 nats |
+| 100 (94) | 29 times | 0.574 (0.516 to 0.632) | 1.360 | -49.3 nats |
+| 300 (281) | 10 times | 0.635 (0.578 to 0.693) | 1.274 | -50.6 nats |
+| 1,000 (933) | 3 times | 0.664 (0.606 to 0.718) | 0.845 | -28.9 nats |
+| 3,000 (2,774) | once | 0.650 (0.596 to 0.700) | 0.624 | -6.1 nats |
 
 With little data the model memorises: held-out loss ends far above the 0.693 it started at, and the preferred answers fall about 50 nats. Accuracy levels off around 1,000 pairs, but more data keeps reducing the damage. Held-out losses are from each run's `eval.csv`.
 
-**Label noise** (`results/sweeps/label_noise/summary.json`, [figure](assets/m6_sweep_label_noise.png); a share of training pairs has chosen and rejected swapped, held-out pairs are never flipped): held-out accuracy 0.664, 0.650 and 0.603 with 0%, 10% and 30% flipped. DPO degrades gracefully. The 0% run reproduces the beta 0.1 sweep run exactly (same settings, accuracy 0.664 and preferred log-probability -328.2 in both). With 30% flipped, the ordinary loss also moves the model less (preferred answers -2.0 nats against -5.4 on clean data), because the flipped pairs push the other way.
+**Label noise** (`results/sweeps/label_noise/summary.json`, [figure](assets/m6_sweep_label_noise.png); a share of training pairs has chosen and rejected swapped, held-out pairs are never flipped): held-out accuracy 0.664, 0.650 and 0.603 with 0%, 10% and 30% flipped. DPO degrades gracefully. With 30% flipped, the ordinary loss also moves the model less (preferred answers -2.0 nats against -5.4 on clean data), because the flipped pairs push the other way.
 
 The robust DPO loss (TRL's `loss_type="robust"`, written by hand in `src/tiny_rlhf/noise.py`), told the true 30% flip rate, reaches 0.628. Compared pair by pair on the same 277 held-out pairs (`results/sweeps/label_noise/robust_vs_ordinary.json`, from `scripts/compare_pairs.py`), that is +0.025 in accuracy with a paired interval of -0.011 to +0.061: not distinguishable from no effect at this sample size. Its held-out reward margin is clearly larger (+0.12, interval +0.07 to +0.17), and it moves the preferred answers as far as clean training does (-5.2 nats). Against the clean run it is -0.036 (-0.094 to +0.018; `robust_vs_clean.json`). One seed per run; the robust loss was given the exact flip rate, which a real dataset would not reveal.
 

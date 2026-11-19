@@ -21,7 +21,7 @@ adapter's Track B evaluation with the saved one on the same examples:
                 both sides: older evaluations stored none, or one from the first strict
                 rule (fixed since; see the decision log)
 
-The rerun reproduces the saved run when the configs match and, for each of the three
+The rerun reproduces the saved run when the configs match and, for each of the four
 rates, the interval contains 0 and the change is at most TOLERANCE in size. If it does
 not, the external results describe the rerun adapter, and are reported next to the
 rerun's own Track B numbers, not the saved run's.
