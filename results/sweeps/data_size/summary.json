@@ -1,7 +1,7 @@
 {
   "sweep": "data_size",
   "field": "n_train",
-  "source": "/content/tiny-rlhf/configs/sweeps/data_size.yaml",
+  "source": "/home/user/tiny-rlhf/configs/sweeps/data_size.yaml",
   "runs": [
     {
       "run_dir": "results/sweep_size_100",

@@ -1,7 +1,7 @@
 {
   "sweep": "lora_rank",
   "field": "lora_r",
-  "source": "/content/tiny-rlhf/configs/sweeps/lora_rank.yaml",
+  "source": "/home/user/tiny-rlhf/configs/sweeps/lora_rank.yaml",
   "runs": [
     {
       "run_dir": "results/sweep_rank_2",

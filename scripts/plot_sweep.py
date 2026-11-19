@@ -92,7 +92,6 @@ def make_figure(sweep: Sweep, summary: dict, out_path: Path, root: Path) -> None
     for ax, (key, title, ylabel) in zip(axes, PANELS, strict=True):
         for s_index, name in enumerate(series_names):
             color = SERIES[s_index]
-            label_left = len(series_names) > 1 and s_index == 0
             idx = [i for i, r in enumerate(runs) if (r["series"] or "runs") == name]
             px = [xs[i] + nudge * (s_index - (len(series_names) - 1) / 2) for i in idx]
             mean = [runs[i][key]["mean"] for i in idx]
@@ -115,17 +114,22 @@ def make_figure(sweep: Sweep, summary: dict, out_path: Path, root: Path) -> None
                 label=name,
                 zorder=3,
             )
-            for x, m in zip(px, mean, strict=True):
+            for x, m, lo, hi in zip(px, mean, low, high, strict=True):
+                # The value goes just past the end of its own error bar: above it for the
+                # first series, below it for the second. Next to the point it collided with
+                # the connecting line and with neighbouring points' labels.
+                above = s_index == 0
                 ax.annotate(
                     f"{m:.3f}" if abs(m) < 10 else f"{m:.1f}",
-                    xy=(x, m),
-                    # With two series the first one's labels go to the left of the point
-                    # and the second one's to the right, so labels at a shared x do not collide.
-                    xytext=(-7, 7) if label_left else (7, 7),
-                    ha="right" if label_left else "left",
+                    xy=(x, m + hi if above else m - lo),
+                    xytext=(0, 4 if above else -4),
+                    ha="center",
+                    va="bottom" if above else "top",
                     textcoords="offset points",
                     fontsize=8.5,
                     color=TEXT_PRIMARY,
+                    bbox={"boxstyle": "round,pad=0.15", "facecolor": SURFACE, "edgecolor": "none"},
+                    zorder=4,
                 )
         if key == "accuracy":
             ax.set_ylim(0, 1.02)
