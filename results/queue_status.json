@@ -1,43 +1,9 @@
 {
-  "updated_unix": 1795050722,
+  "updated_unix": 1795050728,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T01:08:53Z",
   "jobs": {
-    "lora_rank_2": {
-      "status": "skipped-existing",
-      "stage": "lora_rank",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "lora_rank_8": {
-      "status": "skipped-existing",
-      "stage": "lora_rank",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "lora_rank_16": {
-      "status": "skipped-existing",
-      "stage": "lora_rank",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "lora_rank_64": {
-      "status": "done",
-      "stage": "lora_rank",
-      "minutes": 15.9,
-      "wall_time_s": 905.56,
-      "peak_gpu_memory_mb": 9269.7,
-      "optimizer_steps": 233,
-      "scaler_retries": 4,
-      "from_earlier_launch": true
-    },
-    "lora_rank_figure": {
-      "status": "done",
-      "stage": "lora_rank",
-      "minutes": 0.1,
-      "from_earlier_launch": true
-    },
     "data_size_100": {
       "status": "done",
       "stage": "data_size",
@@ -338,6 +304,36 @@
       "minutes": 0.1,
       "launch": "2026-11-19T01:08:53Z",
       "note": "checked: already current"
+    },
+    "lora_rank_2": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "lora_rank_8": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "lora_rank_16": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "lora_rank_64": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "lora_rank_figure": {
+      "status": "done",
+      "stage": "lora_rank",
+      "minutes": 0.1,
+      "launch": "2026-11-19T01:08:53Z"
     }
   }
 }
