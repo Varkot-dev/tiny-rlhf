@@ -1,51 +1,9 @@
 {
-  "updated_unix": 1795050580,
+  "updated_unix": 1795050722,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T01:08:53Z",
   "jobs": {
-    "m2_parity_ours_fp16": {
-      "status": "not-needed",
-      "stage": "m2",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "m2_parity_trl_fp16": {
-      "status": "not-needed",
-      "stage": "m2",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "m2_parity_figure_fp16": {
-      "status": "not-needed",
-      "stage": "m2",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "beta_0.01": {
-      "status": "skipped-existing",
-      "stage": "beta",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "beta_0.1": {
-      "status": "skipped-existing",
-      "stage": "beta",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "beta_0.5": {
-      "status": "skipped-existing",
-      "stage": "beta",
-      "minutes": 0.0,
-      "from_earlier_launch": true
-    },
-    "beta_figure": {
-      "status": "done",
-      "stage": "beta",
-      "minutes": 0.1,
-      "from_earlier_launch": true
-    },
     "lora_rank_2": {
       "status": "skipped-existing",
       "stage": "lora_rank",
@@ -334,6 +292,49 @@
     "m2_parity_figure": {
       "status": "skipped-existing",
       "stage": "m2",
+      "minutes": 0.1,
+      "launch": "2026-11-19T01:08:53Z",
+      "note": "checked: already current"
+    },
+    "m2_parity_ours_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "m2_parity_trl_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "m2_parity_figure_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "beta_0.01": {
+      "status": "skipped-existing",
+      "stage": "beta",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "beta_0.1": {
+      "status": "skipped-existing",
+      "stage": "beta",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "beta_0.5": {
+      "status": "skipped-existing",
+      "stage": "beta",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z"
+    },
+    "beta_figure": {
+      "status": "skipped-existing",
+      "stage": "beta",
       "minutes": 0.1,
       "launch": "2026-11-19T01:08:53Z",
       "note": "checked: already current"
