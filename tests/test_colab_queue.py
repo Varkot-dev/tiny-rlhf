@@ -12,7 +12,10 @@ from pathlib import Path
 import pytest
 
 from tiny_rlhf.gpu_queue import (
+    ESTIMATE_MIN,
     FAILURE_DIR,
+    GRPO_RUNS,
+    GRPO_SMALL_BATCH,
     KTO_RUNS,
     KTO_SMALL_BATCH,
     SEED_RUNS,
@@ -37,6 +40,7 @@ from tiny_rlhf.kto import KTOConfig
 from tiny_rlhf.reward_model import RewardConfig
 from tiny_rlhf.sweeps import load_sweep
 from tiny_rlhf.train_dpo import DPOConfig
+from tiny_rlhf.train_grpo import GRPORunConfig, load_grpo_config
 
 ROOT = Path(__file__).resolve().parents[1]
 PY = sys.executable
@@ -131,10 +135,12 @@ def test_queue_has_every_expected_job_exactly_once_in_priority_order() -> None:
         name = seed_run_name(run, seed)
         expected |= {f"{name}_train", f"{name}_eval", f"{name}_compare"}
     expected.add("seeds_figure")
+    expected |= {f"m8_grpo_{step}" for step in ("train", "eval", "compare", "figure", "hacking")}
     assert set(names) == expected
     assert [j.stage for j in QUEUE] == sorted((j.stage for j in QUEUE), key=STAGES.index)
     assert STAGES[:5] == ("m5", "m5_followup", "m7_kto", "m3", "m2")
-    assert STAGES[-1] == "seeds"  # robustness repeats come after everything else
+    # Robustness repeats come after every earlier stage; M8 (GRPO) was appended after them.
+    assert STAGES[-2:] == ("seeds", "m8_grpo")
 
 
 def test_dependencies_exist_point_backwards_and_are_acyclic() -> None:
@@ -176,6 +182,7 @@ CONFIG_FIELDS = {
     "scripts/train_trl.py": {f.name for f in dataclasses.fields(DPOConfig)},
     "scripts/train_trackb.py": {f.name for f in dataclasses.fields(DPOConfig)},
     "scripts/train_kto.py": {f.name for f in dataclasses.fields(KTOConfig)},
+    "scripts/train_grpo.py": {f.name for f in dataclasses.fields(GRPORunConfig)},
 }
 
 
@@ -276,6 +283,70 @@ def test_kto_runs_are_evaluated_and_compared_exactly_like_the_dpo_runs() -> None
     assert figure.marker in figure.outputs
 
 
+def test_grpo_run_is_evaluated_and_compared_exactly_like_the_dpo_runs() -> None:
+    # M8 compares GRPO with DPO and KTO on the same base evaluation, so the evaluation must
+    # use m5's settings and nothing may overwrite trackb_full's files.
+    m5_eval = BY_NAME["m5_eval_trained"].commands[0]
+    (run,) = GRPO_RUNS
+    train = BY_NAME["m8_grpo_train"]
+    assert train.stage == "m8_grpo"
+    config = f"configs/{run}.yaml"
+    assert train.commands[-1] == ("python", "scripts/train_grpo.py", "--config", config)
+    assert train.produces_adapter == f"checkpoints/{run}"
+    assert train.oom_retry_args == GRPO_SMALL_BATCH
+    evaluation = BY_NAME["m8_grpo_eval"].commands[0]
+    assert evaluation[evaluation.index("--with-probes") :] == TRACKB_EVAL_ARGS
+    differ = [i for i, (a, b) in enumerate(zip(evaluation, m5_eval, strict=True)) if a != b]
+    assert [evaluation[i - 1] for i in differ] == ["--adapter", "--out"]
+    assert evaluation[evaluation.index("--out") + 1] == f"results/{run}/trackb_eval"
+    compare = BY_NAME["m8_grpo_compare"]
+    assert "m5_eval_base" in compare.depends_on
+    for command in compare.commands[1:4]:
+        assert command[command.index("--base") + 1] == TRACKB_BASE_SUMMARY
+    assert ("python", "scripts/rescore_trackb.py", "--write-runs", run) in compare.commands
+    assert f"results/{run}/trackb_eval/rescored_trained.json" in compare.outputs
+    for j in (train, BY_NAME["m8_grpo_eval"], compare):
+        assert all("trackb_full" not in path for path in j.outputs)
+    figure = BY_NAME["m8_grpo_figure"]
+    variants_cmd = figure.commands[0]
+    runs = variants_cmd[variants_cmd.index("--runs") + 1 : variants_cmd.index("--out")]
+    assert tuple(runs) == ("trackb_beta0.5", "trackb_kto_beta0.5", run)
+    assert "assets/m8_grpo_vs_dpo.png" in figure.outputs
+    assert "assets/m8_grpo_training.png" in figure.outputs
+    assert figure.marker in figure.outputs and figure.always_run
+    hacking = BY_NAME["m8_grpo_hacking"]
+    assert set(hacking.depends_on) == {"m5_eval_base", "m8_grpo_eval"}
+    assert hacking.marker in hacking.outputs
+
+
+def test_grpo_config_matches_the_dpo_runs_and_the_evaluation() -> None:
+    from tiny_rlhf.trackb.evaluate import DEFAULT_MAX_NEW_TOKENS
+    from tiny_rlhf.train_dpo import load_config
+
+    grpo = load_grpo_config(ROOT / "configs/trackb_grpo.yaml")
+    dpo = load_config(ROOT / "configs/trackb_full.yaml")
+    # Same prompts (selection), same adapter, same base model.
+    for key in ("model_name", "dataset_name", "n_train", "max_length", "seed"):
+        assert getattr(grpo, key) == getattr(dpo, key), key
+    for key in ("lora_r", "lora_alpha", "lora_dropout", "lora_target_modules"):
+        assert getattr(grpo, key) == getattr(dpo, key), key
+    # "Hit the length limit" means the same in training and in the evaluation.
+    assert grpo.max_completion_length == DEFAULT_MAX_NEW_TOKENS
+    assert grpo.beta > 0  # the drift findings: keep a KL brake
+    # The out-of-memory retry keeps the answers and prompts per optimizer step.
+    small = load_grpo_config(
+        ROOT / "configs/trackb_grpo.yaml",
+        {
+            key: int(value)
+            for key, _, value in (arg.partition("=") for arg in GRPO_SMALL_BATCH[1::2])
+        },
+    )
+    assert small.completions_per_step() == grpo.completions_per_step() == 32
+    assert small.prompts_per_step() == grpo.prompts_per_step() == 4
+    # The job estimate covers the training time cap.
+    assert ESTIMATE_MIN["m8_train"] >= grpo.max_minutes
+
+
 def test_fp16_fallback_is_wired_to_both_float32_parity_runs() -> None:
     for name, run_name in (
         ("m2_parity_ours_fp16", "parity_full_fp16"),
@@ -312,7 +383,12 @@ def test_jobs_that_read_an_adapter_name_the_job_that_writes_it() -> None:
     produced = {j.produces_adapter: j.name for j in QUEUE if j.produces_adapter}
     readers = [j for j in QUEUE if j.needs_adapter]
     seed_runs = tuple(seed_run_name(run, seed) for run, seed in SEED_RUNS)
-    assert {j.name for j in readers} == {"m5_eval_trained", "m5_compare"} | {
+    assert {j.name for j in readers} == {
+        "m5_eval_trained",
+        "m5_compare",
+        "m8_grpo_eval",
+        "m8_grpo_compare",
+    } | {
         f"{run}_{step}"
         for run in (*TRACKB_VARIANTS, *KTO_RUNS, *seed_runs)
         for step in ("eval", "compare")
@@ -811,7 +887,10 @@ def test_strict_rescoring_runs_last_in_the_followup_stage_and_commits_every_run(
         for path in j.outputs
         if path.startswith("results/") and "/trackb_eval" in path
     }
-    assert evaluated <= set(all_trackb_runs())
+    # The GRPO run (M8, appended later) is the exception: adding it to all_trackb_runs would
+    # change this existing job's outputs. Its rescored file is written and committed by its
+    # own compare job, and rescoring is deterministic, so this job rewrites it unchanged.
+    assert evaluated <= set(all_trackb_runs()) | set(GRPO_RUNS)
     assert "assets/m5_trackb_strict.png" in rescore.outputs
     # Nothing it writes may land on an original evaluation file.
     assert not any("summary_" in path or path.endswith(".jsonl") for path in rescore.outputs)

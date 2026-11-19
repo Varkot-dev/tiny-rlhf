@@ -37,6 +37,7 @@ KNOWN = (
     "trackb_sft1",
     "trackb_kto",
     "trackb_kto_beta0.5",
+    "trackb_grpo",
 )
 LEGEND = {
     "base": "base model",
@@ -46,6 +47,7 @@ LEGEND = {
     "trackb_sft1": "DPO plus preferred-response NLL",
     "trackb_kto": "KTO, beta 0.1",
     "trackb_kto_beta0.5": "KTO, beta 0.5",
+    "trackb_grpo": "GRPO, checker reward (beta 0.04)",
 }
 SPLIT_LABELS = {
     "test_in_dist": "in\ndistribution",
