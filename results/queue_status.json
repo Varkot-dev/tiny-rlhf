@@ -1,48 +1,9 @@
 {
-  "updated_unix": 1795057778,
+  "updated_unix": 1795057783,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T03:08:35Z",
   "jobs": {
-    "label_noise_0.0": {
-      "status": "skipped-existing",
-      "stage": "label_noise",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "label_noise_0.1": {
-      "status": "skipped-existing",
-      "stage": "label_noise",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "label_noise_0.3": {
-      "status": "skipped-existing",
-      "stage": "label_noise",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "label_noise_0.3_robust": {
-      "status": "done",
-      "stage": "label_noise",
-      "minutes": 16.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "wall_time_s": 904.04,
-      "peak_gpu_memory_mb": 8801.1,
-      "optimizer_steps": 233,
-      "scaler_retries": 6,
-      "from_earlier_launch": true
-    },
-    "label_noise_figure": {
-      "status": "done",
-      "stage": "label_noise",
-      "minutes": 0.1,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
     "trackb_full_seed1_train": {
       "status": "done",
       "stage": "seeds",
@@ -387,6 +348,37 @@
     "data_size_figure": {
       "status": "skipped-existing",
       "stage": "data_size",
+      "minutes": 0.1,
+      "launch": "2026-11-19T03:08:35Z",
+      "note": "checked: already current"
+    },
+    "label_noise_0.0": {
+      "status": "skipped-existing",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "label_noise_0.1": {
+      "status": "skipped-existing",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "label_noise_0.3": {
+      "status": "skipped-existing",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "label_noise_0.3_robust": {
+      "status": "skipped-existing",
+      "stage": "label_noise",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "label_noise_figure": {
+      "status": "skipped-existing",
+      "stage": "label_noise",
       "minutes": 0.1,
       "launch": "2026-11-19T03:08:35Z",
       "note": "checked: already current"
