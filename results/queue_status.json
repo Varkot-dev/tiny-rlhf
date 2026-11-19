@@ -1,156 +1,179 @@
 {
-  "updated_unix": 1794982325,
+  "updated_unix": 1795050536,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
+  "launch": "2026-11-19T01:08:53Z",
   "jobs": {
-    "m5_eval_base": {
-      "status": "skipped-existing",
-      "stage": "m5",
-      "minutes": 0.0,
-      "note": "checked: already current"
-    },
     "m5_train": {
       "status": "skipped-existing",
       "stage": "m5",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m5_eval_trained": {
       "status": "skipped-existing",
       "stage": "m5",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m5_compare": {
       "status": "skipped-existing",
       "stage": "m5",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_beta0.5_train": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_beta0.5_eval": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_beta0.5_compare": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_steps60_train": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_steps60_eval": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_steps60_compare": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_sft1_train": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_sft1_eval": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_sft1_compare": {
       "status": "skipped-existing",
       "stage": "m5_followup",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m5_followup_figure": {
       "status": "skipped-existing",
       "stage": "m5_followup",
       "minutes": 0.1,
-      "note": "checked: already current"
+      "note": "checked: already current",
+      "from_earlier_launch": true
     },
     "m3_reward": {
       "status": "skipped-existing",
       "stage": "m3",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m3_reward_vs_dpo": {
       "status": "skipped-existing",
       "stage": "m3",
       "minutes": 0.1,
-      "note": "checked: already current"
+      "note": "checked: already current",
+      "from_earlier_launch": true
     },
     "m2_parity_ours": {
       "status": "skipped-existing",
       "stage": "m2",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m2_parity_trl": {
       "status": "skipped-existing",
       "stage": "m2",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m2_parity_figure": {
       "status": "skipped-existing",
       "stage": "m2",
       "minutes": 0.1,
-      "note": "checked: already current"
+      "note": "checked: already current",
+      "from_earlier_launch": true
     },
     "m2_parity_ours_fp16": {
       "status": "not-needed",
       "stage": "m2",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m2_parity_trl_fp16": {
       "status": "not-needed",
       "stage": "m2",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m2_parity_figure_fp16": {
       "status": "not-needed",
       "stage": "m2",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "beta_0.01": {
       "status": "skipped-existing",
       "stage": "beta",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "beta_0.1": {
       "status": "skipped-existing",
       "stage": "beta",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "beta_0.5": {
       "status": "skipped-existing",
       "stage": "beta",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "beta_figure": {
       "status": "done",
       "stage": "beta",
-      "minutes": 0.1
+      "minutes": 0.1,
+      "from_earlier_launch": true
     },
     "lora_rank_2": {
       "status": "skipped-existing",
       "stage": "lora_rank",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "lora_rank_8": {
       "status": "skipped-existing",
       "stage": "lora_rank",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "lora_rank_16": {
       "status": "skipped-existing",
       "stage": "lora_rank",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "lora_rank_64": {
       "status": "done",
@@ -159,12 +182,14 @@
       "wall_time_s": 905.56,
       "peak_gpu_memory_mb": 9269.7,
       "optimizer_steps": 233,
-      "scaler_retries": 4
+      "scaler_retries": 4,
+      "from_earlier_launch": true
     },
     "lora_rank_figure": {
       "status": "done",
       "stage": "lora_rank",
-      "minutes": 0.1
+      "minutes": 0.1,
+      "from_earlier_launch": true
     },
     "data_size_100": {
       "status": "done",
@@ -173,7 +198,8 @@
       "wall_time_s": 1162.49,
       "peak_gpu_memory_mb": 8763.0,
       "optimizer_steps": 340,
-      "scaler_retries": 3
+      "scaler_retries": 3,
+      "from_earlier_launch": true
     },
     "data_size_300": {
       "status": "done",
@@ -182,7 +208,8 @@
       "wall_time_s": 1144.69,
       "peak_gpu_memory_mb": 8782.5,
       "optimizer_steps": 340,
-      "scaler_retries": 3
+      "scaler_retries": 3,
+      "from_earlier_launch": true
     },
     "data_size_1000": {
       "status": "done",
@@ -191,7 +218,8 @@
       "wall_time_s": 1184.95,
       "peak_gpu_memory_mb": 8801.1,
       "optimizer_steps": 340,
-      "scaler_retries": 4
+      "scaler_retries": 4,
+      "from_earlier_launch": true
     },
     "data_size_3000": {
       "status": "done",
@@ -200,12 +228,14 @@
       "wall_time_s": 1179.03,
       "peak_gpu_memory_mb": 8803.4,
       "optimizer_steps": 340,
-      "scaler_retries": 4
+      "scaler_retries": 4,
+      "from_earlier_launch": true
     },
     "data_size_figure": {
       "status": "done",
       "stage": "data_size",
-      "minutes": 0.1
+      "minutes": 0.1,
+      "from_earlier_launch": true
     },
     "label_noise_0.0": {
       "status": "done",
@@ -214,7 +244,8 @@
       "wall_time_s": 905.11,
       "peak_gpu_memory_mb": 8801.1,
       "optimizer_steps": 233,
-      "scaler_retries": 4
+      "scaler_retries": 4,
+      "from_earlier_launch": true
     },
     "label_noise_0.1": {
       "status": "done",
@@ -223,7 +254,8 @@
       "wall_time_s": 905.38,
       "peak_gpu_memory_mb": 8801.1,
       "optimizer_steps": 233,
-      "scaler_retries": 4
+      "scaler_retries": 4,
+      "from_earlier_launch": true
     },
     "label_noise_0.3": {
       "status": "done",
@@ -232,60 +264,78 @@
       "wall_time_s": 899.74,
       "peak_gpu_memory_mb": 8801.1,
       "optimizer_steps": 233,
-      "scaler_retries": 3
+      "scaler_retries": 3,
+      "from_earlier_launch": true
     },
     "label_noise_0.3_robust": {
       "status": "skipped-budget",
       "stage": "label_noise",
       "minutes": 0.0,
-      "minutes_left": 14.1
+      "minutes_left": 14.1,
+      "from_earlier_launch": true
     },
     "label_noise_figure": {
       "status": "skipped-dependency",
       "stage": "label_noise",
       "minutes": 0.0,
-      "blocked_by": "label_noise_0.0"
+      "blocked_by": "label_noise_0.0",
+      "from_earlier_launch": true
     },
     "m5_rescore_strict": {
       "status": "skipped-existing",
       "stage": "m5_followup",
       "minutes": 0.2,
-      "note": "checked: already current"
+      "note": "checked: already current",
+      "from_earlier_launch": true
     },
     "trackb_kto_train": {
       "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_kto_eval": {
       "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_kto_compare": {
       "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_kto_beta0.5_train": {
       "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_kto_beta0.5_eval": {
       "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "trackb_kto_beta0.5_compare": {
       "status": "skipped-existing",
       "stage": "m7_kto",
-      "minutes": 0.0
+      "minutes": 0.0,
+      "from_earlier_launch": true
     },
     "m7_figure": {
       "status": "skipped-existing",
       "stage": "m7_kto",
       "minutes": 0.1,
+      "note": "checked: already current",
+      "from_earlier_launch": true
+    },
+    "m5_eval_base": {
+      "status": "skipped-existing",
+      "stage": "m5",
+      "minutes": 0.0,
+      "launch": "2026-11-19T01:08:53Z",
       "note": "checked: already current"
     }
   }
