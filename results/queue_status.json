@@ -1,101 +1,9 @@
 {
-  "updated_unix": 1795057718,
+  "updated_unix": 1795057725,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T03:08:35Z",
   "jobs": {
-    "m5_train": {
-      "status": "skipped-existing",
-      "stage": "m5",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "m5_eval_trained": {
-      "status": "skipped-existing",
-      "stage": "m5",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "m5_compare": {
-      "status": "skipped-existing",
-      "stage": "m5",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_train": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_eval": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_compare": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_steps60_train": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_steps60_eval": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_steps60_compare": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_sft1_train": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_sft1_eval": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "trackb_sft1_compare": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "m5_followup_figure": {
-      "status": "skipped-existing",
-      "stage": "m5_followup",
-      "minutes": 0.1,
-      "launch": "2026-11-19T01:08:53Z",
-      "note": "checked: already current",
-      "from_earlier_launch": true
-    },
     "m5_rescore_strict": {
       "status": "skipped-existing",
       "stage": "m5_followup",
@@ -429,6 +337,85 @@
       "status": "skipped-existing",
       "stage": "m5",
       "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z",
+      "note": "checked: already current"
+    },
+    "m5_train": {
+      "status": "skipped-existing",
+      "stage": "m5",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "m5_eval_trained": {
+      "status": "skipped-existing",
+      "stage": "m5",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "m5_compare": {
+      "status": "skipped-existing",
+      "stage": "m5",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_beta0.5_train": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_beta0.5_eval": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_beta0.5_compare": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_steps60_train": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_steps60_eval": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_steps60_compare": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_sft1_train": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_sft1_eval": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "trackb_sft1_compare": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "m5_followup_figure": {
+      "status": "skipped-existing",
+      "stage": "m5_followup",
+      "minutes": 0.1,
       "launch": "2026-11-19T03:08:35Z",
       "note": "checked: already current"
     }
