@@ -19,6 +19,7 @@ Varshith owns this repo. He is building it to learn the material deeply and to s
 - Commit as the work actually happens: one commit per logical step (a module, its tests, a figure) with a plain message. Several small commits per milestone, pushed when that milestone's tests pass. Never one giant commit.
 - Do not add AI co-author trailers or "Generated with" lines to commits or pull requests. This is the owner's standing instruction.
 - Never alter commit dates or rewrite history to change when work appears to have happened.
+- Keep `main` current: fast-forward `main` to the working branch regularly, at least when a milestone or a batch of results lands and at least once per day of active work, and only to a commit on which lint and the full test suite pass. Never force-push `main`. (Owner's request, 2026-11-19.)
 
 ## Honesty rules
 - No number, chart or claim goes in the README unless a script in this repo produced it and the output is saved under `results/`.
