@@ -1,59 +1,9 @@
 {
-  "updated_unix": 1795057761,
+  "updated_unix": 1795057766,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T03:08:35Z",
   "jobs": {
-    "m2_parity_ours_fp16": {
-      "status": "not-needed",
-      "stage": "m2",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "m2_parity_trl_fp16": {
-      "status": "not-needed",
-      "stage": "m2",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "m2_parity_figure_fp16": {
-      "status": "not-needed",
-      "stage": "m2",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "beta_0.01": {
-      "status": "skipped-existing",
-      "stage": "beta",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "beta_0.1": {
-      "status": "skipped-existing",
-      "stage": "beta",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "beta_0.5": {
-      "status": "skipped-existing",
-      "stage": "beta",
-      "minutes": 0.0,
-      "launch": "2026-11-19T01:08:53Z",
-      "from_earlier_launch": true
-    },
-    "beta_figure": {
-      "status": "skipped-existing",
-      "stage": "beta",
-      "minutes": 0.1,
-      "launch": "2026-11-19T01:08:53Z",
-      "note": "checked: already current",
-      "from_earlier_launch": true
-    },
     "lora_rank_2": {
       "status": "skipped-existing",
       "stage": "lora_rank",
@@ -402,6 +352,49 @@
     "m2_parity_figure": {
       "status": "skipped-existing",
       "stage": "m2",
+      "minutes": 0.1,
+      "launch": "2026-11-19T03:08:35Z",
+      "note": "checked: already current"
+    },
+    "m2_parity_ours_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "m2_parity_trl_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "m2_parity_figure_fp16": {
+      "status": "not-needed",
+      "stage": "m2",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "beta_0.01": {
+      "status": "skipped-existing",
+      "stage": "beta",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "beta_0.1": {
+      "status": "skipped-existing",
+      "stage": "beta",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "beta_0.5": {
+      "status": "skipped-existing",
+      "stage": "beta",
+      "minutes": 0.0,
+      "launch": "2026-11-19T03:08:35Z"
+    },
+    "beta_figure": {
+      "status": "skipped-existing",
+      "stage": "beta",
       "minutes": 0.1,
       "launch": "2026-11-19T03:08:35Z",
       "note": "checked: already current"
