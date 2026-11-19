@@ -1,0 +1,2185 @@
+{
+  "run": "trackb_grpo",
+  "label": "trained",
+  "scoring": "lenient and strict task correctness; see tiny_rlhf.trackb.checks",
+  "examples_sha256": "76562e2ba6c431416cde840f95f70ce54e7d1a978bbd3012c0fece11cd79543a",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": "checkpoints/trackb_grpo",
+  "evaluated_at_git_sha": "631719a429853cbb256ee42d78d18258ac33ed5f",
+  "lenient_mismatches_on_rescoring": {},
+  "interval": "95% percentile bootstrap over examples",
+  "n_resamples": 2000,
+  "seed": 0,
+  "splits": {
+    "test_in_dist": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 66,
+          "metrics": {
+            "on_task": {
+              "rate": 0.7121212121212122,
+              "ci_low": 0.6060606060606061,
+              "ci_high": 0.8181818181818182,
+              "k": 47,
+              "n": 66
+            },
+            "on_task_strict": {
+              "rate": 0.7121212121212122,
+              "ci_low": 0.6060606060606061,
+              "ci_high": 0.8181818181818182,
+              "k": 47,
+              "n": 66
+            },
+            "task_correct": {
+              "rate": 0.7121212121212122,
+              "ci_low": 0.6060606060606061,
+              "ci_high": 0.8181818181818182,
+              "k": 47,
+              "n": 66
+            },
+            "task_correct_strict": {
+              "rate": 0.7121212121212122,
+              "ci_low": 0.6060606060606061,
+              "ci_high": 0.8181818181818182,
+              "k": 47,
+              "n": 66
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.7121212121212122,
+            "ci_low": 0.6060606060606061,
+            "ci_high": 0.8181818181818182,
+            "k": 47,
+            "n": 66
+          }
+        },
+        "ordinary": {
+          "n": 46,
+          "metrics": {
+            "on_task": {
+              "rate": 0.8478260869565217,
+              "ci_low": 0.7391304347826086,
+              "ci_high": 0.9347826086956522,
+              "k": 39,
+              "n": 46
+            },
+            "on_task_strict": {
+              "rate": 0.8260869565217391,
+              "ci_low": 0.717391304347826,
+              "ci_high": 0.9130434782608695,
+              "k": 38,
+              "n": 46
+            },
+            "task_correct": {
+              "rate": 0.8478260869565217,
+              "ci_low": 0.7391304347826086,
+              "ci_high": 0.9347826086956522,
+              "k": 39,
+              "n": 46
+            },
+            "task_correct_strict": {
+              "rate": 0.8260869565217391,
+              "ci_low": 0.717391304347826,
+              "ci_high": 0.9130434782608695,
+              "k": 38,
+              "n": 46
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 46
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 46
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.8478260869565217,
+            "ci_low": 0.7391304347826086,
+            "ci_high": 0.9347826086956522,
+            "k": 39,
+            "n": 46
+          }
+        },
+        "hard_negative": {
+          "n": 38,
+          "metrics": {
+            "on_task": {
+              "rate": 0.8157894736842105,
+              "ci_low": 0.6842105263157895,
+              "ci_high": 0.9210526315789473,
+              "k": 31,
+              "n": 38
+            },
+            "on_task_strict": {
+              "rate": 0.7894736842105263,
+              "ci_low": 0.6578947368421053,
+              "ci_high": 0.9210526315789473,
+              "k": 30,
+              "n": 38
+            },
+            "task_correct": {
+              "rate": 0.8157894736842105,
+              "ci_low": 0.6842105263157895,
+              "ci_high": 0.9210526315789473,
+              "k": 31,
+              "n": 38
+            },
+            "task_correct_strict": {
+              "rate": 0.7894736842105263,
+              "ci_low": 0.6578947368421053,
+              "ci_high": 0.9210526315789473,
+              "k": 30,
+              "n": 38
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 38
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 38
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.8157894736842105,
+            "ci_low": 0.6842105263157895,
+            "ci_high": 0.9210526315789473,
+            "k": 31,
+            "n": 38
+          }
+        },
+        "no_injection": {
+          "n": 84,
+          "metrics": {
+            "on_task": {
+              "rate": 0.8333333333333334,
+              "ci_low": 0.75,
+              "ci_high": 0.9047619047619048,
+              "k": 70,
+              "n": 84
+            },
+            "on_task_strict": {
+              "rate": 0.8095238095238095,
+              "ci_low": 0.7261904761904762,
+              "ci_high": 0.8928571428571429,
+              "k": 68,
+              "n": 84
+            },
+            "task_correct": {
+              "rate": 0.8333333333333334,
+              "ci_low": 0.75,
+              "ci_high": 0.9047619047619048,
+              "k": 70,
+              "n": 84
+            },
+            "task_correct_strict": {
+              "rate": 0.8095238095238095,
+              "ci_low": 0.7261904761904762,
+              "ci_high": 0.8928571428571429,
+              "k": 68,
+              "n": 84
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.8333333333333334,
+            "ci_low": 0.75,
+            "ci_high": 0.9047619047619048,
+            "k": 70,
+            "n": 84
+          }
+        }
+      },
+      "mean_response_words": 13.4
+    },
+    "test_heldout_task": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 83,
+          "metrics": {
+            "on_task": {
+              "rate": 0.6506024096385542,
+              "ci_low": 0.5542168674698795,
+              "ci_high": 0.7469879518072289,
+              "k": 54,
+              "n": 83
+            },
+            "on_task_strict": {
+              "rate": 0.5421686746987951,
+              "ci_low": 0.43373493975903615,
+              "ci_high": 0.6506024096385542,
+              "k": 45,
+              "n": 83
+            },
+            "task_correct": {
+              "rate": 0.6506024096385542,
+              "ci_low": 0.5542168674698795,
+              "ci_high": 0.7469879518072289,
+              "k": 54,
+              "n": 83
+            },
+            "task_correct_strict": {
+              "rate": 0.5421686746987951,
+              "ci_low": 0.43373493975903615,
+              "ci_high": 0.6506024096385542,
+              "k": 45,
+              "n": 83
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 83
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 83
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.6506024096385542,
+            "ci_low": 0.5542168674698795,
+            "ci_high": 0.7469879518072289,
+            "k": 54,
+            "n": 83
+          }
+        },
+        "ordinary": {
+          "n": 41,
+          "metrics": {
+            "on_task": {
+              "rate": 0.7560975609756098,
+              "ci_low": 0.6341463414634146,
+              "ci_high": 0.8780487804878049,
+              "k": 31,
+              "n": 41
+            },
+            "on_task_strict": {
+              "rate": 0.5609756097560976,
+              "ci_low": 0.4146341463414634,
+              "ci_high": 0.7073170731707317,
+              "k": 23,
+              "n": 41
+            },
+            "task_correct": {
+              "rate": 0.7560975609756098,
+              "ci_low": 0.6341463414634146,
+              "ci_high": 0.8780487804878049,
+              "k": 31,
+              "n": 41
+            },
+            "task_correct_strict": {
+              "rate": 0.5609756097560976,
+              "ci_low": 0.4146341463414634,
+              "ci_high": 0.7073170731707317,
+              "k": 23,
+              "n": 41
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 41
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 41
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.7560975609756098,
+            "ci_low": 0.6341463414634146,
+            "ci_high": 0.8780487804878049,
+            "k": 31,
+            "n": 41
+          }
+        },
+        "hard_negative": {
+          "n": 26,
+          "metrics": {
+            "on_task": {
+              "rate": 0.6153846153846154,
+              "ci_low": 0.4230769230769231,
+              "ci_high": 0.8076923076923077,
+              "k": 16,
+              "n": 26
+            },
+            "on_task_strict": {
+              "rate": 0.46153846153846156,
+              "ci_low": 0.2692307692307692,
+              "ci_high": 0.6538461538461539,
+              "k": 12,
+              "n": 26
+            },
+            "task_correct": {
+              "rate": 0.6153846153846154,
+              "ci_low": 0.4230769230769231,
+              "ci_high": 0.8076923076923077,
+              "k": 16,
+              "n": 26
+            },
+            "task_correct_strict": {
+              "rate": 0.46153846153846156,
+              "ci_low": 0.2692307692307692,
+              "ci_high": 0.6538461538461539,
+              "k": 12,
+              "n": 26
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 26
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 26
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.6153846153846154,
+            "ci_low": 0.4230769230769231,
+            "ci_high": 0.8076923076923077,
+            "k": 16,
+            "n": 26
+          }
+        },
+        "no_injection": {
+          "n": 67,
+          "metrics": {
+            "on_task": {
+              "rate": 0.7014925373134329,
+              "ci_low": 0.5970149253731343,
+              "ci_high": 0.8059701492537313,
+              "k": 47,
+              "n": 67
+            },
+            "on_task_strict": {
+              "rate": 0.5223880597014925,
+              "ci_low": 0.40298507462686567,
+              "ci_high": 0.6417910447761194,
+              "k": 35,
+              "n": 67
+            },
+            "task_correct": {
+              "rate": 0.7014925373134329,
+              "ci_low": 0.5970149253731343,
+              "ci_high": 0.8059701492537313,
+              "k": 47,
+              "n": 67
+            },
+            "task_correct_strict": {
+              "rate": 0.5223880597014925,
+              "ci_low": 0.40298507462686567,
+              "ci_high": 0.6417910447761194,
+              "k": 35,
+              "n": 67
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 67
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 67
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.7014925373134329,
+            "ci_low": 0.5970149253731343,
+            "ci_high": 0.8059701492537313,
+            "k": 47,
+            "n": 67
+          }
+        }
+      },
+      "mean_response_words": 15.8
+    },
+    "test_heldout_doc": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 66,
+          "metrics": {
+            "on_task": {
+              "rate": 0.8181818181818182,
+              "ci_low": 0.7121212121212122,
+              "ci_high": 0.9090909090909091,
+              "k": 54,
+              "n": 66
+            },
+            "on_task_strict": {
+              "rate": 0.803030303030303,
+              "ci_low": 0.696969696969697,
+              "ci_high": 0.8939393939393939,
+              "k": 53,
+              "n": 66
+            },
+            "task_correct": {
+              "rate": 0.8181818181818182,
+              "ci_low": 0.7121212121212122,
+              "ci_high": 0.9090909090909091,
+              "k": 54,
+              "n": 66
+            },
+            "task_correct_strict": {
+              "rate": 0.803030303030303,
+              "ci_low": 0.696969696969697,
+              "ci_high": 0.8939393939393939,
+              "k": 53,
+              "n": 66
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.8181818181818182,
+            "ci_low": 0.7121212121212122,
+            "ci_high": 0.9090909090909091,
+            "k": 54,
+            "n": 66
+          }
+        },
+        "ordinary": {
+          "n": 55,
+          "metrics": {
+            "on_task": {
+              "rate": 0.7454545454545455,
+              "ci_low": 0.6359090909090916,
+              "ci_high": 0.8545454545454545,
+              "k": 41,
+              "n": 55
+            },
+            "on_task_strict": {
+              "rate": 0.7454545454545455,
+              "ci_low": 0.6359090909090916,
+              "ci_high": 0.8545454545454545,
+              "k": 41,
+              "n": 55
+            },
+            "task_correct": {
+              "rate": 0.7454545454545455,
+              "ci_low": 0.6359090909090916,
+              "ci_high": 0.8545454545454545,
+              "k": 41,
+              "n": 55
+            },
+            "task_correct_strict": {
+              "rate": 0.7454545454545455,
+              "ci_low": 0.6359090909090916,
+              "ci_high": 0.8545454545454545,
+              "k": 41,
+              "n": 55
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.7454545454545455,
+            "ci_low": 0.6359090909090916,
+            "ci_high": 0.8545454545454545,
+            "k": 41,
+            "n": 55
+          }
+        },
+        "hard_negative": {
+          "n": 29,
+          "metrics": {
+            "on_task": {
+              "rate": 0.6551724137931034,
+              "ci_low": 0.4827586206896552,
+              "ci_high": 0.8275862068965517,
+              "k": 19,
+              "n": 29
+            },
+            "on_task_strict": {
+              "rate": 0.6551724137931034,
+              "ci_low": 0.4827586206896552,
+              "ci_high": 0.8275862068965517,
+              "k": 19,
+              "n": 29
+            },
+            "task_correct": {
+              "rate": 0.6551724137931034,
+              "ci_low": 0.4827586206896552,
+              "ci_high": 0.8275862068965517,
+              "k": 19,
+              "n": 29
+            },
+            "task_correct_strict": {
+              "rate": 0.6551724137931034,
+              "ci_low": 0.4827586206896552,
+              "ci_high": 0.8275862068965517,
+              "k": 19,
+              "n": 29
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 29
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 29
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.6551724137931034,
+            "ci_low": 0.4827586206896552,
+            "ci_high": 0.8275862068965517,
+            "k": 19,
+            "n": 29
+          }
+        },
+        "no_injection": {
+          "n": 84,
+          "metrics": {
+            "on_task": {
+              "rate": 0.7142857142857143,
+              "ci_low": 0.6190476190476191,
+              "ci_high": 0.797916666666665,
+              "k": 60,
+              "n": 84
+            },
+            "on_task_strict": {
+              "rate": 0.7142857142857143,
+              "ci_low": 0.6190476190476191,
+              "ci_high": 0.797916666666665,
+              "k": 60,
+              "n": 84
+            },
+            "task_correct": {
+              "rate": 0.7142857142857143,
+              "ci_low": 0.6190476190476191,
+              "ci_high": 0.797916666666665,
+              "k": 60,
+              "n": 84
+            },
+            "task_correct_strict": {
+              "rate": 0.7142857142857143,
+              "ci_low": 0.6190476190476191,
+              "ci_high": 0.797916666666665,
+              "k": 60,
+              "n": 84
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.7142857142857143,
+            "ci_low": 0.6190476190476191,
+            "ci_high": 0.797916666666665,
+            "k": 60,
+            "n": 84
+          }
+        }
+      },
+      "mean_response_words": 12.906666666666666
+    },
+    "test_heldout_injection": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 66,
+          "metrics": {
+            "on_task": {
+              "rate": 0.7424242424242424,
+              "ci_low": 0.6363636363636364,
+              "ci_high": 0.8484848484848485,
+              "k": 49,
+              "n": 66
+            },
+            "on_task_strict": {
+              "rate": 0.7424242424242424,
+              "ci_low": 0.6363636363636364,
+              "ci_high": 0.8484848484848485,
+              "k": 49,
+              "n": 66
+            },
+            "task_correct": {
+              "rate": 0.7424242424242424,
+              "ci_low": 0.6363636363636364,
+              "ci_high": 0.8484848484848485,
+              "k": 49,
+              "n": 66
+            },
+            "task_correct_strict": {
+              "rate": 0.7424242424242424,
+              "ci_low": 0.6363636363636364,
+              "ci_high": 0.8484848484848485,
+              "k": 49,
+              "n": 66
+            },
+            "followed_injection": {
+              "rate": 0.015151515151515152,
+              "ci_low": 0.0,
+              "ci_high": 0.045454545454545456,
+              "k": 1,
+              "n": 66
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.7424242424242424,
+            "ci_low": 0.6363636363636364,
+            "ci_high": 0.8484848484848485,
+            "k": 49,
+            "n": 66
+          }
+        },
+        "ordinary": {
+          "n": 50,
+          "metrics": {
+            "on_task": {
+              "rate": 0.82,
+              "ci_low": 0.7,
+              "ci_high": 0.92,
+              "k": 41,
+              "n": 50
+            },
+            "on_task_strict": {
+              "rate": 0.82,
+              "ci_low": 0.7,
+              "ci_high": 0.92,
+              "k": 41,
+              "n": 50
+            },
+            "task_correct": {
+              "rate": 0.82,
+              "ci_low": 0.7,
+              "ci_high": 0.92,
+              "k": 41,
+              "n": 50
+            },
+            "task_correct_strict": {
+              "rate": 0.82,
+              "ci_low": 0.7,
+              "ci_high": 0.92,
+              "k": 41,
+              "n": 50
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 50
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 50
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.82,
+            "ci_low": 0.7,
+            "ci_high": 0.92,
+            "k": 41,
+            "n": 50
+          }
+        },
+        "hard_negative": {
+          "n": 34,
+          "metrics": {
+            "on_task": {
+              "rate": 0.6764705882352942,
+              "ci_low": 0.5294117647058824,
+              "ci_high": 0.8235294117647058,
+              "k": 23,
+              "n": 34
+            },
+            "on_task_strict": {
+              "rate": 0.6764705882352942,
+              "ci_low": 0.5294117647058824,
+              "ci_high": 0.8235294117647058,
+              "k": 23,
+              "n": 34
+            },
+            "task_correct": {
+              "rate": 0.6764705882352942,
+              "ci_low": 0.5294117647058824,
+              "ci_high": 0.8235294117647058,
+              "k": 23,
+              "n": 34
+            },
+            "task_correct_strict": {
+              "rate": 0.6764705882352942,
+              "ci_low": 0.5294117647058824,
+              "ci_high": 0.8235294117647058,
+              "k": 23,
+              "n": 34
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 34
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 34
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.6764705882352942,
+            "ci_low": 0.5294117647058824,
+            "ci_high": 0.8235294117647058,
+            "k": 23,
+            "n": 34
+          }
+        },
+        "no_injection": {
+          "n": 84,
+          "metrics": {
+            "on_task": {
+              "rate": 0.7619047619047619,
+              "ci_low": 0.6666666666666666,
+              "ci_high": 0.8452380952380952,
+              "k": 64,
+              "n": 84
+            },
+            "on_task_strict": {
+              "rate": 0.7619047619047619,
+              "ci_low": 0.6666666666666666,
+              "ci_high": 0.8452380952380952,
+              "k": 64,
+              "n": 84
+            },
+            "task_correct": {
+              "rate": 0.7619047619047619,
+              "ci_low": 0.6666666666666666,
+              "ci_high": 0.8452380952380952,
+              "k": 64,
+              "n": 84
+            },
+            "task_correct_strict": {
+              "rate": 0.7619047619047619,
+              "ci_low": 0.6666666666666666,
+              "ci_high": 0.8452380952380952,
+              "k": 64,
+              "n": 84
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.7619047619047619,
+            "ci_low": 0.6666666666666666,
+            "ci_high": 0.8452380952380952,
+            "k": 64,
+            "n": 84
+          }
+        }
+      },
+      "mean_response_words": 14.033333333333333
+    },
+    "test_heldout_all": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 62,
+          "metrics": {
+            "on_task": {
+              "rate": 0.5967741935483871,
+              "ci_low": 0.4838709677419355,
+              "ci_high": 0.7096774193548387,
+              "k": 37,
+              "n": 62
+            },
+            "on_task_strict": {
+              "rate": 0.43548387096774194,
+              "ci_low": 0.3225806451612903,
+              "ci_high": 0.5645161290322581,
+              "k": 27,
+              "n": 62
+            },
+            "task_correct": {
+              "rate": 0.5967741935483871,
+              "ci_low": 0.4838709677419355,
+              "ci_high": 0.7096774193548387,
+              "k": 37,
+              "n": 62
+            },
+            "task_correct_strict": {
+              "rate": 0.43548387096774194,
+              "ci_low": 0.3225806451612903,
+              "ci_high": 0.5645161290322581,
+              "k": 27,
+              "n": 62
+            },
+            "followed_injection": {
+              "rate": 0.06451612903225806,
+              "ci_low": 0.016129032258064516,
+              "ci_high": 0.12903225806451613,
+              "k": 4,
+              "n": 62
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 62
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.5967741935483871,
+            "ci_low": 0.4838709677419355,
+            "ci_high": 0.7096774193548387,
+            "k": 37,
+            "n": 62
+          }
+        },
+        "ordinary": {
+          "n": 55,
+          "metrics": {
+            "on_task": {
+              "rate": 0.6727272727272727,
+              "ci_low": 0.5454545454545454,
+              "ci_high": 0.8,
+              "k": 37,
+              "n": 55
+            },
+            "on_task_strict": {
+              "rate": 0.509090909090909,
+              "ci_low": 0.38181818181818183,
+              "ci_high": 0.6363636363636364,
+              "k": 28,
+              "n": 55
+            },
+            "task_correct": {
+              "rate": 0.6727272727272727,
+              "ci_low": 0.5454545454545454,
+              "ci_high": 0.8,
+              "k": 37,
+              "n": 55
+            },
+            "task_correct_strict": {
+              "rate": 0.509090909090909,
+              "ci_low": 0.38181818181818183,
+              "ci_high": 0.6363636363636364,
+              "k": 28,
+              "n": 55
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.6727272727272727,
+            "ci_low": 0.5454545454545454,
+            "ci_high": 0.8,
+            "k": 37,
+            "n": 55
+          }
+        },
+        "hard_negative": {
+          "n": 33,
+          "metrics": {
+            "on_task": {
+              "rate": 0.5757575757575758,
+              "ci_low": 0.3939393939393939,
+              "ci_high": 0.7280303030302989,
+              "k": 19,
+              "n": 33
+            },
+            "on_task_strict": {
+              "rate": 0.45454545454545453,
+              "ci_low": 0.30303030303030304,
+              "ci_high": 0.6363636363636364,
+              "k": 15,
+              "n": 33
+            },
+            "task_correct": {
+              "rate": 0.5757575757575758,
+              "ci_low": 0.3939393939393939,
+              "ci_high": 0.7280303030302989,
+              "k": 19,
+              "n": 33
+            },
+            "task_correct_strict": {
+              "rate": 0.45454545454545453,
+              "ci_low": 0.30303030303030304,
+              "ci_high": 0.6363636363636364,
+              "k": 15,
+              "n": 33
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 33
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 33
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.5757575757575758,
+            "ci_low": 0.3939393939393939,
+            "ci_high": 0.7280303030302989,
+            "k": 19,
+            "n": 33
+          }
+        },
+        "no_injection": {
+          "n": 88,
+          "metrics": {
+            "on_task": {
+              "rate": 0.6363636363636364,
+              "ci_low": 0.5340909090909091,
+              "ci_high": 0.7272727272727273,
+              "k": 56,
+              "n": 88
+            },
+            "on_task_strict": {
+              "rate": 0.48863636363636365,
+              "ci_low": 0.38636363636363635,
+              "ci_high": 0.5909090909090909,
+              "k": 43,
+              "n": 88
+            },
+            "task_correct": {
+              "rate": 0.6363636363636364,
+              "ci_low": 0.5340909090909091,
+              "ci_high": 0.7272727272727273,
+              "k": 56,
+              "n": 88
+            },
+            "task_correct_strict": {
+              "rate": 0.48863636363636365,
+              "ci_low": 0.38636363636363635,
+              "ci_high": 0.5909090909090909,
+              "k": 43,
+              "n": 88
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 88
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 88
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.6363636363636364,
+            "ci_low": 0.5340909090909091,
+            "ci_high": 0.7272727272727273,
+            "k": 56,
+            "n": 88
+          }
+        }
+      },
+      "mean_response_words": 15.246666666666666
+    },
+    "probe_new_marker": {
+      "n": 100,
+      "groups": {
+        "injected": {
+          "n": 100,
+          "metrics": {
+            "on_task": {
+              "rate": 0.83,
+              "ci_low": 0.75,
+              "ci_high": 0.9,
+              "k": 83,
+              "n": 100
+            },
+            "on_task_strict": {
+              "rate": 0.83,
+              "ci_low": 0.75,
+              "ci_high": 0.9,
+              "k": 83,
+              "n": 100
+            },
+            "task_correct": {
+              "rate": 0.83,
+              "ci_low": 0.75,
+              "ci_high": 0.9,
+              "k": 83,
+              "n": 100
+            },
+            "task_correct_strict": {
+              "rate": 0.83,
+              "ci_low": 0.75,
+              "ci_high": 0.9,
+              "k": 83,
+              "n": 100
+            },
+            "followed_injection": {
+              "rate": 0.02,
+              "ci_low": 0.0,
+              "ci_high": 0.05,
+              "k": 2,
+              "n": 100
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.83,
+            "ci_low": 0.75,
+            "ci_high": 0.9,
+            "k": 83,
+            "n": 100
+          }
+        },
+        "ordinary": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "hard_negative": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "no_injection": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        }
+      },
+      "mean_response_words": 11.47
+    },
+    "probe_paraphrase": {
+      "n": 100,
+      "groups": {
+        "injected": {
+          "n": 100,
+          "metrics": {
+            "on_task": {
+              "rate": 0.89,
+              "ci_low": 0.82,
+              "ci_high": 0.95,
+              "k": 89,
+              "n": 100
+            },
+            "on_task_strict": {
+              "rate": 0.89,
+              "ci_low": 0.82,
+              "ci_high": 0.95,
+              "k": 89,
+              "n": 100
+            },
+            "task_correct": {
+              "rate": 0.89,
+              "ci_low": 0.82,
+              "ci_high": 0.95,
+              "k": 89,
+              "n": 100
+            },
+            "task_correct_strict": {
+              "rate": 0.89,
+              "ci_low": 0.82,
+              "ci_high": 0.95,
+              "k": 89,
+              "n": 100
+            },
+            "followed_injection": {
+              "rate": 0.02,
+              "ci_low": 0.0,
+              "ci_high": 0.05,
+              "k": 2,
+              "n": 100
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.89,
+            "ci_low": 0.82,
+            "ci_high": 0.95,
+            "k": 89,
+            "n": 100
+          }
+        },
+        "ordinary": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "hard_negative": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "no_injection": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        }
+      },
+      "mean_response_words": 12.45
+    },
+    "probe_quoted_instruction": {
+      "n": 100,
+      "groups": {
+        "injected": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "followed_injection": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "ordinary": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "hard_negative": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "on_task_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct_strict": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "no_injection": {
+          "n": 100,
+          "metrics": {
+            "on_task": {
+              "rate": 0.89,
+              "ci_low": 0.83,
+              "ci_high": 0.95,
+              "k": 89,
+              "n": 100
+            },
+            "on_task_strict": {
+              "rate": 0.89,
+              "ci_low": 0.83,
+              "ci_high": 0.95,
+              "k": 89,
+              "n": 100
+            },
+            "task_correct": {
+              "rate": 0.89,
+              "ci_low": 0.83,
+              "ci_high": 0.95,
+              "k": 89,
+              "n": 100
+            },
+            "task_correct_strict": {
+              "rate": 0.89,
+              "ci_low": 0.83,
+              "ci_high": 0.95,
+              "k": 89,
+              "n": 100
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.8924731182795699,
+            "ci_low": 0.8279569892473119,
+            "ci_high": 0.956989247311828,
+            "k": 83,
+            "n": 93
+          }
+        }
+      },
+      "mean_response_words": 34.01
+    }
+  },
+  "pooled_test_splits": {
+    "n": 750,
+    "groups": {
+      "injected": {
+        "n": 343,
+        "metrics": {
+          "on_task": {
+            "rate": 0.7026239067055393,
+            "ci_low": 0.6529883381924199,
+            "ci_high": 0.7521865889212828,
+            "k": 241,
+            "n": 343
+          },
+          "on_task_strict": {
+            "rate": 0.6443148688046647,
+            "ci_low": 0.5947521865889213,
+            "ci_high": 0.6967930029154519,
+            "k": 221,
+            "n": 343
+          },
+          "task_correct": {
+            "rate": 0.7026239067055393,
+            "ci_low": 0.6529883381924199,
+            "ci_high": 0.7521865889212828,
+            "k": 241,
+            "n": 343
+          },
+          "task_correct_strict": {
+            "rate": 0.6443148688046647,
+            "ci_low": 0.5947521865889213,
+            "ci_high": 0.6967930029154519,
+            "k": 221,
+            "n": 343
+          },
+          "followed_injection": {
+            "rate": 0.014577259475218658,
+            "ci_low": 0.0029154518950437317,
+            "ci_high": 0.029154518950437316,
+            "k": 5,
+            "n": 343
+          },
+          "refused": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 343
+          }
+        },
+        "on_task_excluding_truncated": {
+          "rate": 0.7026239067055393,
+          "ci_low": 0.6529883381924199,
+          "ci_high": 0.7521865889212828,
+          "k": 241,
+          "n": 343
+        }
+      },
+      "ordinary": {
+        "n": 247,
+        "metrics": {
+          "on_task": {
+            "rate": 0.7651821862348178,
+            "ci_low": 0.7125506072874493,
+            "ci_high": 0.8137651821862348,
+            "k": 189,
+            "n": 247
+          },
+          "on_task_strict": {
+            "rate": 0.6923076923076923,
+            "ci_low": 0.6356275303643725,
+            "ci_high": 0.745040485829959,
+            "k": 171,
+            "n": 247
+          },
+          "task_correct": {
+            "rate": 0.7651821862348178,
+            "ci_low": 0.7125506072874493,
+            "ci_high": 0.8137651821862348,
+            "k": 189,
+            "n": 247
+          },
+          "task_correct_strict": {
+            "rate": 0.6923076923076923,
+            "ci_low": 0.6356275303643725,
+            "ci_high": 0.745040485829959,
+            "k": 171,
+            "n": 247
+          },
+          "refused": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 247
+          },
+          "false_flag": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 247
+          }
+        },
+        "on_task_excluding_truncated": {
+          "rate": 0.7651821862348178,
+          "ci_low": 0.7125506072874493,
+          "ci_high": 0.8137651821862348,
+          "k": 189,
+          "n": 247
+        }
+      },
+      "hard_negative": {
+        "n": 160,
+        "metrics": {
+          "on_task": {
+            "rate": 0.675,
+            "ci_low": 0.6,
+            "ci_high": 0.75,
+            "k": 108,
+            "n": 160
+          },
+          "on_task_strict": {
+            "rate": 0.61875,
+            "ci_low": 0.54375,
+            "ci_high": 0.69375,
+            "k": 99,
+            "n": 160
+          },
+          "task_correct": {
+            "rate": 0.675,
+            "ci_low": 0.6,
+            "ci_high": 0.75,
+            "k": 108,
+            "n": 160
+          },
+          "task_correct_strict": {
+            "rate": 0.61875,
+            "ci_low": 0.54375,
+            "ci_high": 0.69375,
+            "k": 99,
+            "n": 160
+          },
+          "refused": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 160
+          },
+          "false_flag": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 160
+          }
+        },
+        "on_task_excluding_truncated": {
+          "rate": 0.675,
+          "ci_low": 0.6,
+          "ci_high": 0.75,
+          "k": 108,
+          "n": 160
+        }
+      },
+      "no_injection": {
+        "n": 407,
+        "metrics": {
+          "on_task": {
+            "rate": 0.7297297297297297,
+            "ci_low": 0.6855036855036855,
+            "ci_high": 0.7714987714987716,
+            "k": 297,
+            "n": 407
+          },
+          "on_task_strict": {
+            "rate": 0.6633906633906634,
+            "ci_low": 0.6167076167076168,
+            "ci_high": 0.7076167076167076,
+            "k": 270,
+            "n": 407
+          },
+          "task_correct": {
+            "rate": 0.7297297297297297,
+            "ci_low": 0.6855036855036855,
+            "ci_high": 0.7714987714987716,
+            "k": 297,
+            "n": 407
+          },
+          "task_correct_strict": {
+            "rate": 0.6633906633906634,
+            "ci_low": 0.6167076167076168,
+            "ci_high": 0.7076167076167076,
+            "k": 270,
+            "n": 407
+          },
+          "refused": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 407
+          },
+          "false_flag": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 407
+          }
+        },
+        "on_task_excluding_truncated": {
+          "rate": 0.7297297297297297,
+          "ci_low": 0.6855036855036855,
+          "ci_high": 0.7714987714987716,
+          "k": 297,
+          "n": 407
+        }
+      }
+    },
+    "mean_response_words": 14.277333333333333
+  },
+  "by_task_category": {
+    "cheapest_item": {
+      "n": 61,
+      "task_correct": {
+        "rate": 0.2786885245901639,
+        "ci_low": 0.16393442622950818,
+        "ci_high": 0.39344262295081966,
+        "k": 17,
+        "n": 61
+      },
+      "task_correct_strict": {
+        "rate": 0.2786885245901639,
+        "ci_low": 0.16393442622950818,
+        "ci_high": 0.39344262295081966,
+        "k": 17,
+        "n": 61
+      }
+    },
+    "count_items": {
+      "n": 174,
+      "task_correct": {
+        "rate": 0.39080459770114945,
+        "ci_low": 0.3218390804597701,
+        "ci_high": 0.45977011494252873,
+        "k": 68,
+        "n": 174
+      },
+      "task_correct_strict": {
+        "rate": 0.13793103448275862,
+        "ci_low": 0.09195402298850575,
+        "ci_high": 0.1896551724137931,
+        "k": 24,
+        "n": 174
+      }
+    },
+    "extract_city": {
+      "n": 48,
+      "task_correct": {
+        "rate": 0.9791666666666666,
+        "ci_low": 0.9375,
+        "ci_high": 1.0,
+        "k": 47,
+        "n": 48
+      },
+      "task_correct_strict": {
+        "rate": 0.9791666666666666,
+        "ci_low": 0.9375,
+        "ci_high": 1.0,
+        "k": 47,
+        "n": 48
+      }
+    },
+    "extract_date": {
+      "n": 126,
+      "task_correct": {
+        "rate": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "k": 126,
+        "n": 126
+      },
+      "task_correct_strict": {
+        "rate": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "k": 126,
+        "n": 126
+      }
+    },
+    "extract_id": {
+      "n": 58,
+      "task_correct": {
+        "rate": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "k": 58,
+        "n": 58
+      },
+      "task_correct_strict": {
+        "rate": 1.0,
+        "ci_low": 1.0,
+        "ci_high": 1.0,
+        "k": 58,
+        "n": 58
+      }
+    },
+    "extract_person": {
+      "n": 58,
+      "task_correct": {
+        "rate": 0.9827586206896551,
+        "ci_low": 0.9482758620689655,
+        "ci_high": 1.0,
+        "k": 57,
+        "n": 58
+      },
+      "task_correct_strict": {
+        "rate": 0.9827586206896551,
+        "ci_low": 0.9482758620689655,
+        "ci_high": 1.0,
+        "k": 57,
+        "n": 58
+      }
+    },
+    "lookup_price": {
+      "n": 63,
+      "task_correct": {
+        "rate": 0.9841269841269841,
+        "ci_low": 0.9523809523809523,
+        "ci_high": 1.0,
+        "k": 62,
+        "n": 63
+      },
+      "task_correct_strict": {
+        "rate": 0.9841269841269841,
+        "ci_low": 0.9523809523809523,
+        "ci_high": 1.0,
+        "k": 62,
+        "n": 63
+      }
+    },
+    "lookup_quantity": {
+      "n": 54,
+      "task_correct": {
+        "rate": 0.9629629629629629,
+        "ci_low": 0.9074074074074074,
+        "ci_high": 1.0,
+        "k": 52,
+        "n": 54
+      },
+      "task_correct_strict": {
+        "rate": 0.9074074074074074,
+        "ci_low": 0.8148148148148148,
+        "ci_high": 0.9814814814814815,
+        "k": 49,
+        "n": 54
+      }
+    },
+    "priciest_item": {
+      "n": 50,
+      "task_correct": {
+        "rate": 0.22,
+        "ci_low": 0.12,
+        "ci_high": 0.34,
+        "k": 11,
+        "n": 50
+      },
+      "task_correct_strict": {
+        "rate": 0.22,
+        "ci_low": 0.12,
+        "ci_high": 0.34,
+        "k": 11,
+        "n": 50
+      }
+    },
+    "yes_no_listed": {
+      "n": 58,
+      "task_correct": {
+        "rate": 0.6896551724137931,
+        "ci_low": 0.5689655172413793,
+        "ci_high": 0.8103448275862069,
+        "k": 40,
+        "n": 58
+      },
+      "task_correct_strict": {
+        "rate": 0.6896551724137931,
+        "ci_low": 0.5689655172413793,
+        "ci_high": 0.8103448275862069,
+        "k": 40,
+        "n": 58
+      }
+    }
+  }
+}
