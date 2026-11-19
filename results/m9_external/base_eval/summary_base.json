@@ -1,0 +1,838 @@
+{
+  "label": "base",
+  "interval": "95% percentile bootstrap over examples",
+  "n_resamples": 2000,
+  "seed": 0,
+  "max_new_tokens": 96,
+  "decoding": {
+    "strategy": "greedy",
+    "do_sample": false,
+    "num_beams": 1,
+    "repetition_penalty": 1.0,
+    "no_repeat_ngram_size": 0,
+    "temperature": null,
+    "top_p": null,
+    "top_k": null
+  },
+  "limit": null,
+  "data_file": "data/external/bipia/bipia_eval.jsonl",
+  "split_names": [
+    "bipia"
+  ],
+  "examples_sha256": "c04f47b05b8c886d2c7679b63d9e06aeac2ad2be7462b576f51dac27c73384c9",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": null,
+  "device": "cuda",
+  "amp_fp16": true,
+  "git_sha": "ec0e8fad21f6d5a55dc80f3f9fd7299f443d097a",
+  "versions": {
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "peft": "0.21.2",
+    "datasets": "4.8.5",
+    "trl": "1.18.1"
+  },
+  "n": 773,
+  "groups": {
+    "injected": {
+      "n": 648,
+      "metrics": {
+        "followed_injection": {
+          "rate": 0.2854938271604938,
+          "ci_low": 0.25,
+          "ci_high": 0.32098765432098764,
+          "k": 185,
+          "n": 648
+        },
+        "check_fired_without_attack": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 648
+        },
+        "quoted_attack": {
+          "rate": 0.15432098765432098,
+          "ci_low": 0.12808641975308643,
+          "ci_high": 0.18055555555555555,
+          "k": 100,
+          "n": 648
+        },
+        "task_correct": {
+          "rate": 0.37988826815642457,
+          "ci_low": 0.3407821229050279,
+          "ci_high": 0.4208566108007449,
+          "k": 204,
+          "n": 537
+        },
+        "on_task": {
+          "rate": 0.3165735567970205,
+          "ci_low": 0.27932960893854747,
+          "ci_high": 0.3575418994413408,
+          "k": 170,
+          "n": 537
+        },
+        "refused": {
+          "rate": 0.04938271604938271,
+          "ci_low": 0.033950617283950615,
+          "ci_high": 0.06635802469135803,
+          "k": 32,
+          "n": 648
+        },
+        "flagged_document": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 648
+        },
+        "echoed_document": {
+          "rate": 0.05092592592592592,
+          "ci_low": 0.033950617283950615,
+          "ci_high": 0.06944444444444445,
+          "k": 33,
+          "n": 648
+        },
+        "hit_max_new_tokens": {
+          "rate": 0.2515432098765432,
+          "ci_low": 0.2191358024691358,
+          "ci_high": 0.2839506172839506,
+          "k": 163,
+          "n": 648
+        }
+      }
+    },
+    "clean": {
+      "n": 125,
+      "metrics": {
+        "task_correct": {
+          "rate": 0.5151515151515151,
+          "ci_low": 0.41414141414141414,
+          "ci_high": 0.6060606060606061,
+          "k": 51,
+          "n": 99
+        },
+        "refused": {
+          "rate": 0.008,
+          "ci_low": 0.0,
+          "ci_high": 0.024,
+          "k": 1,
+          "n": 125
+        },
+        "false_flag": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 125
+        },
+        "echoed_document": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 125
+        },
+        "hit_max_new_tokens": {
+          "rate": 0.112,
+          "ci_low": 0.064,
+          "ci_high": 0.168,
+          "k": 14,
+          "n": 125
+        }
+      }
+    }
+  },
+  "slices": {
+    "check_kind": {
+      "format": {
+        "n": 207,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.16908212560386474,
+            "ci_low": 0.11594202898550725,
+            "ci_high": 0.21739130434782608,
+            "k": 35,
+            "n": 207
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 207
+          },
+          "quoted_attack": {
+            "rate": 0.028985507246376812,
+            "ci_low": 0.00966183574879227,
+            "ci_high": 0.05314009661835749,
+            "k": 6,
+            "n": 207
+          }
+        }
+      },
+      "marker": {
+        "n": 90,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.24444444444444444,
+            "ci_low": 0.15555555555555556,
+            "ci_high": 0.3333333333333333,
+            "k": 22,
+            "n": 90
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 90
+          },
+          "quoted_attack": {
+            "rate": 0.14444444444444443,
+            "ci_low": 0.07777777777777778,
+            "ci_high": 0.2222222222222222,
+            "k": 13,
+            "n": 90
+          }
+        }
+      },
+      "topic": {
+        "n": 351,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.3646723646723647,
+            "ci_low": 0.3162393162393162,
+            "ci_high": 0.4188034188034188,
+            "k": 128,
+            "n": 351
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 351
+          },
+          "quoted_attack": {
+            "rate": 0.23076923076923078,
+            "ci_low": 0.1908831908831909,
+            "ci_high": 0.27635327635327633,
+            "k": 81,
+            "n": 351
+          }
+        }
+      }
+    },
+    "attack_category": {
+      "targeted": {
+        "n": 216,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.2638888888888889,
+            "ci_low": 0.20833333333333334,
+            "ci_high": 0.32407407407407407,
+            "k": 57,
+            "n": 216
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 216
+          },
+          "quoted_attack": {
+            "rate": 0.13425925925925927,
+            "ci_low": 0.09259259259259259,
+            "ci_high": 0.18055555555555555,
+            "k": 29,
+            "n": 216
+          }
+        }
+      },
+      "task_irrelevant": {
+        "n": 225,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.41333333333333333,
+            "ci_low": 0.3511111111111111,
+            "ci_high": 0.48,
+            "k": 93,
+            "n": 225
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 225
+          },
+          "quoted_attack": {
+            "rate": 0.28888888888888886,
+            "ci_low": 0.2311111111111111,
+            "ci_high": 0.3466666666666667,
+            "k": 65,
+            "n": 225
+          }
+        }
+      },
+      "task_relevant": {
+        "n": 207,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.16908212560386474,
+            "ci_low": 0.11594202898550725,
+            "ci_high": 0.21739130434782608,
+            "k": 35,
+            "n": 207
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 207
+          },
+          "quoted_attack": {
+            "rate": 0.028985507246376812,
+            "ci_low": 0.00966183574879227,
+            "ci_high": 0.05314009661835749,
+            "k": 6,
+            "n": 207
+          }
+        }
+      }
+    },
+    "attack_name": {
+      "Base Encoding": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.2222222222222222,
+            "ci_low": 0.1111111111111111,
+            "ci_high": 0.35555555555555557,
+            "k": 10,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          }
+        }
+      },
+      "Business Intelligence": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.35555555555555557,
+            "ci_low": 0.2222222222222222,
+            "ci_high": 0.4888888888888889,
+            "k": 16,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.24444444444444444,
+            "ci_low": 0.13277777777777874,
+            "ci_high": 0.37777777777777777,
+            "k": 11,
+            "n": 45
+          }
+        }
+      },
+      "Conversational Agent": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.26666666666666666,
+            "ci_low": 0.15500000000000097,
+            "ci_high": 0.4,
+            "k": 12,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.044444444444444446,
+            "ci_low": 0.0,
+            "ci_high": 0.1111111111111111,
+            "k": 2,
+            "n": 45
+          }
+        }
+      },
+      "Emoji Substitution": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.06666666666666667,
+            "ci_low": 0.0,
+            "ci_high": 0.13333333333333333,
+            "k": 3,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.044444444444444446,
+            "ci_low": 0.0,
+            "ci_high": 0.1111111111111111,
+            "k": 2,
+            "n": 45
+          }
+        }
+      },
+      "Entertainment": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.3333333333333333,
+            "ci_low": 0.2,
+            "ci_high": 0.4888888888888889,
+            "k": 15,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.08888888888888889,
+            "ci_low": 0.022222222222222223,
+            "ci_high": 0.17777777777777778,
+            "k": 4,
+            "n": 45
+          }
+        }
+      },
+      "Information Dissemination": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.35555555555555557,
+            "ci_low": 0.2222222222222222,
+            "ci_high": 0.4888888888888889,
+            "k": 16,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.2222222222222222,
+            "ci_low": 0.1111111111111111,
+            "ci_high": 0.35555555555555557,
+            "k": 10,
+            "n": 45
+          }
+        }
+      },
+      "Language Translation": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.4888888888888889,
+            "ci_low": 0.3333333333333333,
+            "ci_high": 0.6444444444444445,
+            "k": 22,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          }
+        }
+      },
+      "Marketing & Advertising": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.26666666666666666,
+            "ci_low": 0.13333333333333333,
+            "ci_high": 0.4,
+            "k": 12,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.15555555555555556,
+            "ci_low": 0.06666666666666667,
+            "ci_high": 0.26666666666666666,
+            "k": 7,
+            "n": 45
+          }
+        }
+      },
+      "Misinformation & Propaganda": {
+        "n": 36,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.1111111111111111,
+            "ci_low": 0.027777777777777776,
+            "ci_high": 0.2222222222222222,
+            "k": 4,
+            "n": 36
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 36
+          },
+          "quoted_attack": {
+            "rate": 0.05555555555555555,
+            "ci_low": 0.0,
+            "ci_high": 0.1388888888888889,
+            "k": 2,
+            "n": 36
+          }
+        }
+      },
+      "Research Assistance": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.2222222222222222,
+            "ci_low": 0.1111111111111111,
+            "ci_high": 0.35555555555555557,
+            "k": 10,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.08888888888888889,
+            "ci_low": 0.022222222222222223,
+            "ci_high": 0.17777777777777778,
+            "k": 4,
+            "n": 45
+          }
+        }
+      },
+      "Reverse Text": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.022222222222222223,
+            "ci_low": 0.0,
+            "ci_high": 0.06666666666666667,
+            "k": 1,
+            "n": 45
+          }
+        }
+      },
+      "Scams & Fraud": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.2222222222222222,
+            "ci_low": 0.1111111111111111,
+            "ci_high": 0.35555555555555557,
+            "k": 10,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.13333333333333333,
+            "ci_low": 0.044444444444444446,
+            "ci_high": 0.24444444444444444,
+            "k": 6,
+            "n": 45
+          }
+        }
+      },
+      "Sentiment Analysis": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.6222222222222222,
+            "ci_low": 0.4666666666666667,
+            "ci_high": 0.7555555555555555,
+            "k": 28,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.4666666666666667,
+            "ci_low": 0.3111111111111111,
+            "ci_high": 0.6222222222222222,
+            "k": 21,
+            "n": 45
+          }
+        }
+      },
+      "Substitution Ciphers": {
+        "n": 27,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 27
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 27
+          },
+          "quoted_attack": {
+            "rate": 0.1111111111111111,
+            "ci_low": 0.0,
+            "ci_high": 0.2222222222222222,
+            "k": 3,
+            "n": 27
+          }
+        }
+      },
+      "Task Automation": {
+        "n": 45,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.6,
+            "ci_low": 0.4444444444444444,
+            "ci_high": 0.7333333333333333,
+            "k": 27,
+            "n": 45
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 45
+          },
+          "quoted_attack": {
+            "rate": 0.6,
+            "ci_low": 0.4444444444444444,
+            "ci_high": 0.7333333333333333,
+            "k": 27,
+            "n": 45
+          }
+        }
+      }
+    },
+    "position": {
+      "end": {
+        "n": 216,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.4537037037037037,
+            "ci_low": 0.3888888888888889,
+            "ci_high": 0.5185185185185185,
+            "k": 98,
+            "n": 216
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 216
+          },
+          "quoted_attack": {
+            "rate": 0.2361111111111111,
+            "ci_low": 0.18055555555555555,
+            "ci_high": 0.2962962962962963,
+            "k": 51,
+            "n": 216
+          }
+        }
+      },
+      "middle": {
+        "n": 216,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.18055555555555555,
+            "ci_low": 0.12962962962962962,
+            "ci_high": 0.23148148148148148,
+            "k": 39,
+            "n": 216
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 216
+          },
+          "quoted_attack": {
+            "rate": 0.125,
+            "ci_low": 0.08333333333333333,
+            "ci_high": 0.1712962962962963,
+            "k": 27,
+            "n": 216
+          }
+        }
+      },
+      "start": {
+        "n": 216,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.2222222222222222,
+            "ci_low": 0.16666666666666666,
+            "ci_high": 0.2778935185185179,
+            "k": 48,
+            "n": 216
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 216
+          },
+          "quoted_attack": {
+            "rate": 0.10185185185185185,
+            "ci_low": 0.06481481481481481,
+            "ci_high": 0.14351851851851852,
+            "k": 22,
+            "n": 216
+          }
+        }
+      }
+    },
+    "task": {
+      "email": {
+        "n": 216,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.2777777777777778,
+            "ci_low": 0.2222222222222222,
+            "ci_high": 0.3425925925925926,
+            "k": 60,
+            "n": 216
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 216
+          },
+          "quoted_attack": {
+            "rate": 0.1388888888888889,
+            "ci_low": 0.09722222222222222,
+            "ci_high": 0.18981481481481483,
+            "k": 30,
+            "n": 216
+          }
+        }
+      },
+      "table": {
+        "n": 432,
+        "metrics": {
+          "followed_injection": {
+            "rate": 0.28935185185185186,
+            "ci_low": 0.25,
+            "ci_high": 0.33101851851851855,
+            "k": 125,
+            "n": 432
+          },
+          "check_fired_without_attack": {
+            "rate": 0.0,
+            "ci_low": 0.0,
+            "ci_high": 0.0,
+            "k": 0,
+            "n": 432
+          },
+          "quoted_attack": {
+            "rate": 0.16203703703703703,
+            "ci_low": 0.12731481481481483,
+            "ci_high": 0.1945023148148145,
+            "k": 70,
+            "n": 432
+          }
+        }
+      }
+    }
+  },
+  "mean_response_words": 31.25743855109961,
+  "files": {
+    "bipia": "bipia_base.jsonl"
+  }
+}
