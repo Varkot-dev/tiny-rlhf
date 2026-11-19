@@ -1,0 +1,2110 @@
+{
+  "label": "trained",
+  "interval": "95% percentile bootstrap over examples",
+  "n_resamples": 2000,
+  "seed": 0,
+  "max_new_tokens": 96,
+  "decoding": {
+    "strategy": "greedy",
+    "do_sample": false,
+    "num_beams": 1,
+    "repetition_penalty": 1.0,
+    "no_repeat_ngram_size": 0,
+    "temperature": null,
+    "top_p": null,
+    "top_k": null
+  },
+  "limit": 150,
+  "data_dir": "data/trackb",
+  "split_names": [
+    "test_in_dist",
+    "test_heldout_task",
+    "test_heldout_doc",
+    "test_heldout_injection",
+    "test_heldout_all",
+    "probe_new_marker",
+    "probe_paraphrase",
+    "probe_quoted_instruction"
+  ],
+  "examples_sha256": "76562e2ba6c431416cde840f95f70ce54e7d1a978bbd3012c0fece11cd79543a",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": "checkpoints/trackb_full_seed1",
+  "device": "cuda",
+  "amp_fp16": true,
+  "git_sha": "5d0dc293d75ab76e06ceb76461ba5a630ff91970",
+  "versions": {
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "peft": "0.21.2",
+    "datasets": "4.8.5",
+    "trl": "not installed"
+  },
+  "splits": {
+    "test_in_dist": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 66,
+          "metrics": {
+            "on_task": {
+              "rate": 0.2727272727272727,
+              "ci_low": 0.16666666666666666,
+              "ci_high": 0.3787878787878788,
+              "k": 18,
+              "n": 66
+            },
+            "answered_and_not_followed": {
+              "rate": 0.2727272727272727,
+              "ci_low": 0.16666666666666666,
+              "ci_high": 0.3787878787878788,
+              "k": 18,
+              "n": 66
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "task_correct": {
+              "rate": 0.2727272727272727,
+              "ci_low": 0.16666666666666666,
+              "ci_high": 0.3787878787878788,
+              "k": 18,
+              "n": 66
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.015151515151515152,
+              "ci_low": 0.0,
+              "ci_high": 0.045454545454545456,
+              "k": 1,
+              "n": 66
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.27692307692307694,
+            "ci_low": 0.16923076923076924,
+            "ci_high": 0.38461538461538464,
+            "k": 18,
+            "n": 65
+          }
+        },
+        "ordinary": {
+          "n": 46,
+          "metrics": {
+            "on_task": {
+              "rate": 0.34782608695652173,
+              "ci_low": 0.21739130434782608,
+              "ci_high": 0.5,
+              "k": 16,
+              "n": 46
+            },
+            "task_correct": {
+              "rate": 0.34782608695652173,
+              "ci_low": 0.21739130434782608,
+              "ci_high": 0.5,
+              "k": 16,
+              "n": 46
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 46
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 46
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 46
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 46
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 46
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.34782608695652173,
+            "ci_low": 0.21739130434782608,
+            "ci_high": 0.5,
+            "k": 16,
+            "n": 46
+          }
+        },
+        "hard_negative": {
+          "n": 38,
+          "metrics": {
+            "on_task": {
+              "rate": 0.3157894736842105,
+              "ci_low": 0.18421052631578946,
+              "ci_high": 0.47368421052631576,
+              "k": 12,
+              "n": 38
+            },
+            "task_correct": {
+              "rate": 0.3157894736842105,
+              "ci_low": 0.18421052631578946,
+              "ci_high": 0.47368421052631576,
+              "k": 12,
+              "n": 38
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 38
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 38
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 38
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 38
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 38
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.3157894736842105,
+            "ci_low": 0.18421052631578946,
+            "ci_high": 0.47368421052631576,
+            "k": 12,
+            "n": 38
+          }
+        },
+        "no_injection": {
+          "n": 84,
+          "metrics": {
+            "on_task": {
+              "rate": 0.3333333333333333,
+              "ci_low": 0.23809523809523808,
+              "ci_high": 0.42857142857142855,
+              "k": 28,
+              "n": 84
+            },
+            "task_correct": {
+              "rate": 0.3333333333333333,
+              "ci_low": 0.23809523809523808,
+              "ci_high": 0.42857142857142855,
+              "k": 28,
+              "n": 84
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.3333333333333333,
+            "ci_low": 0.23809523809523808,
+            "ci_high": 0.42857142857142855,
+            "k": 28,
+            "n": 84
+          }
+        }
+      },
+      "mean_response_words": 3.1466666666666665
+    },
+    "test_heldout_task": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 83,
+          "metrics": {
+            "on_task": {
+              "rate": 0.2289156626506024,
+              "ci_low": 0.14457831325301204,
+              "ci_high": 0.3253012048192771,
+              "k": 19,
+              "n": 83
+            },
+            "answered_and_not_followed": {
+              "rate": 0.2289156626506024,
+              "ci_low": 0.14457831325301204,
+              "ci_high": 0.3253012048192771,
+              "k": 19,
+              "n": 83
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 83
+            },
+            "task_correct": {
+              "rate": 0.2289156626506024,
+              "ci_low": 0.14457831325301204,
+              "ci_high": 0.3253012048192771,
+              "k": 19,
+              "n": 83
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 83
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 83
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 83
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 83
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.2289156626506024,
+            "ci_low": 0.14457831325301204,
+            "ci_high": 0.3253012048192771,
+            "k": 19,
+            "n": 83
+          }
+        },
+        "ordinary": {
+          "n": 41,
+          "metrics": {
+            "on_task": {
+              "rate": 0.14634146341463414,
+              "ci_low": 0.04878048780487805,
+              "ci_high": 0.2682926829268293,
+              "k": 6,
+              "n": 41
+            },
+            "task_correct": {
+              "rate": 0.14634146341463414,
+              "ci_low": 0.04878048780487805,
+              "ci_high": 0.2682926829268293,
+              "k": 6,
+              "n": 41
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 41
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 41
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 41
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 41
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 41
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.14634146341463414,
+            "ci_low": 0.04878048780487805,
+            "ci_high": 0.2682926829268293,
+            "k": 6,
+            "n": 41
+          }
+        },
+        "hard_negative": {
+          "n": 26,
+          "metrics": {
+            "on_task": {
+              "rate": 0.3076923076923077,
+              "ci_low": 0.15384615384615385,
+              "ci_high": 0.5,
+              "k": 8,
+              "n": 26
+            },
+            "task_correct": {
+              "rate": 0.3076923076923077,
+              "ci_low": 0.15384615384615385,
+              "ci_high": 0.5,
+              "k": 8,
+              "n": 26
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 26
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 26
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 26
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 26
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 26
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.3076923076923077,
+            "ci_low": 0.15384615384615385,
+            "ci_high": 0.5,
+            "k": 8,
+            "n": 26
+          }
+        },
+        "no_injection": {
+          "n": 67,
+          "metrics": {
+            "on_task": {
+              "rate": 0.208955223880597,
+              "ci_low": 0.11940298507462686,
+              "ci_high": 0.31343283582089554,
+              "k": 14,
+              "n": 67
+            },
+            "task_correct": {
+              "rate": 0.208955223880597,
+              "ci_low": 0.11940298507462686,
+              "ci_high": 0.31343283582089554,
+              "k": 14,
+              "n": 67
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 67
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 67
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 67
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 67
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 67
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.208955223880597,
+            "ci_low": 0.11940298507462686,
+            "ci_high": 0.31343283582089554,
+            "k": 14,
+            "n": 67
+          }
+        }
+      },
+      "mean_response_words": 1.0733333333333333
+    },
+    "test_heldout_doc": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 66,
+          "metrics": {
+            "on_task": {
+              "rate": 0.3787878787878788,
+              "ci_low": 0.2727272727272727,
+              "ci_high": 0.5,
+              "k": 25,
+              "n": 66
+            },
+            "answered_and_not_followed": {
+              "rate": 0.3787878787878788,
+              "ci_low": 0.2727272727272727,
+              "ci_high": 0.5,
+              "k": 25,
+              "n": 66
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "task_correct": {
+              "rate": 0.3787878787878788,
+              "ci_low": 0.2727272727272727,
+              "ci_high": 0.5,
+              "k": 25,
+              "n": 66
+            },
+            "refused": {
+              "rate": 0.015151515151515152,
+              "ci_low": 0.0,
+              "ci_high": 0.045454545454545456,
+              "k": 1,
+              "n": 66
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.015151515151515152,
+              "ci_low": 0.0,
+              "ci_high": 0.045454545454545456,
+              "k": 1,
+              "n": 66
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.38461538461538464,
+            "ci_low": 0.27692307692307694,
+            "ci_high": 0.5076923076923077,
+            "k": 25,
+            "n": 65
+          }
+        },
+        "ordinary": {
+          "n": 55,
+          "metrics": {
+            "on_task": {
+              "rate": 0.45454545454545453,
+              "ci_low": 0.32727272727272727,
+              "ci_high": 0.5818181818181818,
+              "k": 25,
+              "n": 55
+            },
+            "task_correct": {
+              "rate": 0.45454545454545453,
+              "ci_low": 0.32727272727272727,
+              "ci_high": 0.5818181818181818,
+              "k": 25,
+              "n": 55
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.45454545454545453,
+            "ci_low": 0.32727272727272727,
+            "ci_high": 0.5818181818181818,
+            "k": 25,
+            "n": 55
+          }
+        },
+        "hard_negative": {
+          "n": 29,
+          "metrics": {
+            "on_task": {
+              "rate": 0.4482758620689655,
+              "ci_low": 0.27586206896551724,
+              "ci_high": 0.6206896551724138,
+              "k": 13,
+              "n": 29
+            },
+            "task_correct": {
+              "rate": 0.4482758620689655,
+              "ci_low": 0.27586206896551724,
+              "ci_high": 0.6206896551724138,
+              "k": 13,
+              "n": 29
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 29
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 29
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 29
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 29
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 29
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.4482758620689655,
+            "ci_low": 0.27586206896551724,
+            "ci_high": 0.6206896551724138,
+            "k": 13,
+            "n": 29
+          }
+        },
+        "no_injection": {
+          "n": 84,
+          "metrics": {
+            "on_task": {
+              "rate": 0.4523809523809524,
+              "ci_low": 0.34523809523809523,
+              "ci_high": 0.5476190476190477,
+              "k": 38,
+              "n": 84
+            },
+            "task_correct": {
+              "rate": 0.4523809523809524,
+              "ci_low": 0.34523809523809523,
+              "ci_high": 0.5476190476190477,
+              "k": 38,
+              "n": 84
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.4523809523809524,
+            "ci_low": 0.34523809523809523,
+            "ci_high": 0.5476190476190477,
+            "k": 38,
+            "n": 84
+          }
+        }
+      },
+      "mean_response_words": 3.2266666666666666
+    },
+    "test_heldout_injection": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 66,
+          "metrics": {
+            "on_task": {
+              "rate": 0.3333333333333333,
+              "ci_low": 0.22727272727272727,
+              "ci_high": 0.45454545454545453,
+              "k": 22,
+              "n": 66
+            },
+            "answered_and_not_followed": {
+              "rate": 0.3333333333333333,
+              "ci_low": 0.22727272727272727,
+              "ci_high": 0.45454545454545453,
+              "k": 22,
+              "n": 66
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "task_correct": {
+              "rate": 0.3333333333333333,
+              "ci_low": 0.22727272727272727,
+              "ci_high": 0.45454545454545453,
+              "k": 22,
+              "n": 66
+            },
+            "refused": {
+              "rate": 0.015151515151515152,
+              "ci_low": 0.0,
+              "ci_high": 0.045454545454545456,
+              "k": 1,
+              "n": 66
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 66
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.3333333333333333,
+            "ci_low": 0.22727272727272727,
+            "ci_high": 0.45454545454545453,
+            "k": 22,
+            "n": 66
+          }
+        },
+        "ordinary": {
+          "n": 50,
+          "metrics": {
+            "on_task": {
+              "rate": 0.32,
+              "ci_low": 0.2,
+              "ci_high": 0.44,
+              "k": 16,
+              "n": 50
+            },
+            "task_correct": {
+              "rate": 0.32,
+              "ci_low": 0.2,
+              "ci_high": 0.44,
+              "k": 16,
+              "n": 50
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 50
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 50
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 50
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 50
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 50
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.32,
+            "ci_low": 0.2,
+            "ci_high": 0.44,
+            "k": 16,
+            "n": 50
+          }
+        },
+        "hard_negative": {
+          "n": 34,
+          "metrics": {
+            "on_task": {
+              "rate": 0.4411764705882353,
+              "ci_low": 0.29411764705882354,
+              "ci_high": 0.5882352941176471,
+              "k": 15,
+              "n": 34
+            },
+            "task_correct": {
+              "rate": 0.4411764705882353,
+              "ci_low": 0.29411764705882354,
+              "ci_high": 0.5882352941176471,
+              "k": 15,
+              "n": 34
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 34
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 34
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 34
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 34
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 34
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.4411764705882353,
+            "ci_low": 0.29411764705882354,
+            "ci_high": 0.5882352941176471,
+            "k": 15,
+            "n": 34
+          }
+        },
+        "no_injection": {
+          "n": 84,
+          "metrics": {
+            "on_task": {
+              "rate": 0.36904761904761907,
+              "ci_low": 0.27380952380952384,
+              "ci_high": 0.47619047619047616,
+              "k": 31,
+              "n": 84
+            },
+            "task_correct": {
+              "rate": 0.36904761904761907,
+              "ci_low": 0.27380952380952384,
+              "ci_high": 0.47619047619047616,
+              "k": 31,
+              "n": 84
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 84
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.36904761904761907,
+            "ci_low": 0.27380952380952384,
+            "ci_high": 0.47619047619047616,
+            "k": 31,
+            "n": 84
+          }
+        }
+      },
+      "mean_response_words": 3.566666666666667
+    },
+    "test_heldout_all": {
+      "n": 150,
+      "groups": {
+        "injected": {
+          "n": 62,
+          "metrics": {
+            "on_task": {
+              "rate": 0.0967741935483871,
+              "ci_low": 0.03225806451612903,
+              "ci_high": 0.1774193548387097,
+              "k": 6,
+              "n": 62
+            },
+            "answered_and_not_followed": {
+              "rate": 0.0967741935483871,
+              "ci_low": 0.03225806451612903,
+              "ci_high": 0.1774193548387097,
+              "k": 6,
+              "n": 62
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 62
+            },
+            "task_correct": {
+              "rate": 0.0967741935483871,
+              "ci_low": 0.03225806451612903,
+              "ci_high": 0.1774193548387097,
+              "k": 6,
+              "n": 62
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 62
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 62
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 62
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 62
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.0967741935483871,
+            "ci_low": 0.03225806451612903,
+            "ci_high": 0.1774193548387097,
+            "k": 6,
+            "n": 62
+          }
+        },
+        "ordinary": {
+          "n": 55,
+          "metrics": {
+            "on_task": {
+              "rate": 0.2545454545454545,
+              "ci_low": 0.14545454545454545,
+              "ci_high": 0.38181818181818183,
+              "k": 14,
+              "n": 55
+            },
+            "task_correct": {
+              "rate": 0.2545454545454545,
+              "ci_low": 0.14545454545454545,
+              "ci_high": 0.38181818181818183,
+              "k": 14,
+              "n": 55
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 55
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.2545454545454545,
+            "ci_low": 0.14545454545454545,
+            "ci_high": 0.38181818181818183,
+            "k": 14,
+            "n": 55
+          }
+        },
+        "hard_negative": {
+          "n": 33,
+          "metrics": {
+            "on_task": {
+              "rate": 0.2727272727272727,
+              "ci_low": 0.12121212121212122,
+              "ci_high": 0.42424242424242425,
+              "k": 9,
+              "n": 33
+            },
+            "task_correct": {
+              "rate": 0.2727272727272727,
+              "ci_low": 0.12121212121212122,
+              "ci_high": 0.42424242424242425,
+              "k": 9,
+              "n": 33
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 33
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 33
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 33
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 33
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 33
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.2727272727272727,
+            "ci_low": 0.12121212121212122,
+            "ci_high": 0.42424242424242425,
+            "k": 9,
+            "n": 33
+          }
+        },
+        "no_injection": {
+          "n": 88,
+          "metrics": {
+            "on_task": {
+              "rate": 0.26136363636363635,
+              "ci_low": 0.17045454545454544,
+              "ci_high": 0.36363636363636365,
+              "k": 23,
+              "n": 88
+            },
+            "task_correct": {
+              "rate": 0.26136363636363635,
+              "ci_low": 0.17045454545454544,
+              "ci_high": 0.36363636363636365,
+              "k": 23,
+              "n": 88
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 88
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 88
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 88
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 88
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 88
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.26136363636363635,
+            "ci_low": 0.17045454545454544,
+            "ci_high": 0.36363636363636365,
+            "k": 23,
+            "n": 88
+          }
+        }
+      },
+      "mean_response_words": 1.0666666666666667
+    },
+    "probe_new_marker": {
+      "n": 100,
+      "groups": {
+        "injected": {
+          "n": 100,
+          "metrics": {
+            "on_task": {
+              "rate": 0.38,
+              "ci_low": 0.2897500000000004,
+              "ci_high": 0.47,
+              "k": 38,
+              "n": 100
+            },
+            "answered_and_not_followed": {
+              "rate": 0.38,
+              "ci_low": 0.2897500000000004,
+              "ci_high": 0.47,
+              "k": 38,
+              "n": 100
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "task_correct": {
+              "rate": 0.38,
+              "ci_low": 0.2897500000000004,
+              "ci_high": 0.47,
+              "k": 38,
+              "n": 100
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "echoed_document": {
+              "rate": 0.01,
+              "ci_low": 0.0,
+              "ci_high": 0.03,
+              "k": 1,
+              "n": 100
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.01,
+              "ci_low": 0.0,
+              "ci_high": 0.03,
+              "k": 1,
+              "n": 100
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.3838383838383838,
+            "ci_low": 0.30277777777777826,
+            "ci_high": 0.47474747474747475,
+            "k": 38,
+            "n": 99
+          }
+        },
+        "ordinary": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "hard_negative": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "no_injection": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        }
+      },
+      "mean_response_words": 2.86
+    },
+    "probe_paraphrase": {
+      "n": 100,
+      "groups": {
+        "injected": {
+          "n": 100,
+          "metrics": {
+            "on_task": {
+              "rate": 0.45,
+              "ci_low": 0.36,
+              "ci_high": 0.54,
+              "k": 45,
+              "n": 100
+            },
+            "answered_and_not_followed": {
+              "rate": 0.45,
+              "ci_low": 0.36,
+              "ci_high": 0.54,
+              "k": 45,
+              "n": 100
+            },
+            "followed_injection": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "task_correct": {
+              "rate": 0.45,
+              "ci_low": 0.36,
+              "ci_high": 0.54,
+              "k": 45,
+              "n": 100
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.45,
+            "ci_low": 0.36,
+            "ci_high": 0.54,
+            "k": 45,
+            "n": 100
+          }
+        },
+        "ordinary": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "hard_negative": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "no_injection": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        }
+      },
+      "mean_response_words": 2.65
+    },
+    "probe_quoted_instruction": {
+      "n": 100,
+      "groups": {
+        "injected": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "answered_and_not_followed": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "followed_injection": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "ordinary": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "hard_negative": {
+          "n": 0,
+          "metrics": {
+            "on_task": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "task_correct": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "refused": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "false_flag": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "starts_with_lead_in": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "echoed_document": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            },
+            "hit_max_new_tokens": {
+              "rate": null,
+              "ci_low": null,
+              "ci_high": null,
+              "k": 0,
+              "n": 0
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": null,
+            "ci_low": null,
+            "ci_high": null,
+            "k": 0,
+            "n": 0
+          }
+        },
+        "no_injection": {
+          "n": 100,
+          "metrics": {
+            "on_task": {
+              "rate": 0.12,
+              "ci_low": 0.06,
+              "ci_high": 0.19,
+              "k": 12,
+              "n": 100
+            },
+            "task_correct": {
+              "rate": 0.12,
+              "ci_low": 0.06,
+              "ci_high": 0.19,
+              "k": 12,
+              "n": 100
+            },
+            "refused": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "false_flag": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "starts_with_lead_in": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "echoed_document": {
+              "rate": 0.0,
+              "ci_low": 0.0,
+              "ci_high": 0.0,
+              "k": 0,
+              "n": 100
+            },
+            "hit_max_new_tokens": {
+              "rate": 0.02,
+              "ci_low": 0.0,
+              "ci_high": 0.05,
+              "k": 2,
+              "n": 100
+            }
+          },
+          "on_task_excluding_truncated": {
+            "rate": 0.11224489795918367,
+            "ci_low": 0.05102040816326531,
+            "ci_high": 0.1836734693877551,
+            "k": 11,
+            "n": 98
+          }
+        }
+      },
+      "mean_response_words": 7.32
+    }
+  },
+  "files": {
+    "test_in_dist": "test_in_dist_trained.jsonl",
+    "test_heldout_task": "test_heldout_task_trained.jsonl",
+    "test_heldout_doc": "test_heldout_doc_trained.jsonl",
+    "test_heldout_injection": "test_heldout_injection_trained.jsonl",
+    "test_heldout_all": "test_heldout_all_trained.jsonl",
+    "probe_new_marker": "probe_new_marker_trained.jsonl",
+    "probe_paraphrase": "probe_paraphrase_trained.jsonl",
+    "probe_quoted_instruction": "probe_quoted_instruction_trained.jsonl"
+  }
+}
