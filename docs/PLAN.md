@@ -80,6 +80,8 @@ A 0.5B-parameter model with LoRA, sequences under 512 tokens, small batches with
 | M5 (done 2026-11-17, negative first result) | Track B training and evaluation | Before/after table with confidence intervals |
 | M6 | Ablations, write-up, polish | README complete, repo ready to make public |
 | M7 (extension, added by the owner 2026-11-17; done 2026-11-17) | KTO against DPO on Track B: does the same data as good/bad labels teach the behavior as well as pairs? | Hand-written KTO loss matches TRL's KTOTrainer on a tiny model; KTO trained on the Track B pairs split into single good and bad examples, evaluated exactly like the DPO runs, with a comparison table and figure with confidence intervals |
+| M8 (extension, added by the owner 2026-11-19) | Online RL on Track B: GRPO with the automatic checker as the reward, against DPO and KTO on the same prompts | A hand-written GRPO loss matches TRL's GRPOTrainer on a fixed batch; GRPO trained on Track B prompts with a reward computed by `trackb.checks`, evaluated exactly like the DPO and KTO runs, with a comparison table and figure with confidence intervals, and a check for reward hacking |
+| M9 (extension, added by the owner 2026-11-19) | Transfer to real prompt-injection data: do models trained on the synthetic Track B data resist injections they were never templated on? | A public prompt-injection dataset with a known licence, adapted with automatic scoring and a datasheet note; base and trained models evaluated on it with confidence intervals |
 
 ## 7. Visuals
 - **Hero:** before/after bar chart of the target behavior next to ordinary-task quality, with error bars.
@@ -342,3 +344,8 @@ PyTorch, transformers, datasets, peft, trl (for the parity run only), CSV or wan
 - **Dataset size at fixed 340 steps:** 100, 300, 1,000 and 3,000 pairs give accuracy 0.574, 0.635, 0.664 and 0.650 and held-out loss 1.360, 1.274, 0.845 and 0.624. Small data is revisited many times and memorised; the held-out loss rises above its starting value. Accuracy plateaus near 1,000 pairs, while drift keeps falling with more data.
 - **Label noise:** 0%, 10% and 30% flipped give accuracy 0.664, 0.650 and 0.603. The 0% run has exactly the settings of the beta 0.1 sweep run and reproduced it (accuracy 0.664 and preferred log-probability -328.2 in both). The 30% robust-loss run was cut off by the Colab disconnect at about 06:20 UTC on 2026-11-18 and is pending, as is the sweep figure.
 - **Sweep figures:** value labels now sit past the end of their own error bars; next to the points they collided with lines and with each other.
+
+**2026-11-19, M8 and M9 added** (the owner's request)
+- **M8:** RL with a verifiable reward. The model writes answers to Track B prompts, the existing checker scores them, and GRPO (group-relative policy optimization, via TRL, with the loss also written by hand and checked against TRL) pushes toward high-scoring answers. This is the second half of the plan's stretch item, applied to Track B instead of the reward model, because a checker reward cannot be fooled the way a learned reward model can, which isolates the RL-versus-DPO question.
+- **M9:** an external test of Track B. The synthetic, templated data is the project's main limitation; evaluating the same trained models on public prompt-injection data measures whether the behavior transfers.
+- **Order:** both are built while the label-noise run and the extra seeds finish on Colab. M6's final write-up and the end-of-project quiz follow M8 and M9.
