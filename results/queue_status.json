@@ -1,5 +1,5 @@
 {
-  "updated_unix": 1795066907,
+  "updated_unix": 1795067213,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T03:08:35Z",
@@ -485,6 +485,12 @@
       "launch": "2026-11-19T03:08:35Z",
       "wall_time_s": 3498.51,
       "optimizer_steps": 360
+    },
+    "m8_grpo_eval": {
+      "status": "done",
+      "stage": "m8_grpo",
+      "minutes": 5.1,
+      "launch": "2026-11-19T03:08:35Z"
     }
   }
 }
