@@ -46,6 +46,7 @@ STAGES = (
     "data_size",
     "label_noise",
     "seeds",
+    "m8_grpo",
 )
 
 # Follow-up to the first full Track B run (results/trackb_full), which over-optimised:
@@ -875,6 +876,7 @@ def build_queue(root: str | Path = ".") -> list[Job]:
     for stage in SWEEP_STAGES:
         jobs += _sweep_jobs(root, stage)
     jobs += _seeds_jobs()
+    jobs += _m8_grpo_jobs()
     return jobs
 
 
@@ -1395,3 +1397,177 @@ def format_table(results: dict[str, dict[str, Any]]) -> str:
     for name, row in results.items():
         lines.append(f"{name:<{width}}  {row['status']:<20}  {row.get('minutes', 0.0):>7.1f}")
     return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------------------
+# M8: GRPO with the checker reward (appended after every earlier stage)
+# --------------------------------------------------------------------------------------
+
+# Same order as GRPO_RUNS in scripts/plot_trackb_variants.py (tested).
+GRPO_RUNS = ("trackb_grpo",)
+GRPO_RUN = GRPO_RUNS[0]
+# If the GPU runs out of memory: half the completions per forward/backward pass and per
+# generation block (16 answers, 2 prompts), with the same 32 answers (4 prompts x 8) per
+# optimizer step. Every key is a field of tiny_rlhf.train_grpo.GRPORunConfig (tested).
+GRPO_SMALL_BATCH = (
+    "--set",
+    "per_device_train_batch_size=4",
+    "--set",
+    "gradient_accumulation_steps=8",
+    "--set",
+    "steps_per_generation=4",
+)
+# GUESSES. Training is capped at 85 minutes by max_minutes in configs/trackb_grpo.yaml;
+# about 10 s a step is guessed there (360 steps). The rest as the M7 jobs. The training job
+# only starts when the budget has this much left: run this stage with --budget-min of at
+# least 110 (training, evaluation, comparison and figures).
+ESTIMATE_MIN.update(
+    {
+        "m8_train": 90,  # 85-minute cap, plus loading the model and installing TRL
+        "m8_eval": 7,  # GRPO answers may be longer than the DPO runs'
+        "m8_compare": 6,
+        "m8_figure": 2,
+        "m8_hacking": 2,
+    }
+)
+
+
+def _m8_grpo_jobs() -> list[Job]:
+    """M8: GRPO on Track B prompts with the checker reward; evaluated and compared exactly
+    like the DPO and KTO runs (m5's settings, trackb_full's base evaluation); then the
+    figures and the reward-hacking check."""
+    run = GRPO_RUN
+    evals = f"results/{run}/trackb_eval"
+    adapter = f"checkpoints/{run}"
+    summaries = ("--base", TRACKB_BASE_SUMMARY, "--trained", f"{evals}/summary_trained.json")
+    return [
+        Job(
+            name="m8_grpo_train",
+            stage="m8_grpo",
+            commands=(
+                ENSURE_TRL,
+                ("python", "scripts/train_grpo.py", "--config", f"configs/{run}.yaml"),
+            ),
+            marker=f"results/{run}/run_info.json",
+            outputs=(f"results/{run}",),
+            estimate_min=ESTIMATE_MIN["m8_train"],
+            produces_adapter=adapter,
+            oom_retry_args=GRPO_SMALL_BATCH,
+        ),
+        Job(
+            name="m8_grpo_eval",
+            stage="m8_grpo",
+            commands=(
+                (
+                    "python",
+                    "scripts/eval_trackb.py",
+                    "--model",
+                    QWEN,
+                    "--adapter",
+                    adapter,
+                    "--label",
+                    "trained",
+                    "--out",
+                    evals,
+                    *TRACKB_EVAL_ARGS,
+                ),
+            ),
+            marker=f"{evals}/summary_trained.json",
+            outputs=(evals,),
+            estimate_min=ESTIMATE_MIN["m8_eval"],
+            depends_on=("m8_grpo_train",),
+            needs_adapter=adapter,
+            rerun_if_deps_ran=True,
+        ),
+        Job(
+            name="m8_grpo_compare",
+            stage="m8_grpo",
+            commands=(
+                (
+                    "python",
+                    "scripts/eval_general.py",
+                    "--model",
+                    QWEN,
+                    "--adapter",
+                    adapter,
+                    "--out",
+                    f"results/{run}/general_regression.json",
+                ),
+                # These three write next to the GRPO run, not next to trackb_full.
+                ("python", "scripts/compare_trackb.py", *summaries),
+                ("python", "scripts/plot_trackb.py", *summaries),
+                ("python", "scripts/make_examples.py", *summaries),
+                # Strict rescoring of every run, rewriting only this run's file; then the
+                # all-runs strict figure, which picks up the GRPO run.
+                ("python", "scripts/rescore_trackb.py", "--write-runs", run),
+                ("python", "scripts/plot_trackb_strict.py"),
+            ),
+            marker=f"results/{run}/trackb_table.md",
+            outputs=(
+                f"results/{run}/general_regression.json",
+                f"results/{run}/trackb_table.md",
+                f"results/{run}/trackb_compare.json",
+                f"results/{run}/examples.md",
+                f"assets/m5_trackb_{run}.png",
+                f"{evals}/rescored_trained.json",
+                "results/trackb_rescored_compare.json",
+                "assets/m5_trackb_strict.png",
+            ),
+            estimate_min=ESTIMATE_MIN["m8_compare"],
+            depends_on=("m5_eval_base", "m8_grpo_eval"),
+            needs_adapter=adapter,
+            rerun_if_deps_ran=True,
+        ),
+        Job(
+            name="m8_grpo_figure",
+            stage="m8_grpo",
+            commands=(
+                (
+                    "python",
+                    "scripts/plot_trackb_variants.py",
+                    "--runs",
+                    "trackb_beta0.5",
+                    "trackb_kto_beta0.5",
+                    run,
+                    "--out",
+                    "assets/m8_grpo_vs_dpo.png",
+                    "--summary-out",
+                    "results/grpo_vs_dpo_summary.json",
+                ),
+                (
+                    "python",
+                    "scripts/plot_grpo_training.py",
+                    "--run",
+                    f"results/{run}",
+                    "--out",
+                    "assets/m8_grpo_training.png",
+                    "--json-out",
+                    "results/grpo_training_summary.json",
+                ),
+            ),
+            marker="results/grpo_vs_dpo_summary.json",
+            outputs=(
+                "results/grpo_vs_dpo_summary.json",
+                "assets/m8_grpo_vs_dpo.png",
+                "results/grpo_training_summary.json",
+                "assets/m8_grpo_training.png",
+            ),
+            estimate_min=ESTIMATE_MIN["m8_figure"],
+            depends_on=("m8_grpo_compare",),
+            always_run=True,
+        ),
+        Job(
+            name="m8_grpo_hacking",
+            stage="m8_grpo",
+            commands=(("python", "scripts/check_grpo_hacking.py"),),
+            marker=f"results/{run}/reward_hacking.json",
+            outputs=(
+                f"results/{run}/reward_hacking.json",
+                f"results/{run}/reward_hacking_sample.md",
+                "assets/m8_grpo_hacking.png",
+            ),
+            estimate_min=ESTIMATE_MIN["m8_hacking"],
+            depends_on=("m5_eval_base", "m8_grpo_eval"),
+            always_run=True,
+        ),
+    ]
