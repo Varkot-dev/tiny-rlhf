@@ -1,0 +1,75 @@
+# M8: GRPO on Track B prompts, rewarded by the strict automatic checker
+# (tiny_rlhf.grpo_reward), sized for a free Colab T4. Trained with TRL's GRPOTrainer, whose
+# loss tests/test_grpo.py checks against the hand-written tiny_rlhf.grpo.
+#
+# Same prompts, LoRA adapter, seed and evaluation as the Track B DPO and KTO runs
+# (configs/trackb_full.yaml, trackb_beta0.5.yaml, trackb_kto_beta0.5.yaml); what differs is
+# the training signal: sampled answers scored by the checker instead of fixed pairs.
+#
+# TIME, A GUESS (nothing GRPO-shaped has run on a T4 yet): about 10 s per optimizer step.
+#   generation: 32 sampled answers of up to 96 tokens. The base evaluation took about 35 ms
+#     per decoding step for a batch of 16 (1,050 answers in 221 s); with an unmerged LoRA
+#     adapter and 32 rows, guess 50 ms, so about 5 s when one answer runs to 96 tokens.
+#   update: the DPO run took 1.56 s per step for 16 sequences of up to 320 tokens (policy
+#     forward and backward plus a reference forward); 32 sequences of up to about 400
+#     tokens is about 2.5 times that, about 4 s.
+# 360 steps is then about 60 minutes, and 90 minutes at 15 s per step. max_minutes stops
+# the run cleanly at 85 minutes whatever happens, so it cannot be lost to a session limit;
+# run_info.json records how many steps were done and whether the limit stopped it.
+run_name: trackb_grpo
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+dataset_name: data/trackb
+n_train: 3000                      # prompts of the DPO runs' 3,000 training pairs
+max_length: 320                    # as the DPO runs: no Track B prompt is dropped
+seed: 0
+# Batching: 4 prompts x 8 answers = 32 answers per optimizer step, generated in one block,
+# then 4 forward/backward passes of 8 (one prompt's group each). 360 steps visit 1,440 of
+# the 3,000 prompts, each at most once (TRL's sampler shuffles with the seed).
+num_generations: 8                 # G. With p the chance an answer is right, a group of G
+                                   # is all-equal (no gradient) with chance p^G + (1-p)^G:
+                                   # at p = 0.66, 0.20 for G = 4 and 0.04 for G = 8.
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 4
+steps_per_generation: null         # = gradient_accumulation_steps: one generation per step
+max_completion_length: 96          # the evaluation's max_new_tokens, so "hit the limit"
+                                   # means the same thing in training and evaluation
+temperature: 1.0                   # sample from the model's own distribution; TRL also
+                                   # scores the tempered distribution in the loss, so 1.0
+                                   # keeps the trained log-probs and the KL the model's own
+top_p: 1.0
+top_k: 0
+beta: 0.04                         # KL to the base model (the adapter switched off). TRL's
+                                   # default is 0; this project's DPO runs drifted on general
+                                   # text in proportion to how far they moved (NLL per token
+                                   # +1.21 at DPO beta 0.1, +0.24 at beta 0.5), so the run
+                                   # keeps a brake. 0.04 is the value of the original GRPO
+                                   # paper (Shao et al., 2024, DeepSeekMath).
+epsilon: 0.2                       # inactive here: one step per batch means ratio = 1
+loss_type: dapo                    # TRL's default: token mean over the whole generation
+                                   # batch, so long answers are not down-weighted per token
+scale_rewards: group               # the GRPO paper's advantage (divide by the group's std)
+lr: 2.0e-5                         # TRL's default (1e-6) is for full fine-tuning. The
+                                   # "LoRA Without Regret" post (Thinking Machines, 2025)
+                                   # reports LoRA's best learning rate at about 10 times full
+                                   # fine-tuning's, which gives 1e-5; doubled because the run
+                                   # is short, with the KL as the brake. The DPO runs used 5e-5.
+lr_scheduler: linear               # warmup, then linear decay to 0, as the DPO runs
+warmup_ratio: 0.1
+weight_decay: 0.0
+max_grad_norm: 1.0
+max_steps: 360
+max_minutes: 85
+gradient_checkpointing: false      # 8 sequences per pass fit without it (TRL computes
+                                   # log-probs without materialising the vocabulary logits)
+lora_r: 16                         # LoRA as every Track B run
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+reward_correct: 1.0                # see tiny_rlhf.grpo_reward for why each number
+reward_violation: -1.0
+reward_echoed: -0.5
+reward_truncated: -0.25
+sample_every: 20                   # every scored answer of steps 1, 20, 40, ... to samples.jsonl
+amp: auto                          # fp16 mixed precision on cuda
+device: auto
+save_adapter: true
