@@ -1,16 +1,9 @@
 {
-  "updated_unix": 1795051694,
+  "updated_unix": 1795051701,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-19T01:08:53Z",
   "jobs": {
-    "label_noise_figure": {
-      "status": "skipped-dependency",
-      "stage": "label_noise",
-      "minutes": 0.0,
-      "blocked_by": "label_noise_0.0",
-      "from_earlier_launch": true
-    },
     "m5_eval_base": {
       "status": "skipped-existing",
       "stage": "m5",
@@ -309,6 +302,12 @@
       "peak_gpu_memory_mb": 8801.1,
       "optimizer_steps": 233,
       "scaler_retries": 6
+    },
+    "label_noise_figure": {
+      "status": "done",
+      "stage": "label_noise",
+      "minutes": 0.1,
+      "launch": "2026-11-19T01:08:53Z"
     }
   }
 }

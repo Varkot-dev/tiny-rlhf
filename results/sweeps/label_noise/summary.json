@@ -1,0 +1,148 @@
+{
+  "sweep": "label_noise",
+  "field": "noise_fraction",
+  "source": "/content/tiny-rlhf/configs/sweeps/label_noise.yaml",
+  "runs": [
+    {
+      "run_dir": "results/sweep_noise_0.0",
+      "n_pairs": 277,
+      "accuracy": {
+        "mean": 0.6642599277978339,
+        "ci_low": 0.6100180505415164,
+        "ci_high": 0.7185018050541512
+      },
+      "reward_margin": {
+        "mean": 0.396723451395435,
+        "ci_low": 0.2745936244665662,
+        "ci_high": 0.5156741275929504
+      },
+      "chosen_logp_change": {
+        "mean": -5.390253421631961,
+        "ci_low": -6.2499981410236565,
+        "ci_high": -4.549624948467158
+      },
+      "rejected_logp_change": {
+        "mean": -9.357487909199959,
+        "ci_low": -10.34040706854865,
+        "ci_high": -8.416900511338824
+      },
+      "interval": "95% percentile bootstrap over held-out pairs",
+      "n_resamples": 2000,
+      "seed": 0,
+      "optimizer_steps": 233,
+      "n_train_pairs": 1862,
+      "wall_time_s": 905.11,
+      "peak_gpu_memory_mb": 8801.1,
+      "label": "0.0",
+      "value": 0.0,
+      "series": "ordinary DPO loss",
+      "run_name": "sweep_noise_0.0"
+    },
+    {
+      "run_dir": "results/sweep_noise_0.1",
+      "n_pairs": 277,
+      "accuracy": {
+        "mean": 0.6498194945848376,
+        "ci_low": 0.5956678700361011,
+        "ci_high": 0.703971119133574
+      },
+      "reward_margin": {
+        "mean": 0.2899844734004904,
+        "ci_low": 0.1972325535850862,
+        "ci_high": 0.38516546680830716
+      },
+      "chosen_logp_change": {
+        "mean": -4.427726921191715,
+        "ci_low": -5.116577672097657,
+        "ci_high": -3.746616023370075
+      },
+      "rejected_logp_change": {
+        "mean": -7.327571655438695,
+        "ci_low": -8.084348336367832,
+        "ci_high": -6.62257542334739
+      },
+      "interval": "95% percentile bootstrap over held-out pairs",
+      "n_resamples": 2000,
+      "seed": 0,
+      "optimizer_steps": 233,
+      "n_train_pairs": 1862,
+      "wall_time_s": 905.38,
+      "peak_gpu_memory_mb": 8801.1,
+      "label": "0.1",
+      "value": 0.1,
+      "series": "ordinary DPO loss",
+      "run_name": "sweep_noise_0.1"
+    },
+    {
+      "run_dir": "results/sweep_noise_0.3",
+      "n_pairs": 277,
+      "accuracy": {
+        "mean": 0.6028880866425993,
+        "ci_low": 0.5451263537906137,
+        "ci_high": 0.6570397111913358
+      },
+      "reward_margin": {
+        "mean": 0.1059409378530182,
+        "ci_low": 0.05514712092443118,
+        "ci_high": 0.15584242192852651
+      },
+      "chosen_logp_change": {
+        "mean": -1.9572151817569663,
+        "ci_low": -2.369244370305581,
+        "ci_high": -1.57940779455302
+      },
+      "rejected_logp_change": {
+        "mean": -3.01662452642668,
+        "ci_low": -3.434606411482883,
+        "ci_high": -2.5972238072419422
+      },
+      "interval": "95% percentile bootstrap over held-out pairs",
+      "n_resamples": 2000,
+      "seed": 0,
+      "optimizer_steps": 233,
+      "n_train_pairs": 1862,
+      "wall_time_s": 899.74,
+      "peak_gpu_memory_mb": 8801.1,
+      "label": "0.3",
+      "value": 0.3,
+      "series": "ordinary DPO loss",
+      "run_name": "sweep_noise_0.3"
+    },
+    {
+      "run_dir": "results/sweep_noise_0.3_robust",
+      "n_pairs": 277,
+      "accuracy": {
+        "mean": 0.628158844765343,
+        "ci_low": 0.5703971119133574,
+        "ci_high": 0.6859205776173285
+      },
+      "reward_margin": {
+        "mean": 0.22876980469061148,
+        "ci_low": 0.13781259173581153,
+        "ci_high": 0.318854123074225
+      },
+      "chosen_logp_change": {
+        "mean": -5.2018340245050645,
+        "ci_low": -6.014427095802252,
+        "ci_high": -4.44235507314386
+      },
+      "rejected_logp_change": {
+        "mean": -7.489532023130341,
+        "ci_low": -8.279352115465846,
+        "ci_high": -6.67964211233256
+      },
+      "interval": "95% percentile bootstrap over held-out pairs",
+      "n_resamples": 2000,
+      "seed": 0,
+      "optimizer_steps": 233,
+      "n_train_pairs": 1862,
+      "wall_time_s": 904.04,
+      "peak_gpu_memory_mb": 8801.1,
+      "label": "0.3_robust",
+      "value": 0.3,
+      "series": "robust loss (label_smoothing 0.3)",
+      "run_name": "sweep_noise_0.3_robust"
+    }
+  ],
+  "missing_runs": []
+}
