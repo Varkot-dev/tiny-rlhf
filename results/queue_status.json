@@ -1,59 +1,9 @@
 {
-  "updated_unix": 1795133913,
+  "updated_unix": 1795133922,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-20T00:18:04Z",
   "jobs": {
-    "trackb_kto_train": {
-      "status": "skipped-existing",
-      "stage": "m7_kto",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_eval": {
-      "status": "skipped-existing",
-      "stage": "m7_kto",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_compare": {
-      "status": "skipped-existing",
-      "stage": "m7_kto",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_train": {
-      "status": "skipped-existing",
-      "stage": "m7_kto",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_eval": {
-      "status": "skipped-existing",
-      "stage": "m7_kto",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_compare": {
-      "status": "skipped-existing",
-      "stage": "m7_kto",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "m7_figure": {
-      "status": "skipped-existing",
-      "stage": "m7_kto",
-      "minutes": 0.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "note": "checked: already current",
-      "from_earlier_launch": true
-    },
     "m3_reward": {
       "status": "skipped-existing",
       "stage": "m3",
@@ -635,6 +585,49 @@
       "status": "skipped-existing",
       "stage": "m5_followup",
       "minutes": 0.3,
+      "launch": "2026-11-20T00:18:04Z",
+      "note": "checked: already current"
+    },
+    "trackb_kto_train": {
+      "status": "skipped-existing",
+      "stage": "m7_kto",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_eval": {
+      "status": "skipped-existing",
+      "stage": "m7_kto",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_compare": {
+      "status": "skipped-existing",
+      "stage": "m7_kto",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_train": {
+      "status": "skipped-existing",
+      "stage": "m7_kto",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_eval": {
+      "status": "skipped-existing",
+      "stage": "m7_kto",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_compare": {
+      "status": "skipped-existing",
+      "stage": "m7_kto",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "m7_figure": {
+      "status": "skipped-existing",
+      "stage": "m7_kto",
+      "minutes": 0.1,
       "launch": "2026-11-20T00:18:04Z",
       "note": "checked: already current"
     }
