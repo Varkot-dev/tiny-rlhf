@@ -1,45 +1,9 @@
 {
-  "updated_unix": 1795133937,
+  "updated_unix": 1795133942,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-20T00:18:04Z",
   "jobs": {
-    "lora_rank_2": {
-      "status": "skipped-existing",
-      "stage": "lora_rank",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "lora_rank_8": {
-      "status": "skipped-existing",
-      "stage": "lora_rank",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "lora_rank_16": {
-      "status": "skipped-existing",
-      "stage": "lora_rank",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "lora_rank_64": {
-      "status": "skipped-existing",
-      "stage": "lora_rank",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "lora_rank_figure": {
-      "status": "skipped-existing",
-      "stage": "lora_rank",
-      "minutes": 0.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "note": "checked: already current",
-      "from_earlier_launch": true
-    },
     "data_size_100": {
       "status": "skipped-existing",
       "stage": "data_size",
@@ -615,6 +579,37 @@
     "beta_figure": {
       "status": "skipped-existing",
       "stage": "beta",
+      "minutes": 0.1,
+      "launch": "2026-11-20T00:18:04Z",
+      "note": "checked: already current"
+    },
+    "lora_rank_2": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "lora_rank_8": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "lora_rank_16": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "lora_rank_64": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "lora_rank_figure": {
+      "status": "skipped-existing",
+      "stage": "lora_rank",
       "minutes": 0.1,
       "launch": "2026-11-20T00:18:04Z",
       "note": "checked: already current"
