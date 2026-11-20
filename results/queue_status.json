@@ -1,59 +1,9 @@
 {
-  "updated_unix": 1795133981,
+  "updated_unix": 1795134929,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-20T00:18:04Z",
   "jobs": {
-    "trackb_beta0.5_m9_train": {
-      "status": "done",
-      "stage": "m9_external",
-      "minutes": 10.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "wall_time_s": 583.09,
-      "peak_gpu_memory_mb": 7287.2,
-      "optimizer_steps": 375,
-      "scaler_retries": 6,
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_m9_eval": {
-      "status": "done",
-      "stage": "m9_external",
-      "minutes": 5.2,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_m9_external": {
-      "status": "done",
-      "stage": "m9_external",
-      "minutes": 6.6,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_m9_reproduce": {
-      "status": "done",
-      "stage": "m9_external",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_m9_compare": {
-      "status": "done",
-      "stage": "m9_external",
-      "minutes": 0.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_m9_train": {
-      "status": "done",
-      "stage": "m9_external",
-      "minutes": 16.5,
-      "launch": "2026-11-19T03:08:35Z",
-      "wall_time_s": 968.62,
-      "peak_gpu_memory_mb": 7321.6,
-      "optimizer_steps": 375,
-      "scaler_retries": 2,
-      "from_earlier_launch": true
-    },
     "m5_eval_base": {
       "status": "skipped-existing",
       "stage": "m5",
@@ -553,6 +503,46 @@
       "minutes": 0.0,
       "launch": "2026-11-20T00:18:04Z",
       "note": "checked: already current"
+    },
+    "trackb_beta0.5_m9_train": {
+      "status": "skipped-existing",
+      "stage": "m9_external",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_m9_eval": {
+      "status": "skipped-existing",
+      "stage": "m9_external",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_m9_external": {
+      "status": "skipped-existing",
+      "stage": "m9_external",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_m9_reproduce": {
+      "status": "skipped-existing",
+      "stage": "m9_external",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_m9_compare": {
+      "status": "skipped-existing",
+      "stage": "m9_external",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_m9_train": {
+      "status": "done",
+      "stage": "m9_external",
+      "minutes": 15.8,
+      "launch": "2026-11-20T00:18:04Z",
+      "wall_time_s": 909.69,
+      "peak_gpu_memory_mb": 7321.6,
+      "optimizer_steps": 375,
+      "scaler_retries": 2
     }
   }
 }

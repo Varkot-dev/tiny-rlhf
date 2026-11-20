@@ -1,12 +1,12 @@
 {
   "run_name": "trackb_kto_beta0.5_m9",
   "implementation": "handwritten_kto",
-  "wall_time_s": 968.62,
+  "wall_time_s": 909.69,
   "optimizer_steps": 375,
   "scaler_retries": 2,
   "steps_per_epoch": 375,
   "warmup_steps": 38,
-  "first_eval_loss": 0.4999999992052714,
+  "first_eval_loss": 0.5000000015894572,
   "expected_first_eval_loss": 0.5,
   "beta": 0.5,
   "desirable_weight": 1.0,
@@ -45,12 +45,12 @@
   },
   "eval_pairs_sha256": "fc24d0d0daffb1169ad22b97c3683eb2564f6b90f9a3371f849b519995523a7d",
   "seed": 0,
-  "git_sha": "d5dbbc9fabffed2af3dcbb7d1a002660008e2622",
+  "git_sha": "09b0422886bb1057af002b8c726758fc426d7f0e",
   "versions": {
     "torch": "2.14.1+cu130",
     "transformers": "5.22.1",
     "peft": "0.21.2",
     "datasets": "4.8.5",
-    "trl": "1.18.1"
+    "trl": "not installed"
   }
 }
