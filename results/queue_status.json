@@ -1,16 +1,9 @@
 {
-  "updated_unix": 1795133977,
+  "updated_unix": 1795133981,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-20T00:18:04Z",
   "jobs": {
-    "m9_eval_base": {
-      "status": "done",
-      "stage": "m9_external",
-      "minutes": 3.9,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
     "trackb_beta0.5_m9_train": {
       "status": "done",
       "stage": "m9_external",
@@ -551,6 +544,13 @@
       "status": "skipped-existing",
       "stage": "m8_grpo",
       "minutes": 0.1,
+      "launch": "2026-11-20T00:18:04Z",
+      "note": "checked: already current"
+    },
+    "m9_eval_base": {
+      "status": "skipped-existing",
+      "stage": "m9_external",
+      "minutes": 0.0,
       "launch": "2026-11-20T00:18:04Z",
       "note": "checked: already current"
     }
