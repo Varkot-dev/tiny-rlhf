@@ -1,46 +1,9 @@
 {
-  "updated_unix": 1795133961,
+  "updated_unix": 1795133971,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-20T00:18:04Z",
   "jobs": {
-    "m8_grpo_train": {
-      "status": "done",
-      "stage": "m8_grpo",
-      "minutes": 58.8,
-      "launch": "2026-11-19T03:08:35Z",
-      "wall_time_s": 3498.51,
-      "optimizer_steps": 360,
-      "from_earlier_launch": true
-    },
-    "m8_grpo_eval": {
-      "status": "done",
-      "stage": "m8_grpo",
-      "minutes": 5.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "m8_grpo_external": {
-      "status": "done",
-      "stage": "m8_grpo",
-      "minutes": 5.8,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "m8_grpo_compare": {
-      "status": "done",
-      "stage": "m8_grpo",
-      "minutes": 1.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "m8_grpo_figure": {
-      "status": "done",
-      "stage": "m8_grpo",
-      "minutes": 0.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
     "m8_grpo_hacking": {
       "status": "done",
       "stage": "m8_grpo",
@@ -556,6 +519,37 @@
     "seeds_figure": {
       "status": "skipped-existing",
       "stage": "seeds",
+      "minutes": 0.1,
+      "launch": "2026-11-20T00:18:04Z",
+      "note": "checked: already current"
+    },
+    "m8_grpo_train": {
+      "status": "skipped-existing",
+      "stage": "m8_grpo",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "m8_grpo_eval": {
+      "status": "skipped-existing",
+      "stage": "m8_grpo",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "m8_grpo_external": {
+      "status": "skipped-existing",
+      "stage": "m8_grpo",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "m8_grpo_compare": {
+      "status": "skipped-existing",
+      "stage": "m8_grpo",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "m8_grpo_figure": {
+      "status": "skipped-existing",
+      "stage": "m8_grpo",
       "minutes": 0.1,
       "launch": "2026-11-20T00:18:04Z",
       "note": "checked: already current"
