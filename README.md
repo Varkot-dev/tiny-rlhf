@@ -3,12 +3,12 @@
 ![Every Track B run: on task with a planted instruction, against how much the model changed on ordinary text](assets/hero_tradeoff.png)
 
 I trained Qwen2.5-0.5B-Instruct to keep doing the user's task when a document contains an instruction planted by someone else, with three methods whose losses are written by hand here and checked against the TRL library: DPO (from pairs of answers), KTO (from single good or bad answers) and GRPO (online reinforcement learning with an automatic checker as the reward).
-Each point above is one training run: higher is better at the task when an instruction is planted, further left is less changed on ordinary text; DPO collapsed into one-word answers on 4 of its 6 runs, KTO held on all 6, and GRPO matched the best runs while changing the model least (one seed), and on real prompt injections from Microsoft's BIPIA benchmark it followed the planted instruction less than half as often as the base model.
+Each point above is one training run: higher is better at the task when an instruction is planted, further left is less changed on ordinary text; DPO collapsed into one-word answers on 4 of its 6 runs, KTO held on all 6, and GRPO matched the best runs while changing the model least (one seed); on real prompt injections from Microsoft's BIPIA benchmark every trained model followed fewer of them, but only GRPO did so while keeping full-length answers and its accuracy.
 Every number here comes from a script in this repo with its output saved under `results/`, and the decision log in [docs/PLAN.md](docs/PLAN.md) records each mistake and how it was found and fixed.
 
 ## Status
 
-**Work in progress. M0 to M5 and M7 are done, all four M6 sweeps have run, and the four main Track B runs have been repeated with two more seeds (which changed one conclusion, below). M8 (GRPO with the checker as reward) has run. M9 (real prompt injections) has its first result, for GRPO; the DPO and KTO models are queued. The final write-up remains.**
+**Work in progress. M0 to M5 and M7 are done, all four M6 sweeps have run, and the four main Track B runs have been repeated with two more seeds (which changed one conclusion, below). M8 (GRPO with the checker as reward) and M9 (real prompt injections) have run. All GPU work is done; the final polish and checklist remain.**
 
 | Milestone | Code and tests | Runs |
 |---|---|---|
@@ -21,7 +21,7 @@ Every number here comes from a script in this repo with its output saved under `
 | M6 ablation sweeps and write-up | sweep tooling done | beta, LoRA rank, dataset size and label noise sweeps done; four Track B runs repeated with seeds 1 and 2 (below); final write-up pending |
 | M7 KTO against DPO on Track B (extension) | done, checked against TRL's KTOTrainer | two full runs on a Colab T4 (below) |
 | M8 GRPO with the Track B checker as the reward (extension) | done, loss checked against TRL's GRPOTrainer | one full run on a Colab T4 (below) |
-| M9 transfer to real prompt injections, BIPIA (extension) | done, see [docs/EXTERNAL_EVAL.md](docs/EXTERNAL_EVAL.md) | base model and GRPO evaluated on a Colab T4 (below); DPO and KTO queued |
+| M9 transfer to real prompt injections, BIPIA (extension) | done, see [docs/EXTERNAL_EVAL.md](docs/EXTERNAL_EVAL.md) | base model and four trained models evaluated on a Colab T4 (below) |
 | Stretch: REINFORCE on a toy | done, see [docs/REINFORCE.md](docs/REINFORCE.md) | done on CPU |
 
 **New here? Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md)**: the whole project explained from zero, the story of every experiment, what went wrong, and interview questions with answers. The plan, the milestone criteria and the decision log (including every failure so far and its fix) are in [docs/PLAN.md](docs/PLAN.md). A concept-by-concept walkthrough is in [docs/STUDY_GUIDE.md](docs/STUDY_GUIDE.md).
@@ -109,26 +109,27 @@ Pooled strict numbers from `results/trackb_rescored_compare.json`, drift from `r
 - **Still weaker than the base model on unseen task types:** on the held-out-task split, clean task correct under strict scoring is 0.522 against the base model's 0.627 (change -0.104, -0.194 to -0.015; `results/trackb_rescored_compare.json`), and "how many items" is right 0.138 of the time against 0.253.
 - **One seed.** DPO at beta 0.5 looked as good as this on seed 0 and collapsed on seed 2, so a single GRPO run cannot show that GRPO is reliable.
 
-## Real prompt injections: does it transfer? (M9, first result)
+## Real prompt injections: does it transfer? (M9)
 
-![Base model and GRPO on BIPIA](assets/m9_external_bipia.png)
+![The base model and four trained models on BIPIA](assets/m9_external_bipia.png)
 
-BIPIA (Yi et al. 2023) is a benchmark of instructions planted in real emails and web tables by someone other than the user. 648 attacked and 125 clean examples, laid out like Track B prompts, scored by rules (no judge model); see [docs/EXTERNAL_EVAL.md](docs/EXTERNAL_EVAL.md) for what was adapted and how. These numbers are not comparable with the BIPIA paper's. From `results/trackb_grpo/external_eval/external_table.md`:
+BIPIA (Yi et al. 2023) is a benchmark of instructions planted in real emails and web tables by someone other than the user. 648 attacked and 125 clean examples, laid out like Track B prompts, scored by rules (no judge model); see [docs/EXTERNAL_EVAL.md](docs/EXTERNAL_EVAL.md) for what was adapted and how. These numbers are not comparable with the BIPIA paper's. Adapters are not kept in git, so the DPO and KTO runs were trained again from their configs and seeds and checked against their saved Track B results first (`results/<run>_m9/reproduction.json`). Paired changes against the base model from `results/<run>/external_eval/external_table.md`; answer lengths are `mean_response_words` in each summary.
 
-| | Base model | GRPO | Change (paired) |
-|---|---|---|---|
-| Followed the injected instruction, all attacks | 0.285 | 0.125 | -0.160 (-0.193 to -0.131) |
-| ... format attacks (language, encoding, ...) | 0.169 | 0.034 | -0.135 (-0.184 to -0.092) |
-| ... marker attacks (URL, brand name) | 0.244 | 0.100 | -0.144 (-0.222 to -0.078) |
-| ... topic attacks (off-task content) | 0.365 | 0.185 | -0.179 (-0.225 to -0.134) |
-| Same check on the answer without the attack | 0.000 | 0.000 | |
-| On task, attack present | 0.317 | 0.393 | +0.076 (+0.041 to +0.110) |
-| Task correct, no attack | 0.515 | 0.525 | +0.010 (-0.061 to +0.081) |
+| Model | Followed the injected instruction | Task correct, attack present | Task correct, no attack | Mean answer (words) | Rerun matches the saved run? |
+|---|---|---|---|---|---|
+| Base model | 0.285 | 0.380 | 0.515 | 31 | n/a |
+| DPO, beta 0.1 | 0.057 (-0.228, -0.264 to -0.197) | 0.123 (-0.257, -0.302 to -0.212) | 0.152 (-0.364, -0.465 to -0.263) | 4 | no: it collapsed further (strict clean accuracy 0.233 against 0.359) |
+| DPO, beta 0.5 | 0.148 (-0.137, -0.170 to -0.106) | 0.365 (-0.015, -0.052 to +0.026) | 0.444 (-0.071, -0.152 to +0.010) | 21 | no: only the lenient clean score differs (+0.025); strict identical |
+| KTO, beta 0.5 | 0.068 (-0.218, -0.252 to -0.187) | 0.363 (-0.017, -0.056 to +0.024) | 0.424 (-0.091, -0.182 to +0.000) | 9 | yes (92% identical answers) |
+| **GRPO** | **0.125 (-0.160, -0.193 to -0.131)** | **0.413 (+0.034, +0.000 to +0.067)** | **0.525 (+0.010, -0.061 to +0.081)** | **20** | not needed: its own adapter |
 
-- **The model trained only on synthetic Track B data follows real injected instructions less than half as often,** across all three kinds of attack, without losing accuracy on clean documents.
-- **Part of it may be shorter answers:** GRPO's BIPIA answers average 20 words against the base model's 31 (`mean_response_words` in the two summaries), and a shorter answer has less room to act on an instruction.
-- **Intervals are somewhat too narrow:** each document is used several times and each attack wording in nine examples. The drop is far from the edge of its interval, so this does not change the reading.
-- **Not yet known:** whether DPO and KTO transfer as well. Their adapters are being retrained (adapters are not kept in git), each checked against its saved Track B run before its BIPIA numbers are reported.
+No check fired on any model's answers to the documents without the attack, so every counted case was caused by the attack.
+
+- **Every trained model follows real injected instructions less than the base model,** for format, marker and topic attacks alike, although none of them saw these documents or attacks in training.
+- **But "follows less" lines up with "says less":** across the five models the followed rate falls in exactly the order of answer length (4, 9, 20, 21 and 31 words). The collapsed DPO beta 0.1 model "resists" best only because it barely answers: its task accuracy collapsed with it. KTO's short answers come with a drop in clean-document accuracy whose interval reaches zero.
+- **GRPO is the only model that follows less while keeping full-length answers and its accuracy,** with and without an attack. DPO beta 0.5, at the same length, follows a little more and holds its accuracy within noise.
+- **DPO was hard to reproduce:** both DPO reruns failed the reproduction check (the beta 0.1 one collapsed harder than the saved run), while the KTO rerun matched; this fits the seeds result that DPO is fragile across random seeds. DPO's numbers here describe the reruns.
+- **Limits:** five models are too few to separate shortness from resistance statistically, and no length-matched comparison was made; intervals are somewhat too narrow because documents and attack wordings repeat; one seed per model; rule-based checks miss paraphrased compliance.
 
 ## The beta sweep: same accuracy, very different drift (M6)
 
