@@ -1,45 +1,9 @@
 {
-  "updated_unix": 1795133942,
+  "updated_unix": 1795133947,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-20T00:18:04Z",
   "jobs": {
-    "data_size_100": {
-      "status": "skipped-existing",
-      "stage": "data_size",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "data_size_300": {
-      "status": "skipped-existing",
-      "stage": "data_size",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "data_size_1000": {
-      "status": "skipped-existing",
-      "stage": "data_size",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "data_size_3000": {
-      "status": "skipped-existing",
-      "stage": "data_size",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "data_size_figure": {
-      "status": "skipped-existing",
-      "stage": "data_size",
-      "minutes": 0.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "note": "checked: already current",
-      "from_earlier_launch": true
-    },
     "label_noise_0.0": {
       "status": "skipped-existing",
       "stage": "label_noise",
@@ -610,6 +574,37 @@
     "lora_rank_figure": {
       "status": "skipped-existing",
       "stage": "lora_rank",
+      "minutes": 0.1,
+      "launch": "2026-11-20T00:18:04Z",
+      "note": "checked: already current"
+    },
+    "data_size_100": {
+      "status": "skipped-existing",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "data_size_300": {
+      "status": "skipped-existing",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "data_size_1000": {
+      "status": "skipped-existing",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "data_size_3000": {
+      "status": "skipped-existing",
+      "stage": "data_size",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "data_size_figure": {
+      "status": "skipped-existing",
+      "stage": "data_size",
       "minutes": 0.1,
       "launch": "2026-11-20T00:18:04Z",
       "note": "checked: already current"
