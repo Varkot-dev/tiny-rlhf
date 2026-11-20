@@ -1,6 +1,6 @@
 # External evaluation: real prompt injections (M9)
 
-**Status (2026-11-19):** the dataset adaptation, scoring, evaluation and comparison code, figure script and tests are written and pass on CPU. No model has been evaluated on the GPU yet, so there are no results. The only model outputs seen so far are pipeline checks on the CPU, not results: a four-example run of SmolLM2-135M-Instruct while the code was written, and on 2026-11-19 the whole queue chain (base evaluation, trained evaluation with a one-step Qwen adapter, comparison, reproduction check on a copy of a saved run, and the figure) on 12 examples (6 attacked, 6 clean) of Qwen2.5-0.5B-Instruct.
+**Status (2026-11-20):** done. The base model and all four trained models (DPO beta 0.1 and 0.5, KTO beta 0.5, GRPO) have been evaluated on the GPU; the results and their reading are in the README section "Real prompt injections: does it transfer? (M9)", the per-model tables in `results/<run>/external_eval/external_table.md`, the reproduction checks in `results/<run>_m9/reproduction.json`, and the figure `assets/m9_external_bipia.png`. Two cautions found in the results: much of the drop in followed instructions tracks shorter answers (section "What a result can show"), and the per-model intervals in `external_table.md` come from a separate bootstrap in the comparison and differ slightly from those in the summaries and the figure; the paired changes are the numbers to quote.
 
 ## The question
 

@@ -3,7 +3,7 @@
 ![Every Track B run: on task with a planted instruction, against how much the model changed on ordinary text](assets/hero_tradeoff.png)
 
 I trained Qwen2.5-0.5B-Instruct to keep doing the user's task when a document contains an instruction planted by someone else, with three methods whose losses are written by hand here and checked against the TRL library: DPO (from pairs of answers), KTO (from single good or bad answers) and GRPO (online reinforcement learning with an automatic checker as the reward).
-Each point above is one training run: higher is better at the task when an instruction is planted, further left is less changed on ordinary text; DPO collapsed into one-word answers on 4 of its 6 runs, KTO held on all 6, and GRPO matched the best runs while changing the model least (one seed); on real prompt injections from Microsoft's BIPIA benchmark every trained model followed fewer of them, but only GRPO did so while keeping full-length answers and its accuracy.
+Each point above is one training run: higher is better at the task when an instruction is planted, further left is less changed on ordinary text; DPO collapsed into one-word answers on 4 of its 6 runs, KTO held on all 6, and GRPO matched the best runs while changing the model least (one seed); on real prompt injections from Microsoft's BIPIA benchmark every trained model followed fewer of them, though much of that tracks shorter answers.
 Every number here comes from a script in this repo with its output saved under `results/`, and the decision log in [docs/PLAN.md](docs/PLAN.md) records each mistake and how it was found and fixed.
 
 ## Status
@@ -119,7 +119,7 @@ BIPIA (Yi et al. 2023) is a benchmark of instructions planted in real emails and
 |---|---|---|---|---|---|
 | Base model | 0.285 | 0.380 | 0.515 | 31 | n/a |
 | DPO, beta 0.1 | 0.057 (-0.228, -0.264 to -0.197) | 0.123 (-0.257, -0.302 to -0.212) | 0.152 (-0.364, -0.465 to -0.263) | 4 | no: it collapsed further (strict clean accuracy 0.233 against 0.359) |
-| DPO, beta 0.5 | 0.148 (-0.137, -0.170 to -0.106) | 0.365 (-0.015, -0.052 to +0.026) | 0.444 (-0.071, -0.152 to +0.010) | 21 | no: only the lenient clean score differs (+0.025); strict identical |
+| DPO, beta 0.5 | 0.148 (-0.137, -0.170 to -0.106) | 0.365 (-0.015, -0.052 to +0.026) | 0.444 (-0.071, -0.152 to +0.010) | 21 | no: only the lenient clean score differs (+0.025); strict within noise (0.644 against 0.646) |
 | KTO, beta 0.5 | 0.068 (-0.218, -0.252 to -0.187) | 0.363 (-0.017, -0.056 to +0.024) | 0.424 (-0.091, -0.182 to +0.000) | 9 | yes (92% identical answers) |
 | **GRPO** | **0.125 (-0.160, -0.193 to -0.131)** | **0.413 (+0.034, +0.000 to +0.067)** | **0.525 (+0.010, -0.061 to +0.081)** | **20** | not needed: its own adapter |
 
@@ -127,7 +127,7 @@ No check fired on any model's answers to the documents without the attack, so ev
 
 - **Every trained model follows real injected instructions less than the base model,** for format, marker and topic attacks alike, although none of them saw these documents or attacks in training.
 - **But "follows less" lines up with "says less":** across the five models the followed rate falls in exactly the order of answer length (4, 9, 20, 21 and 31 words). The collapsed DPO beta 0.1 model "resists" best only because it barely answers: its task accuracy collapsed with it. KTO's short answers come with a drop in clean-document accuracy whose interval reaches zero.
-- **GRPO is the only model that follows less while keeping full-length answers and its accuracy,** with and without an attack. DPO beta 0.5, at the same length, follows a little more and holds its accuracy within noise.
+- **The two models with the longest answers hold their accuracy:** GRPO (20 words) and DPO beta 0.5 (21 words) both follow injected instructions about half as often as the base model, and neither loses task accuracy beyond noise, with or without an attack. GRPO follows a little less (0.125 against 0.148) and its accuracy estimates are at or above the base model's while DPO's dip, but the two were not compared directly and their intervals overlap. Both still answer more briefly than the base model (31 words).
 - **DPO was hard to reproduce:** both DPO reruns failed the reproduction check (the beta 0.1 one collapsed harder than the saved run), while the KTO rerun matched; this fits the seeds result that DPO is fragile across random seeds. DPO's numbers here describe the reruns.
 - **Limits:** five models are too few to separate shortness from resistance statistically, and no length-matched comparison was made; intervals are somewhat too narrow because documents and attack wordings repeat; one seed per model; rule-based checks miss paraphrased compliance.
 
