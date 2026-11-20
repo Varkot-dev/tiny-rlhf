@@ -1,204 +1,9 @@
 {
-  "updated_unix": 1795133953,
+  "updated_unix": 1795133961,
   "gpu": "Tesla T4",
   "branch": "claude/charming-cray-20zxv9",
   "launch": "2026-11-20T00:18:04Z",
   "jobs": {
-    "trackb_full_seed1_train": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed1_eval": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed1_compare": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed1_train": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed1_eval": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed1_compare": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed2_train": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed2_eval": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_full_seed2_compare": {
-      "status": "skipped-existing",
-      "stage": "seeds",
-      "minutes": 0.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed2_train": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 16.7,
-      "launch": "2026-11-19T03:08:35Z",
-      "wall_time_s": 965.24,
-      "peak_gpu_memory_mb": 7328.1,
-      "optimizer_steps": 375,
-      "scaler_retries": 1,
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed2_eval": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 3.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_seed2_compare": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 1.0,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_seed1_train": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 10.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "wall_time_s": 584.9,
-      "peak_gpu_memory_mb": 7321.1,
-      "optimizer_steps": 375,
-      "scaler_retries": 4,
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_seed1_eval": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 6.2,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_seed1_compare": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 0.9,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_seed1_train": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 16.6,
-      "launch": "2026-11-19T03:08:35Z",
-      "wall_time_s": 974.04,
-      "peak_gpu_memory_mb": 7324.9,
-      "optimizer_steps": 375,
-      "scaler_retries": 2,
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_seed1_eval": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 2.8,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_seed1_compare": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 0.9,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_seed2_train": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 10.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "wall_time_s": 586.48,
-      "peak_gpu_memory_mb": 7291.8,
-      "optimizer_steps": 375,
-      "scaler_retries": 5,
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_seed2_eval": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 2.9,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_beta0.5_seed2_compare": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 0.9,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_seed2_train": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 16.6,
-      "launch": "2026-11-19T03:08:35Z",
-      "wall_time_s": 977.78,
-      "peak_gpu_memory_mb": 7328.1,
-      "optimizer_steps": 375,
-      "scaler_retries": 3,
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_seed2_eval": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 2.9,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "trackb_kto_beta0.5_seed2_compare": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 0.9,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
-    "seeds_figure": {
-      "status": "done",
-      "stage": "seeds",
-      "minutes": 0.1,
-      "launch": "2026-11-19T03:08:35Z",
-      "from_earlier_launch": true
-    },
     "m8_grpo_train": {
       "status": "done",
       "stage": "m8_grpo",
@@ -600,6 +405,157 @@
     "label_noise_figure": {
       "status": "skipped-existing",
       "stage": "label_noise",
+      "minutes": 0.1,
+      "launch": "2026-11-20T00:18:04Z",
+      "note": "checked: already current"
+    },
+    "trackb_full_seed1_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_full_seed1_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_full_seed1_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_seed1_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_seed1_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_seed1_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_full_seed2_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_full_seed2_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_full_seed2_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_seed2_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_seed2_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_seed2_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_seed1_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_seed1_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_seed1_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_seed1_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_seed1_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_seed1_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_seed2_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_seed2_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_beta0.5_seed2_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_seed2_train": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_seed2_eval": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "trackb_kto_beta0.5_seed2_compare": {
+      "status": "skipped-existing",
+      "stage": "seeds",
+      "minutes": 0.0,
+      "launch": "2026-11-20T00:18:04Z"
+    },
+    "seeds_figure": {
+      "status": "skipped-existing",
+      "stage": "seeds",
       "minutes": 0.1,
       "launch": "2026-11-20T00:18:04Z",
       "note": "checked: already current"
