@@ -42,6 +42,20 @@ FOLLOWED = (
     ("marker", "marker\n(URL, brand name)"),
     ("topic", "topic\n(off-task content)"),
 )
+# Colour follows the model across figures: the same order as ENTITIES in
+# scripts/plot_trackb_variants.py (tested), indexed into SERIES. A rerun made for this
+# evaluation (<run>_m9) takes its saved run's colour.
+ENTITY_ORDER = (
+    "base",
+    "trackb_full",
+    "trackb_beta0.5",
+    "trackb_steps60",
+    "trackb_sft1",
+    "trackb_kto",
+    "trackb_kto_beta0.5",
+    "trackb_grpo",
+)
+RERUN_SUFFIX = "_m9"
 BEHAVIOUR = (
     ("injected", "task_correct", "task correct,\nattack present"),
     ("clean", "task_correct", "task correct,\nno attack"),
@@ -87,7 +101,21 @@ def followed_stats(summary: dict, kind: str | None, metric: str) -> dict:
     return block["metrics"][metric] if block else {"rate": None, "ci_low": None, "ci_high": None}
 
 
-def draw_bars(ax, stats_per_model: list[list[dict]], ticks: list[list[dict]] | None) -> None:
+def model_colours(paths: list[Path]) -> list[str]:
+    """One colour per model: the base model first, then each trained summary's run."""
+    colours = []
+    for k, path in enumerate(paths):
+        run = "base" if k == 0 else path.resolve().parent.parent.name.removesuffix(RERUN_SUFFIX)
+        colours.append(SERIES[ENTITY_ORDER.index(run)] if run in ENTITY_ORDER else SERIES[k])
+    return colours
+
+
+def draw_bars(
+    ax,
+    stats_per_model: list[list[dict]],
+    ticks: list[list[dict]] | None,
+    colours: list[str],
+) -> None:
     """Grouped bars: one group per x position, one bar per model, with error bars."""
     n_models = len(stats_per_model)
     n_groups = len(stats_per_model[0])
@@ -98,7 +126,7 @@ def draw_bars(ax, stats_per_model: list[list[dict]], ticks: list[list[dict]] | N
         low = np.array([np.nan if s["ci_low"] is None else s["ci_low"] for s in stats])
         high = np.array([np.nan if s["ci_high"] is None else s["ci_high"] for s in stats])
         pos = x + (k - (n_models - 1) / 2) * width
-        ax.bar(pos, rates, width * 0.9, color=SERIES[k], label=None, zorder=2)
+        ax.bar(pos, rates, width * 0.9, color=colours[k], label=None, zorder=2)
         ax.errorbar(
             pos,
             rates,
@@ -158,7 +186,8 @@ def main() -> None:
         [followed_stats(s, k, "check_fired_without_attack") for k, _ in FOLLOWED]
         for _, s in summaries
     ]
-    draw_bars(ax_f, followed, chance)
+    colours = model_colours([path for _, path in models])
+    draw_bars(ax_f, followed, chance, colours)
     first = summaries[0][1]
     counts = [
         first["groups"]["injected"]["n"]
@@ -176,7 +205,7 @@ def main() -> None:
         [s["groups"][group]["metrics"][metric] for group, metric, _ in BEHAVIOUR]
         for _, s in summaries
     ]
-    draw_bars(ax_b, behaviour, None)
+    draw_bars(ax_b, behaviour, None, colours)
     ax_b.set_xticklabels(
         [
             f"{name}\nn = {first['groups'][group]['metrics'][metric]['n']}"
@@ -186,7 +215,7 @@ def main() -> None:
     ax_b.set_title("Doing the user's task")
     ax_b.set_ylabel("share of examples")
 
-    handles = [plt.Rectangle((0, 0), 1, 1, color=SERIES[k]) for k in range(len(summaries))] + [
+    handles = [plt.Rectangle((0, 0), 1, 1, color=colours[k]) for k in range(len(summaries))] + [
         plt.Line2D([], [], color=TEXT_PRIMARY, marker="_", ls="none", markersize=12, mew=2)
     ]
     labels = [label for label, _ in summaries] + ["same check, answer without the attack"]

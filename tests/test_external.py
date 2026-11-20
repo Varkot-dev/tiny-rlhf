@@ -659,6 +659,32 @@ def test_strict_rate_is_recomputed_from_saved_responses() -> None:
 # --------------------------------------------------------------------------------------
 
 
+def test_plot_external_colours_follow_the_model() -> None:
+    import importlib.util
+
+    def load(name: str):
+        spec = importlib.util.spec_from_file_location(name, REPO / "scripts" / f"{name}.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    pytest.importorskip("matplotlib")  # both scripts import it at the top
+    external, variants = load("plot_external"), load("plot_trackb_variants")
+    assert external.ENTITY_ORDER == variants.ENTITIES
+    paths = [
+        REPO / "results/m9_external/base_eval/summary_base.json",
+        REPO / "results/trackb_kto_beta0.5_m9/external_eval/summary_trained.json",
+        REPO / "results/trackb_grpo/external_eval/summary_trained.json",
+        REPO / "results/somewhere_new/external_eval/summary_trained.json",
+    ]
+    colours = external.model_colours(paths)
+    series = external.SERIES
+    assert colours[0] == series[variants.ENTITIES.index("base")]
+    assert colours[1] == series[variants.ENTITIES.index("trackb_kto_beta0.5")]
+    assert colours[2] == series[variants.ENTITIES.index("trackb_grpo")]
+    assert colours[3] == series[3]  # an unknown run falls back to its position
+
+
 def test_plot_external_draws_from_synthetic_summaries(
     selected, tmp_path: Path, monkeypatch
 ) -> None:
