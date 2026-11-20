@@ -88,6 +88,267 @@
         }
       }
     },
+    "DPO, beta 0.1": {
+      "summary": "results/trackb_full_m9/external_eval/summary_trained.json",
+      "adapter": "checkpoints/trackb_full_m9",
+      "followed_injection": {
+        "all attacks": {
+          "rate": 0.05709876543209876,
+          "ci_low": 0.040123456790123455,
+          "ci_high": 0.07561728395061729,
+          "k": 37,
+          "n": 648
+        },
+        "format": {
+          "rate": 0.024154589371980676,
+          "ci_low": 0.004830917874396135,
+          "ci_high": 0.04830917874396135,
+          "k": 5,
+          "n": 207
+        },
+        "marker": {
+          "rate": 0.011111111111111112,
+          "ci_low": 0.0,
+          "ci_high": 0.03333333333333333,
+          "k": 1,
+          "n": 90
+        },
+        "topic": {
+          "rate": 0.08831908831908832,
+          "ci_low": 0.05982905982905983,
+          "ci_high": 0.1168091168091168,
+          "k": 31,
+          "n": 351
+        }
+      },
+      "check_fired_without_attack": {
+        "all attacks": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 648
+        },
+        "format": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 207
+        },
+        "marker": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 90
+        },
+        "topic": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 351
+        }
+      },
+      "behaviour": {
+        "task correct, attack present": {
+          "rate": 0.12290502793296089,
+          "ci_low": 0.09683426443202979,
+          "ci_high": 0.15088454376163848,
+          "k": 66,
+          "n": 537
+        },
+        "task correct, no attack": {
+          "rate": 0.15151515151515152,
+          "ci_low": 0.08080808080808081,
+          "ci_high": 0.2222222222222222,
+          "k": 15,
+          "n": 99
+        },
+        "refused, no attack": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 125
+        }
+      }
+    },
+    "DPO, beta 0.5": {
+      "summary": "results/trackb_beta0.5_m9/external_eval/summary_trained.json",
+      "adapter": "checkpoints/trackb_beta0.5_m9",
+      "followed_injection": {
+        "all attacks": {
+          "rate": 0.14814814814814814,
+          "ci_low": 0.12191358024691358,
+          "ci_high": 0.17592592592592593,
+          "k": 96,
+          "n": 648
+        },
+        "format": {
+          "rate": 0.057971014492753624,
+          "ci_low": 0.028985507246376812,
+          "ci_high": 0.09178743961352658,
+          "k": 12,
+          "n": 207
+        },
+        "marker": {
+          "rate": 0.1,
+          "ci_low": 0.044444444444444446,
+          "ci_high": 0.16666666666666666,
+          "k": 9,
+          "n": 90
+        },
+        "topic": {
+          "rate": 0.21367521367521367,
+          "ci_low": 0.17094017094017094,
+          "ci_high": 0.2564814814814811,
+          "k": 75,
+          "n": 351
+        }
+      },
+      "check_fired_without_attack": {
+        "all attacks": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 648
+        },
+        "format": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 207
+        },
+        "marker": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 90
+        },
+        "topic": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 351
+        }
+      },
+      "behaviour": {
+        "task correct, attack present": {
+          "rate": 0.3649906890130354,
+          "ci_low": 0.3240223463687151,
+          "ci_high": 0.40782122905027934,
+          "k": 196,
+          "n": 537
+        },
+        "task correct, no attack": {
+          "rate": 0.4444444444444444,
+          "ci_low": 0.3434343434343434,
+          "ci_high": 0.5353535353535354,
+          "k": 44,
+          "n": 99
+        },
+        "refused, no attack": {
+          "rate": 0.008,
+          "ci_low": 0.0,
+          "ci_high": 0.024,
+          "k": 1,
+          "n": 125
+        }
+      }
+    },
+    "KTO, beta 0.5": {
+      "summary": "results/trackb_kto_beta0.5_m9/external_eval/summary_trained.json",
+      "adapter": "checkpoints/trackb_kto_beta0.5_m9",
+      "followed_injection": {
+        "all attacks": {
+          "rate": 0.06790123456790123,
+          "ci_low": 0.04938271604938271,
+          "ci_high": 0.08796296296296297,
+          "k": 44,
+          "n": 648
+        },
+        "format": {
+          "rate": 0.00966183574879227,
+          "ci_low": 0.0,
+          "ci_high": 0.024154589371980676,
+          "k": 2,
+          "n": 207
+        },
+        "marker": {
+          "rate": 0.022222222222222223,
+          "ci_low": 0.0,
+          "ci_high": 0.05555555555555555,
+          "k": 2,
+          "n": 90
+        },
+        "topic": {
+          "rate": 0.11396011396011396,
+          "ci_low": 0.07977207977207977,
+          "ci_high": 0.14814814814814814,
+          "k": 40,
+          "n": 351
+        }
+      },
+      "check_fired_without_attack": {
+        "all attacks": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 648
+        },
+        "format": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 207
+        },
+        "marker": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 90
+        },
+        "topic": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 351
+        }
+      },
+      "behaviour": {
+        "task correct, attack present": {
+          "rate": 0.36312849162011174,
+          "ci_low": 0.3240223463687151,
+          "ci_high": 0.40409683426443205,
+          "k": 195,
+          "n": 537
+        },
+        "task correct, no attack": {
+          "rate": 0.42424242424242425,
+          "ci_low": 0.3333333333333333,
+          "ci_high": 0.5151515151515151,
+          "k": 42,
+          "n": 99
+        },
+        "refused, no attack": {
+          "rate": 0.0,
+          "ci_low": 0.0,
+          "ci_high": 0.0,
+          "k": 0,
+          "n": 125
+        }
+      }
+    },
     "GRPO": {
       "summary": "results/trackb_grpo/external_eval/summary_trained.json",
       "adapter": "checkpoints/trackb_grpo",
