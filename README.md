@@ -1,10 +1,10 @@
 # tiny-rlhf
 
-![The DPO loss per pair for three values of beta, and how hard each pair pushes on the preferred response](assets/m0_loss_shape.png)
+![Every Track B run: on task with a planted instruction, against how much the model changed on ordinary text](assets/hero_tradeoff.png)
 
-Preference learning on a small language model, built from scratch: a reward model, DPO written by hand and checked against the TRL library, then applied to one measurable behavior.
-The figure shows the DPO loss function itself, evaluated by this repo's `dpo_loss`: every run starts at log 2 because the policy starts equal to the reference, and beta sets how sharply a pair stops pushing once the policy favours the preferred response.
-It is a picture of the loss function, not of a trained model.
+I trained Qwen2.5-0.5B-Instruct to keep doing the user's task when a document contains an instruction planted by someone else, with three methods whose losses are written by hand here and checked against the TRL library: DPO (from pairs of answers), KTO (from single good or bad answers) and GRPO (online reinforcement learning with an automatic checker as the reward).
+Each point above is one training run: higher is better at the task when an instruction is planted, further left is less changed on ordinary text; DPO collapsed into one-word answers on 4 of its 6 runs, KTO held on all 6, and GRPO matched the best runs while changing the model least (one seed), and on real prompt injections from Microsoft's BIPIA benchmark it followed the planted instruction less than half as often as the base model.
+Every number here comes from a script in this repo with its output saved under `results/`, and the decision log in [docs/PLAN.md](docs/PLAN.md) records each mistake and how it was found and fixed.
 
 ## Status
 
@@ -204,6 +204,10 @@ The figure above breaks the drop down per held-out pair (`scripts/analyze_logp_c
 Limits: this is a single run with one seed and untuned hyperparameters, about 30% of responses were cut at 512 tokens, and "preference accuracy" here is relative to the reference model, so it says the policy moved in the labelled direction on 65% of pairs, not that its answers are better. The step-by-step comparison with TRL on this model is in the M2 section above.
 
 ## Checks run so far (none of these is a result about DPO)
+
+![The DPO loss per pair for three values of beta, and how hard each pair pushes on the preferred response](assets/m0_loss_shape.png)
+
+The DPO loss function itself, evaluated by this repo's `dpo_loss` (a picture of the loss, not of a trained model): every run starts at log 2 because the policy starts equal to the reference, and beta sets how sharply a pair stops pushing once the policy favours the preferred response.
 
 ### The hand-written loop matches TRL step for step (M2)
 
